@@ -1134,7 +1134,7 @@ const getDeviceOverviewById = async (req, res) => {
 const addAboutDevice = async (req, res) => {
   try {
     const schema = Joi.object({
-      deviceId: Joi.string().allow("").optional(),
+      deviceId: Joi.string().optional(),
       product_type: Joi.string().required(),
       serial_no: Joi.string().required(),
       purpose: Joi.string().required(),
@@ -1162,31 +1162,32 @@ const addAboutDevice = async (req, res) => {
         message: result.error.details[0].message,
       });
     }
+    // console.log(req.body)
     const project_code = req.query.project_code;
     // check already serial number exixts or not
     const isSerialNo = await aboutDeviceModel.findOne({serial_no:req.body.serial_no});
-    const errors = validationResult(req);
-    if(!!isSerialNo) {
-      return res.status(400).json({
-        statusCode: 400,
-        statusValue:"FAIL",
-        message:"This Serial No. already in used.",
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: errors
-              .array()
-              .map((err) => {
-                return `${err.msg}: ${err.param}`;
-              })
-              .join(' | '),
-            msg: 'This Serial No. already in used.',
-            type: 'ValidationError',
-            statusCode:400,
-          },
-        },
-      });
-    }
+    // const errors = validationResult(req);
+    // if(!!isSerialNo) {
+    //   return res.status(400).json({
+    //     statusCode: 400,
+    //     statusValue:"FAIL",
+    //     message:"This Serial No. already in used.",
+    //     data: {
+    //       err: {
+    //         generatedTime: new Date(),
+    //         errMsg: errors
+    //           .array()
+    //           .map((err) => {
+    //             return `${err.msg}: ${err.param}`;
+    //           })
+    //           .join(' | '),
+    //         msg: 'This Serial No. already in used.',
+    //         type: 'ValidationError',
+    //         statusCode:400,
+    //       },
+    //     },
+    //   });
+    // }
 
     // set date of warranty
     function addOneYear(date) {
@@ -1203,35 +1204,68 @@ const addAboutDevice = async (req, res) => {
     const getProduction = await productionModel.findOne({$or:[{serialNumber:req.body.serial_no},{deviceId:req.body.deviceId}]});
     // console.log(22, getProduction)
     // get hospital
-    const getHospital = await Device.findOne({$or:[{DeviceId:getProduction.deviceId},{DeviceId:req.body.deviceId}]});
-    // console.log(11,getHospital)
+    const getHospital = await Device.findOne({$or:[{DeviceId:req.body.deviceId}]});
+    console.log(11,getHospital)
+    // console.log(11,req.body)
     
-    const saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
-      { deviceId: getProduction.deviceId },
+    let saveDispatchData
+    if (!!getProduction) {
+      saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
+        { deviceId:!!getProduction? getProduction.deviceId : req.body.deviceId },
+        {
+          deviceId:!!getProduction? getProduction.deviceId : req.body.deviceId,
+          product_type:!!getProduction? getProduction.productType : req.body.product_type,
+          serial_no:!!getProduction? getProduction.serialNumber : req.body.serial_no,
+          purpose:req.body.purpose,
+          concerned_person:req.body.concerned_person,
+          batch_no:!!getProduction? getProduction.batchNumber : req.body.batch_no,
+          date_of_manufacturing:!!getProduction? getProduction.manufacturingDate : req.body.date_of_manufacturing,
+          address:req.body.address,
+          date_of_dispatch:req.body.date_of_dispatch,
+          hospital_name:!!getHospital? getHospital.Hospital_Name : req.body.hospital_name,
+          phone_number:req.body.phone_number,
+          sim_no:!!getProduction? getProduction.simNumber : "NA",
+          pincode:req.body.pincode,
+          distributor_name:(!!req.body.distributor_name)? req.body.distributor_name : "NA",
+          distributor_contact:(!!req.body.distributor_contact)? req.body.distributor_contact : "NA",
+          state:(!!req.body.state)? req.body.state : "NA",
+          city:(!!req.body.city)? req.body.city : "NA",
+          district:(!!req.body.district)? req.body.district : "NA",
+          date_of_warranty:finalDate[0],
+          document_no:req.body.document_no,
+        },
+        { upsert: true }
+      );
+
+    }
+
+    saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
+      { deviceId:req.body.deviceId },
       {
-        deviceId:!!getProduction? getProduction.deviceId : req.body.deviceId,
-        product_type:!!getProduction? getProduction.productType : req.body.product_type,
-        serial_no:!!getProduction? getProduction.serialNumber : req.body.serial_no,
+        deviceId:req.body.deviceId,
+        product_type:req.body.product_type,
+        serial_no:req.body.serial_no,
         purpose:req.body.purpose,
         concerned_person:req.body.concerned_person,
-        batch_no:!!getProduction? getProduction.batchNumber : req.body.batch_no,
-        date_of_manufacturing:!!getProduction? getProduction.manufacturingDate : req.body.date_of_manufacturing,
+        batch_no:req.body.batch_no,
+        date_of_manufacturing:req.body.date_of_manufacturing,
         address:req.body.address,
         date_of_dispatch:req.body.date_of_dispatch,
-        hospital_name:!!getHospital? getHospital.Hospital_Name : req.body.hospital_name,
+        hospital_name:req.body.hospital_name,
         phone_number:req.body.phone_number,
-        sim_no:!!getProduction? getProduction.simNumber : "NA",
+        sim_no:"NA",
         pincode:req.body.pincode,
         distributor_name:(!!req.body.distributor_name)? req.body.distributor_name : "NA",
         distributor_contact:(!!req.body.distributor_contact)? req.body.distributor_contact : "NA",
         state:(!!req.body.state)? req.body.state : "NA",
         city:(!!req.body.city)? req.body.city : "NA",
         district:(!!req.body.district)? req.body.district : "NA",
-        date_of_warranty:finalDate[0],
+        date_of_warranty:!!finalDate[0]? finalDate[0] : "",
         document_no:req.body.document_no,
       },
       { upsert: true }
     );
+    
     const checkData = await aboutDeviceModel.findOne({deviceId:req.body.deviceId});
     if(!!checkData) {
       await productionModel.findOneAndUpdate(
@@ -1250,6 +1284,16 @@ const addAboutDevice = async (req, res) => {
         message: "Data added successfully.",
       });
     }
+    // await productionModel.findOneAndUpdate(
+    //   {deviceId:checkData.deviceId},
+    //   {
+    //     hospitalName:checkData.hospital_name,
+    //     address:checkData.address,
+    //     dispatchDate:checkData.date_of_dispatch,
+    //     purpose:checkData.purpose,
+    //     dateOfWarranty:checkData.date_of_warranty,
+    //   }
+    // );
     // console.log(33,saveDispatchData)
     return res.status(201).json({
       statusCode: 201,

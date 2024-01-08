@@ -318,7 +318,10 @@ const verifyOtpSms = async (req, res) => {
     }
     const checkOtp = await otpVerificationModel.findOne({ otp: req.body.otp });
     const errors = validationResult(req);
-    
+    // remove +91 from contactNumber
+    var phoneNumberWithCountryCode = checkOtp.contactNumber;
+    var phoneNumberWithoutCountryCode = phoneNumberWithCountryCode.replace('+91', '');
+
     // console.log(11,checkOtp)
     if (!checkOtp) {
       return res.status(400).json({
@@ -364,6 +367,7 @@ const verifyOtpSms = async (req, res) => {
     }
     
     await otpVerificationModel.findOneAndUpdate({otp:req.body.otp},{isVerified:true})
+    await Users.findOneAndUpdate({contactNumber:phoneNumberWithoutCountryCode},{otp:req.body.otp,accountStatus:"Active"})
     res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -2002,7 +2006,6 @@ const changeUserAcStatus = async (req, res) => {
     })
   }
 }
-
 
 
 /**
