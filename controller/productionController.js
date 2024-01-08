@@ -113,42 +113,81 @@ const createProduction = async (req, res) => {
  */
 const getProductionData = async (req, res) => {
     try {
+        // for pagination
         let { page, limit } = req.query;
         if (!page || page === "undefined") {
-            page = 1;
+        page = 1;
         }
         if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-            limit = 1000;
+        limit = 999999;
         }
-        const skip = page > 0 ? (page - 1) * limit : 0
 
-        const data = await productionModel.find({})
-            .select({__v: 0, createdAt: 0, updatedAt: 0 })
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit);
-
-        const count = await productionModel.find({})
-            .sort({ createdAt: -1 })
-            .countDocuments();
-
-        if (!data.length) {
-            return res.status(404).json({
-                statusCode: 404,
-                statusValue: "FAIL",
-                message: "Data not found.",
-                data: [],
-            })
+        // aggregate logic
+        var pipline = [
+            // Match
+            // {},
+            {
+              "$lookup": {
+                "from": "s3_bucket_productions",
+                "localField": "deviceId",
+                "foreignField": "deviceId",
+                "as": "bucket_mapping",
+              },
+            },
+            // For this data model, will always be 1 record in right-side
+            // of join, so take 1st joined array element
+            {
+              "$set": {
+                "bucket_mapping": {"$first": "$bucket_mapping"},
+              }
+            },
+            // Extract the joined embeded fields into top level fields
+            {
+              "$set": {"location": "$bucket_mapping.location"},
+            },
+            {
+              "$unset": [
+                "bucket_mapping",
+                "__v",
+                // "createdAt",
+                "updatedAt",
+                // "otp",
+                // "isVerified",
+              ]
+            },
+            {
+              "$sort": {"createdAt":-1}
+            },
+        ]
+      
+        // get data
+        const resData = await productionModel.aggregate(pipline);
+        const count = resData.length
+        // for pagination
+        const paginateArray =  (resData, page, limit) => {
+            const skip = resData.slice((page - 1) * limit, page * limit);
+            return skip;
+        };
+      
+        let data = paginateArray(resData, page, limit)
+        // count data
+        if (data.length > 0) {
+            return res.status(200).json({
+                statusCode: 200,
+                statusValue: "SUCCESS",
+                message: "production data get successfully!",
+                data: data,
+                totalDataCount: count,
+                totalPages: Math.ceil(count / limit),
+                currentPage: page
+            });
         }
-        return res.status(200).json({
-            statusCode: 200,
-            statusValue: "SUCCESS",
-            message: "production data get successfully!",
-            data: data,
-            totalDataCount: count,
-            totalPages: Math.ceil(count / limit),
-            currentPage: page
-        });
+        return res.status(404).json({
+            statusCode: 404,
+            statusValue: "FAIL",
+            message: "Data not found.",
+            data: [],
+        })
     } catch (err) {
         res.status(500).json({
             statusCode: 500,

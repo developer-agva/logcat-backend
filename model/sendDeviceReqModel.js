@@ -1,12 +1,16 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema;
 
-const assignDeviceSchema = mongoose.Schema({
+const sendDeviceReqSchema = mongoose.Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: "User"
     },
-    assignedBy:{
+    requestedBy:{
+        type: String,
+        default:"",
+    },
+    hospitalName:{
         type: String,
         default:"",
     },
@@ -14,26 +18,23 @@ const assignDeviceSchema = mongoose.Schema({
         type: String,
         default:""
     },
-    status:{
-        type: Boolean,
-        required: true,
-        default: false,
-    },
-    isAssigned: {
+    serialNumber:{
         type: String,
-        required: true,
-        default:""
+        default:"",
     },
-    hospitalName: {
+    deviceType:{
+        type: String,
+        default:"",
+    },
+    isAssigned:{
         type: String,
         required: true,
         default: "",
     },
     
-
 }, { timestamps: true })
 
-const assignDeviceTouserModel = mongoose.model('assigned_devices_tousers', assignDeviceSchema);
+const sendDeviceReqModel = mongoose.model('device_request', sendDeviceReqSchema);
 
 
-module.exports = assignDeviceTouserModel
+module.exports = sendDeviceReqModel

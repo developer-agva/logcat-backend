@@ -82,7 +82,7 @@ const isSuperAdmin = async (req, res, next) => {
     // console.log("Details of user", user);
     // console.log(user.isSuperAdmin);
 
-    if (!user.isSuperAdmin) {
+    if (user.userType !== "Super-Admin") {
       return res.status(403).json({
         status: 0,
         data: {
@@ -118,7 +118,7 @@ const isAdmin = async (req, res, next) => {
     const user = await User.findById(req.user);
     // console.log("Details of user", user);
       //  console.log("Admin details :", user);
-    if (user.userType !== "Admin") {
+    if (user.userType !== "Hospital-Admin") {
       return res.status(403).json({
         status: 0,
         data: {

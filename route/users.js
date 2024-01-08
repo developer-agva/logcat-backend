@@ -24,7 +24,20 @@ const {
     getUserStatus,
     sendOtpSms,
     verifyOtpSms,
-    registerUserForSuperAdmin
+    registerUserForSuperAdmin,
+    getAllActiveUSers,
+    getAllPendingUsers,
+    changeUserAcStatus,
+    sendReqForDevice,
+    getUserDeviceReq,
+    getAllActiveAdmin,
+    acceptOrRejectdeviceReq,
+    addUserExperience,
+    updateUserExperience,
+    getUserProfileByExpId,
+    endAssociation,
+    updatePrimaryEmail,
+    getAllEmployeeList
 } = require('../controller/users.js')
 
 const {
@@ -41,6 +54,11 @@ router.post('/auth/register-for-dashboard', registerUserForSuperAdmin);
 
 router.get('/send-otp-sms/:contactNumber', sendOtpSms);
 router.post('/verify-sms-otp', verifyOtpSms);
+
+router.post('/send-device-req', sendReqForDevice);
+router.get('/get-user-device-req', getUserDeviceReq);
+router.post('/accept-or-reject-device-req', acceptOrRejectdeviceReq);
+
 
 // router.post("/auth/forget", body('email').notEmpty().isEmail(), userForgetPassword);
 
@@ -62,16 +80,34 @@ router.get('/auth/logout', isAuth, logoutUser)
 // Protected Route
 // router.get('/users', isAuth, profileCache(10), getUserByUserId)
 router.get('/users/:userId', isAuth, getUserProfileById);
+router.get('/users/get-user-experience/:id', isAuth, getUserProfileByExpId);
+
 router.get('/user-status/:email', getUserStatus);
 
 router.get('/users-list', isAuth, getAllUsers);
+router.get('/employee-list', isAuth, getAllEmployeeList);
+
+router.get('/active-users-list', isAuth, getAllActiveUSers);
+router.get('/active-admin-list', isAuth, getAllActiveAdmin);
+
+router.get('/pending-users-list', isAuth, getAllPendingUsers);
+router.put('/user-account-status/:userId', isAuth, changeUserAcStatus);
+
+
 router.get('/service-eng-list', getServiceEngList);
-router.put('/change-user-status', changeUserStatus)
+router.put('/change-user-status', changeUserStatus);
 
 router.put('/change-userType/:userId', isAuth, isSuperAdmin, changeUserType);
 router.delete('/users/delete-byid/:id', isAuth, isSuperAdmin, deleteSingleUser);
 
 router.put('/users/update', isAuth, updateUserProfile);
+router.post('/users/add-experience', isAuth, addUserExperience);
+router.put('/users/update-experience', isAuth, updateUserExperience);
+router.put('/users/end-association', isAuth, endAssociation);
+router.put('/users/update-primary-email', isAuth, updatePrimaryEmail);
+
+
+
 router.put("/users/changepassword", isAuth, userPasswordChange);
 router.get("/user-activity", isAuth, getActivity);
 

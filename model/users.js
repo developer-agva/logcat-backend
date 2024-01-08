@@ -1,6 +1,7 @@
 const { array } = require('joi')
 const mongoose = require('mongoose')
 
+
 const userSchema = mongoose.Schema({
     firstName:{
         required:[true, "First name is required"],
@@ -17,8 +18,8 @@ const userSchema = mongoose.Schema({
         match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
     },
     hospitalName:{
-        required:[true, "Hospital name is required"],
-        type: String
+        type: String,
+        default: "",
     },
     designation:{
         type: String,
@@ -72,6 +73,35 @@ const userSchema = mongoose.Schema({
         enum: ["Active", "Inactive", "On-leave"],
         required:true,
         default:"Active"
+    },
+    lastLogin:{
+        type: String,
+        default: "",
+    },
+    requestedOn:{
+        type: String,
+        default:"",
+    },
+    speciality:{
+        type: String,
+        default:"",
+    },
+    profile:[{
+        userId:{type:mongoose.Types.ObjectId, ref:"User"},
+        associationName:{type:String, default:""},
+        workAddress:{type:String, default:""},
+        startDate:{type:String, default:""},
+        endDate:{type:String, default:""},
+        workEmail:{type:String, default:""},
+        workPhoneNo:{type:String, default:""},
+        designation:{type:String, default:""},
+        department:{type:String, default:""},
+        workType:{type:String, default:""},
+        skills:{type:String, default:""},
+    }],
+    employeeId: {
+        type : String,
+        default: "",
     },
 }, {timestamps: true})
 

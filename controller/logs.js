@@ -922,6 +922,211 @@ const getAllDeviceId2 = async (req, res) => {
   }
 };
 
+// get all device for users
+const getAllDevicesForUsers = async (req, res) => {
+  try {
+     // Search
+     var search = "";
+     if (req.query.search && req.query.search !== "undefined") {
+       search = req.query.search;
+    }
+     // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+       page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+       limit = 99999;
+    }
+
+    // get loggedin user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
+    console.log(loggedInUser.hospitalName)
+    // Declare blank obj
+    let filterObj = {};
+    // check user
+    if (!!loggedInUser && loggedInUser.userType === "User") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        // {"deviceReqData.userId":loggedInUser._id},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  } else {
+    filterObj = {
+      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+    } 
+  }
+    
+    
+    // check user
+  
+  const activeDevices = await statusModel.aggregate([
+    {
+      $match: {
+        "message":"ACTIVE",
+      }
+    },
+    {
+      $lookup:
+      {
+        from: "registerdevices",
+        localField: "deviceId",
+        foreignField: "DeviceId",
+        as: "deviceInfo"
+      }
+    },
+    {
+      $lookup:
+      {
+        from: "assigned_devices_tousers",
+        localField: "deviceId",
+        foreignField: "deviceId",
+        as: "deviceReqData"
+      }
+    },
+    // For this data model, will always be 1 record in right-side
+    // of join, so take 1st joined array element
+    {
+      "$set": {
+        "deviceReqData": {"$first": "$deviceReqData"},
+      }
+    },
+    // Extract the joined embeded fields into top level fields
+    {
+      "$set": {"isAssigned": "$deviceReqData.isAssigned"},
+    },
+    filterObj,
+    // {
+    //   $project:{
+    //     "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+    //     "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+    //   }
+    // },
+    {
+      "$unset": [
+        "deviceReqData",
+        "__v",
+        "createdAt",
+        "deviceInfo.__v",
+        "deviceInfo.createdAt",
+        "deviceInfo.updatedAt",
+        "deviceInfo.Status"
+      ]
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+   
+  const inactiveDevices = await statusModel.aggregate([
+    {
+      $match: {
+        "message":"INACTIVE",
+      }
+    },
+    {
+      $lookup:
+        {
+          from: "registerdevices",
+          localField: "deviceId",
+          foreignField: "DeviceId",
+          as: "deviceInfo"
+        }
+    },
+    {
+      $lookup:
+      {
+        from: "assigned_devices_tousers",
+        localField: "deviceId",
+        foreignField: "deviceId",
+        as: "deviceReqData"
+      }
+    },
+    // For this data model, will always be 1 record in right-side
+    // of join, so take 1st joined array element
+    {
+      "$set": {
+        "deviceReqData": {"$first": "$deviceReqData"},
+      }
+    },
+    // Extract the joined embeded fields into top level fields
+    {
+      "$set": {"isAssigned": "$deviceReqData.isAssigned"},
+    },
+    filterObj,
+    {
+      "$unset": [
+        "deviceReqData",
+        "__v",
+        "createdAt",
+        "deviceInfo.__v",
+        "deviceInfo.createdAt",
+        "deviceInfo.updatedAt",
+        "deviceInfo.Status"
+      ]
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+  var finalArr = [...activeDevices, ...inactiveDevices];
+  // remove duplicate records
+  var key = "deviceId";
+  let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
+
+  // let resArr1 = [];
+  // let resArr2 = [];
+  // filter data on the basis of userType
+ 
+  // console.log(loggedInUser)
+  // get data by user role
+  // console.log(333, resultArr)
+  // For pagination
+  const paginateArray =  (arrayUniqueByKey, page, limit) => {
+  const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
+  return skip;
+  };
+
+  var allDevices = paginateArray(arrayUniqueByKey, page, limit)
+  if (arrayUniqueByKey.length > 0) {
+    return res.status(200).json({
+      status: 200,
+      statusValue: "SUCCESS",
+      message: "Event lists has been retrieved successfully.",
+      data: { data: allDevices, },
+      totalDataCount: arrayUniqueByKey.length,
+      totalPages: Math.ceil( (arrayUniqueByKey.length)/ limit),
+      currentPage: page,
+      // tempData: allDevices,
+    })
+  }
+  return res.status(400).json({
+    status: 400,
+    statusValue: "FAIL",
+    message: 'Data not found.',
+    data: {}
+  });
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
+
+
 // get all devices by on the basis of userType
 const getAllDeviceId = async (req, res) => {
   try {
@@ -943,7 +1148,7 @@ const getAllDeviceId = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user});
-
+    console.log(loggedInUser.hospitalName)
     // Declare blank obj
     let filterObj = {};
     // check user
@@ -966,6 +1171,13 @@ const getAllDeviceId = async (req, res) => {
     filterObj = {
       $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
     } 
+  } else if (!!loggedInUser && loggedInUser.userType === "User") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
   } else {
     filterObj = {
       $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
@@ -975,33 +1187,34 @@ const getAllDeviceId = async (req, res) => {
     
     // check user
   
-    const activeDevices = await statusModel.aggregate( [
+  const activeDevices = await statusModel.aggregate([
+    {
+      $match: {
+        "message":"ACTIVE",
+      }
+    },
+    {
+      $lookup:
       {
-        $match: {
-          "message":"ACTIVE",
-        }
-      },
-      {
-        $lookup:
-          {
-            from: "registerdevices",
-            localField: "deviceId",
-            foreignField: "DeviceId",
-            as: "deviceInfo"
-          }
-      },
-      filterObj,
-      {
-        $project:{
-          "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
-          "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
-        }
-      },
-      {
-        $sort: { updatedAt:-1 },
-      },
-    ]);
-   const inactiveDevices = await statusModel.aggregate( [
+        from: "registerdevices",
+        localField: "deviceId",
+        foreignField: "DeviceId",
+        as: "deviceInfo"
+      }
+    },
+    filterObj,
+    {
+      $project:{
+        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+        "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+      }
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+   
+  const inactiveDevices = await statusModel.aggregate([
     {
       $match: {
         "message":"INACTIVE",
@@ -3681,6 +3894,7 @@ module.exports = {
   createEvents,
   getLogsById,
   getAllDeviceId,
+  getAllDevicesForUsers,
   crashlyticsData2,
   getCrashOccurrenceByLogMsgWithDeviceId,
   dateWiseLogOccurrencesByLogMsgWithDeviceId

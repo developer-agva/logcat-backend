@@ -1,24 +1,70 @@
-version: '3.7'
+version: '3.8'
 services:
-  redis:
-    image: redis:6.2-alpine
-    container_name: redis
-    restart: unless-stopped
-    network_mode: bridge
-    expose:
-      - 6379
-
-  api:
-    build: .
-    container_name: api
-    restart: unless-stopped
-    network_mode: bridge
-    command: /bin/sh -c 'nodemon -e js,html index.js'
+  # Node.js application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - 8001:8080
-    volumes:
-      - .:/src 
-      - /src/node_modules
-    links:
-      - redis  
-          
+      - "8000:8000"
+    depends_on:
+      - mongo
+      - redis
+
+  # MongoDB
+  mongo:
+    build:
+      context: ./mongodb
+    ports:
+      - "27017:27017"
+
+  # Redis
+  redis:
+    build:
+      context: ./redis
+    ports:
+      - "6379:6379"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# version: "3.8"
+
+# services:
+#   mongodb:
+#     image: mongo:latest
+#     restart: always 
+#     ports:
+#       - "27017:27017"
+#     environment:
+#       MONGO_INITDB_ROOT_USERNAME: "ddtech"
+#       MONGO_INITDB_ROOT_PASSWORD: "agva1234"
+#     # volumes:
+#     #   - mongodb-data:/data/db    
+
+#   # postgres:
+#   #   image: postgres  # hub.docker.com
+#   #   ports:
+#   #     - "5432:5432"
+#   #   environment:
+#   #     POSTGRES_USER: postgres
+#   #     POSTGRES_DB: review
+#   #     POSTGRES_PASSWORD: password 
+
+#   redis:
+#     image: redis
+#     ports:
+#       - "6379:6379"     

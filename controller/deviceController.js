@@ -333,10 +333,22 @@ const getAllDevices = async (req, res) => {
     }
     const skip = page > 0 ? (page - 1) * limit : 0;
 
+    // get loggedin user details
+    // const token = req.headers["authorization"].split(' ')[1];
+    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // const loggedInUser = await User.findById({_id:verified.user});
+
+    // Declare blank obj
+    // let filterObj = {}
+
+    // if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
+    //   filterObj = {Hospital_Name:loggedInUser.hospitalName}
+    // }
+    
     const devices = await Device.find({
       $or: [
         { Hospital_Name: { $regex: ".*" + search + ".*", $options: "i" } },
-        { DeviceId: {  $regex: search  } }
+        { DeviceId: {  $regex: search  } },
       ]
     })
       .sort({ createdAt: -1 })
@@ -347,7 +359,7 @@ const getAllDevices = async (req, res) => {
     const count = await Device.find({
       $or: [
         { Hospital_Name: { $regex: ".*" + search + ".*", $options: "i" } },
-        { DeviceId: {  $regex: search } }
+        { DeviceId: {  $regex: search } },
       ]
     })
       .sort({ createdAt: -1 }).countDocuments();
@@ -410,7 +422,7 @@ const addDeviceService = async (req, res) => {
     }
     const project_code = req.query.project_code
     var otp = Math.floor(1000 + Math.random() * 9000);
-    var serialNo = Math.floor(1000 + Math.random() * 9000);
+    // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
     const twilio = require('twilio');
     // const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
@@ -423,27 +435,75 @@ const addDeviceService = async (req, res) => {
     const contactNo = `+91${req.body.contactNo}`;
     const client = new twilio(accountSid, authToken);
 
+    // define tag name
+    let tag1 = "General Service";
+    let tag2 = "Operating Support";
+    let tag3 = "Request for Consumables";
+    let tag4 = "Physical Damage";
+    let tag5 = "Issue in Ventilation";
+    let tag6 = "Performance Issues";
+    let tag7 = "Apply for CMC/AMC";
+
+    const msg = req.body.message;
+
+    const tags = {
+      tag1:!!(msg && msg.includes("General Service")) ? tag1 : "",
+      tag2:!!(msg && msg.includes("Operating Support")) ? tag2 : "",
+      tag3:!!(msg && msg.includes("Request for Consumables")) ? tag3 : "",
+      tag4:!!(msg && msg.includes("Physical Damage")) ? tag4 : "",
+      tag5:!!(msg && msg.includes("Issue in Ventilation")) ? tag5 : "",
+      tag6:!!(msg && msg.includes("Performance Issues")) ? tag6 : "",
+      tag7:!!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
+    };
+    
+    // check already exixts service request oe not
+    const checkData = await servicesModel.findOne({$and:[{deviceId:req.body.deviceId},{message:req.body.message},{isVerified:true}]});
+    // console.log(11,checkData);
+    // console.log(12,req.body); 
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Service request already raised.",
+      })
+    }
+
+    // console.log(11,tags)
+    // Set priority
+    let priority;
+    if (msg.includes("General Service") == true || msg.includes("Apply for CMC/AMC") == true) {
+      priority = "Medium";
+    }
+    priority = "High";
+
     const newServices = new servicesModel({
       deviceId:req.body.deviceId,
       message:req.body.message,
       date:req.body.date,
-      serialNo:serialNo,
+      serialNo:otp,
       name:req.body.name,
       contactNo:req.body.contactNo,
       hospitalName:req.body.hospitalName,
       wardNo:req.body.wardNo,
       email:req.body.email,
       department:req.body.department,
+      ticketStatus:"Open",
+      remark:"",
+      issues:tags,
+      priority:priority,
     });
+    // console.log(req.body)
     const savedServices = await newServices.save();
+
+    const getLastData = await servicesModel.find({contactNo:req.body.contactNo}).sort({createdAt:-1});
+    
     if (!!savedServices) {
       await servicesModel.findOneAndUpdate(
-        {contactNo:contactNo},
+        {serialNo:getLastData[0].serialNo},
         {
-          contactNo:contactNo,
-          otp:otp,
+          otp:getLastData[0].serialNo,
           isVerified:false,
-        },{upsert:true},
+        },
       );
       const sendSms = client.messages
             .create({
@@ -454,6 +514,7 @@ const addDeviceService = async (req, res) => {
             .then(message => console.log(`Message sent with SID: ${message.sid}`))
             .catch(error => console.error(`Error sending message: ${error.message}`));
       if(sendSms) {
+        // findlast inserted data
         return res.status(201).json({
           statusCode: 201,
           statusValue: "SUCCESS",
@@ -491,6 +552,7 @@ const verifyOtpSms = async (req, res) => {
   try {
     const schema = Joi.object({
       otp: Joi.string().required(),
+      deviceId: Joi.string().required(),
     })
     let result = schema.validate(req.body);
     if (result.error) {
@@ -500,7 +562,7 @@ const verifyOtpSms = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-    const checkOtp = await servicesModel.findOne({ otp: req.body.otp });
+    const checkOtp = await servicesModel.findOne({$and:[{otp: req.body.otp },{deviceId:req.body.deviceId}]});
     const errors = validationResult(req);
     
     // console.log(11,checkOtp)
@@ -547,7 +609,7 @@ const verifyOtpSms = async (req, res) => {
       // console.log()
     }
     
-    await servicesModel.findOneAndUpdate({otp:req.body.otp},{isVerified:true})
+    await servicesModel.findOneAndUpdate({$and:[{otp: req.body.otp },{deviceId:req.body.deviceId}]},{isVerified:true})
     res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -567,6 +629,289 @@ const verifyOtpSms = async (req, res) => {
 }
 
 
+// api for ticket closing process
+const updateTicketStatus = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      _id: Joi.string().required(),
+      contactNo: Joi.string().required(),
+      UId: Joi.string().allow("").optional(),
+      serviceEngName: Joi.string().required(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+    console.log(req.body);
+    var otp = Math.floor(1000 + Math.random() * 9000);
+    // var serialNo = Math.floor(1000 + Math.random() * 9000);
+    // for otp sms on mobile
+    const twilio = require('twilio');
+    // const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
+    const accountSid = 'ACea4048023629d3c6f4c3434bd433fa9f';
+
+    // const authToken = '515f24ec71a18ccd103dbe7e1c33c4f3';
+    const authToken = '926bb0293fe56b1b52c07338e1d65dd2';
+    // const twilioPhone = '+12057496028';
+    const twilioPhone = '+19082196991';
+    const contactNo = `+91${req.body.contactNo}`;
+    const client = new twilio(accountSid, authToken);
+
+    const checkTicket = await servicesModel.findById({_id:mongoose.Types.ObjectId(req.body._id)});
+    
+    if (!!checkTicket) {
+      await servicesModel.findOneAndUpdate(
+        {_id:mongoose.Types.ObjectId(req.body._id)},
+        {
+          otp:otp,
+          UId:req.body.UId,
+          serviceEngName:req.body.serviceEngName,
+        },{upsert:true},
+      );
+      const sendSms = client.messages
+            .create({
+                body: `Your AgVa Healthcare service request verification OTP is : ${otp}`,
+                from: twilioPhone,
+                to: contactNo
+            })
+            .then(message => console.log(`Message sent with SID: ${message.sid}`))
+            .catch(error => console.error(`Error sending message: ${error.message}`));
+      if(sendSms) {
+        // findlast inserted data
+        return res.status(201).json({
+          statusCode: 201,
+          statusValue: "SUCCESS",
+          message: "OTP has been send successfully.",
+          otp:otp
+        })
+      }
+      return res.status(400).json({
+        statusCode:400,
+        statusValue:"FAIL",
+        message:"otp was not sended.",
+      });
+    }                                                        
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Error! Data not added.",
+      data:savedServices
+    })
+    
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+// for ticket closing process
+const closeTicket = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      otp: Joi.string().required(),
+      remark: Joi.string().optional(),
+      deviceId: Joi.string().required(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+    // console.log(req.body)
+    const checkOtp = await servicesModel.findOne({$and:[{otp: req.body.otp},{deviceId:req.body.deviceId}]});
+    const errors = validationResult(req);
+    
+    // console.log(11,checkOtp)
+    if (!checkOtp) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue:"FAIL",
+        message:"You have entered wrong otp. Please enter valid OTP",
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: errors
+              .array()
+              .map((err) => {
+                return `${err.msg}: ${err.param}`;})
+                .join(' | '),
+            msg: 'Wrong OTP',
+            type: 'ValidationError',
+            statusCode:400,
+          },
+        },
+      });
+      // console.log()
+    }
+    if (checkOtp.ticketStatus == "Closed") {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue:"FAIL",
+        message:"Ticket already closed.",
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: errors
+              .array()
+              .map((err) => {
+                return `${err.msg}: ${err.param}`;})
+                .join(' | '),
+            msg: 'Ticket already closed.',
+            type: 'ValidationError',
+            statusCode:400,
+          },
+        },
+      });
+      // console.log()
+    }
+    if (!!(req.body.remark)) {
+      await servicesModel.findOneAndUpdate({$and:[{otp: req.body.otp},{deviceId:req.body.deviceId}]},{ticketStatus:"Closed",remark:"Ticket has been closed by Service Engineer"});
+      res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Ticket has been closed successfully."
+      })
+    }
+    await servicesModel.findOneAndUpdate({$and:[{otp: req.body.otp},{deviceId:req.body.deviceId}]},{ticketStatus:"Closed",remark:"Ticket has been closed by Phone call"});
+      res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Ticket has been closed successfully."
+      })
+    
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+/**
+ * api   GET@/api/logger/logs/services/get-all
+ * desc  @getAllServices for logger access only
+ */
+const getAllServices = async (req, res) => {
+  try {
+
+    let { page, limit, sortBy } = req.query;
+    // for search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+
+    // for pagination
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 999999;
+    }
+
+    // for sorting
+    if (!sortBy || sortBy === "Open" || sortBy == "undefined" || sortBy == "open") {
+      sortBy = {
+        $and:[
+          {isVerified:true},
+          {ticketStatus:"Open"},
+          {$or:[
+            {serialNo:{ $regex: ".*" + search + ".*", $options: "i" }},
+            {email:{ $regex: ".*" + search + ".*", $options: "i" }},
+            ]
+          }
+        ],
+      }
+    }
+    else if(sortBy == "All" || sortBy == "all") {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+      sortBy = {
+        $and:[
+          {isVerified:true},
+          {$or:[
+            {serialNo:{ $regex: ".*" + search + ".*", $options: "i" }},
+            {email:{ $regex: ".*" + search + ".*", $options: "i" }},
+            ]
+          }
+        ],
+      }
+    }
+    // const project_code = req.query.project_code;
+    
+    const resData = await servicesModel.find(sortBy,
+      {
+        __v:0,
+        otp:0,
+        createdAt:0,
+        updatedAt:0
+      })
+      .sort({"createdAt":-1});
+    
+    // for pagination
+    const paginateArray =  (resData, page, limit) => {
+      const skip = resData.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    let finalData = paginateArray(resData, page, limit)
+    // count data
+    const count = await servicesModel.find(sortBy,
+      {
+        __v:0,
+        otp:0,
+        createdAt:0,
+        updatedAt:0
+      })
+      .sort({"createdAt":-1})
+      .countDocuments();
+
+    if (finalData.length > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Services get successfully!",
+        data: finalData,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(404).json({
+      statusCode: 404,
+      statusValue: "FAIL",
+      message: "Data not found."
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 
 /**
  * api   GET@/api/logger/logs/services/:deviceId/:project_code
@@ -574,8 +919,7 @@ const verifyOtpSms = async (req, res) => {
  */
 const getServicesById = async (req, res) => {
   try {
-    const { deviceId, project_code } = req.params;
-    let { page, limit } = req.query;
+    let { page, limit, deviceId, project_code } = req.query;
     if (!page || page === "undefined") {
       page = 1;
     }
@@ -596,7 +940,7 @@ const getServicesById = async (req, res) => {
     var pipline = [
       // Match
       {
-        "$match": {"deviceId": deviceId},
+        "$match": {$and:[{"deviceId": deviceId},{"isVerified":true}]},
       },
       {
         "$lookup": {
@@ -623,16 +967,18 @@ const getServicesById = async (req, res) => {
           "__v",
           "createdAt",
           "updatedAt",
+          "otp",
+          "isVerified",
         ]
       },
       {
-        "$sort": {"date":-1}
+        "$sort": {"createdAt":-1}
       },
     ]
 
     // get data
     const resData = await servicesModel.aggregate(pipline);
-    
+    const count = resData.length
     // for pagination
     const paginateArray =  (resData, page, limit) => {
       const skip = resData.slice((page - 1) * limit, page * limit);
@@ -641,8 +987,7 @@ const getServicesById = async (req, res) => {
 
     let finalData = paginateArray(resData, page, limit)
     // count data
-    const count = await servicesModel.find({ deviceId: deviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 })
-    .countDocuments();
+    
 
     if (finalData.length > 0) {
       return res.status(200).json({
@@ -1275,7 +1620,83 @@ const sendAndReceiveData = async (req, res) => {
 }
 
 
+// Assigned device to user
 const assignedDeviceToUser = async (req, res) => {
+  try {
+    const schema = Joi.object({
+        deviceId: Joi.string().required(),
+        _id: Joi.array(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+        return res.status(200).json({
+            status: 0,
+            statusCode: 400,
+            message: result.error.details[0].message,
+        })
+    }   
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    
+    // console.log('resp2',verified.user)
+    
+    const findDevice = await RegisterDevice.findOne({ DeviceId:req.body.deviceId});
+    // console.log(findDevice)
+    if (!findDevice) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: `Device not registered with this deviceId : ${req.body.deviceId}`
+      });
+    }
+
+    // for logger user activity
+    const loggedInUser = await User.findById({_id:verified.user});
+    const userIds = req.body._id;
+    // console.log(userIds)
+    let arrData = [];
+    userIds.map(async (item) => {
+      var obj = {
+        "userId":mongoose.Types.ObjectId(item),
+        "deviceId":req.body.deviceId,
+      }
+      arrData.push(obj);
+    })
+    // console.log(arrData)
+    // const saveDoc = await assignDeviceTouserModel.insertMany(arrData);
+    arrData.map(async (ob) => {
+      await assignDeviceTouserModel.findOneAndUpdate(
+        {userId:ob.userId,deviceId:ob.deviceId},
+        {
+          userId:ob.userId,
+          deviceId:ob.deviceId,
+          assignedBy:loggedInUser.email,
+          status:true
+        },
+        {upsert:true},
+      )
+    })
+    return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Device assigned successfully.",
+  
+    });
+    // console.log(userInfo);
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+const assignedDeviceToUser2 = async (req, res) => {
   try {
 
     const token = req.headers["authorization"].split(' ')[1];
@@ -1339,13 +1760,14 @@ const assignedDeviceToUser = async (req, res) => {
 }
 
 
+
 async function saveActivity(userId,action,msg) {
   const userInfo = await User.findOne({_id:userId});
   const data = await activityModel.create({userId:userId,email:userInfo.email,action:action,msg:msg});
   data.save();
 }
 
-const getAssignedDeviceById = async (req, res) => {
+const getAssignedDeviceById1 = async (req, res) => {
   try {
     const { userId } = req.params;
     if (!userId) {
@@ -1355,20 +1777,9 @@ const getAssignedDeviceById = async (req, res) => {
         message: "User Id is required!"
       })
     }
-    let data = await assignDeviceTouserModel.find({userId:mongoose.Types.ObjectId(userId)})
-    .select({_id:0, __v:0, createdAt:0, updatedAt:0})
+    const data = await assignDeviceTouserModel.find({userId:mongoose.Types.ObjectId(userId)})
+    .select({_id:0, __v:0,updatedAt:0})
     .sort({ createdAt: -1 });
-    
-    
-    // var tempArr = data[0].Assigned_Devices;
-    // tempArr.map(async (item) => {
-        
-    // })
-    // console.log(123,)
-    // data[0].Assigned_Devices.map(async (item) => {
-    //   var eventsData = await statusModel.findOne({deviceId:item.DeviceId})
-    //   return tempArr.push(eventsData)
-    // })
    
     if (!data.length) {
       return res.status(404).json({
@@ -1382,7 +1793,102 @@ const getAssignedDeviceById = async (req, res) => {
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "assigned device get successfully!",
-      data: data[0]
+      data: data
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+const getAssignedDeviceById = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user},{firstName:1,lastName:1,email:1,hospitalName:1,designation:1,speciality:1});
+    var pipline = [
+      // Match
+      {
+        "$match": {status:true,userId:mongoose.Types.ObjectId(userId)},
+      },
+      {
+        "$lookup": {
+          "from": "users",
+          "localField": "userId",
+          "foreignField": "_id",
+          "as": "users",
+        },
+      },
+      {
+        "$lookup": {
+          "from": "registerdevices",
+          "localField": "deviceId",
+          "foreignField": "DeviceId",
+          "as": "deviceDetails",
+        },
+      },
+      // filter data
+      // For this data model, will always be 1 record in right-side
+      // of join, so take 1st joined array element
+      {
+        "$set": {
+          "users": {"$first": "$users"},
+          "deviceDetails":{"$first":"$deviceDetails"},
+        }
+      },
+       // Extract the joined embeded fields into top level fields
+      {
+        "$set": {
+          "Hospital_Name":"$deviceDetails.Hospital_Name",
+          "DetiveType":"$deviceDetails.DeviceType",
+          "Department_Name":"$deviceDetails.Department_Name",
+          "IMEI_NO":"$deviceDetails.IMEI_NO",
+          "Ward_No":"$deviceDetails.Ward_No",
+          "Bio_Med":"$deviceDetails.Bio_Med",
+          "Alias_Name":"$deviceDetails.Alias_Name",
+          "DeviceType":"$deviceDetails.DeviceType",
+        },
+      }, 
+      {
+        "$unset": [
+          "users",
+          "__v",
+          "createdAt",
+          "updatedAt",
+          "otp",
+          "deviceDetails",
+          "status",
+          "assignedBy"
+        ]
+      },
+      {
+        "$sort": {"updatedAt":-1}
+      },
+    ]
+    const assignData = await assignDeviceTouserModel.aggregate(pipline)
+    // console.log(assignData)
+    if (!assignData.length) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data:[]
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "assigned device get successfully!",
+      data: assignData,
+      data2:loggedInUser
     })
   } catch (err) {
     res.status(500).json({
@@ -1398,17 +1904,164 @@ const getAssignedDeviceById = async (req, res) => {
 }
 
 
-const deleteAssignedDeviceFromUser = async (req, res) => {
+const getDeviceAccessUsersByDeviceId = async (req, res) => {
   try {
-    // for logger activity
+    const { deviceId } = req.params;
+    if (!deviceId) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation error",
+        message: "DeviceId Id is required!"
+      })
+    }
+
+    var pipline = [
+      // Match
+      {
+        "$match": {status:true,deviceId:req.params.deviceId},
+      },
+      {
+        "$lookup": {
+          "from": "users",
+          "localField": "userId",
+          "foreignField": "_id",
+          "as": "users",
+        },
+      },
+      {
+        "$project":{"deviceId":1,"assignedBy":1,"users.firstName":1,"users.lastName":1,"users.hospitalName":1,"users.contactNumber":1,"users.department":1},
+      },
+      {
+        "$sort": {"updatedAt":-1}
+      },
+    ]
+    const assignData = await assignDeviceTouserModel.aggregate(pipline)
+    // console.log(assignData)
+    if (!assignData.length) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data:[]
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "assigned device get successfully!",
+      data: assignData
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+const getDeviceAccessUsers = async (req, res) => {
+  try {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
 
-    const removeData = await assignDeviceTouserModel.updateOne(
-      { userId: mongoose.Types.ObjectId(req.body.userId) },
-      { $pull: { Assigned_Devices: { DeviceId:req.body.DeviceId } } },
-      { upsert: true },
-      // { multi: true },
+    var pipline = [
+      // Match
+      {
+        "$match": {status:true},
+      },
+      {
+        "$lookup": {
+          "from": "users",
+          "localField": "userId",
+          "foreignField": "_id",
+          "as": "users",
+        },
+      },
+      {
+        "$lookup": {
+          "from": "registerdevices",
+          "localField": "deviceId",
+          "foreignField": "DeviceId",
+          "as": "deviceDetails",
+        },
+      },
+      // filter data
+      {
+        "$match": {"deviceDetails.Hospital_Name":loggedInUser.hospitalName},
+      },
+      // For this data model, will always be 1 record in right-side
+      // of join, so take 1st joined array element
+      {
+        "$set": {
+          "users": {"$first": "$users"},
+          "deviceDetails":{"$first":"$deviceDetails"},
+        }
+      },
+       // Extract the joined embeded fields into top level fields
+      {
+        "$set": {"firstName": "$users.firstName","lastName":"$users.lastName","speciality":"$users.speciality","contactNumber":"$users.contactNumber","Hospital_Name":"$deviceDetails.Hospital_Name","DeviceType":"$deviceDetails.DeviceType"},
+      }, 
+      {
+        "$unset": [
+          "users",
+          "__v",
+          "createdAt",
+          "updatedAt",
+          "otp",
+          "deviceDetails",
+          "status",
+          "assignedBy"
+        ]
+      },
+      {
+        "$sort": {"updatedAt":-1}
+      },
+    ]
+    const assignData = await assignDeviceTouserModel.aggregate(pipline)
+    // console.log(assignData)
+    if (!assignData.length) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data:[]
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "assigned device get successfully!",
+      data: assignData
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+const deleteDeviceAccessUser = async (req, res) => {
+  try {
+    // for logger activity
+    // const token = req.headers["authorization"].split(' ')[1];
+    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // const loggedInUser = await User.findById({_id:verified.user});
+    const removeData = await assignDeviceTouserModel.findByIdAndDelete(
+      {_id:mongoose.Types.ObjectId(req.params._id)},
     )
     if (!removeData) {
       return res.status(400).json({
@@ -1417,34 +2070,10 @@ const deleteAssignedDeviceFromUser = async (req, res) => {
         message: "Data not deleted.",
       }) 
     }  
-    let deviceIds = req.body.DeviceId;
-    deviceIds.map(async (items) => {
-      await RegisterDevice.findOneAndUpdate({DeviceId:items},{isAssigned:false});
-    })
-    const checkData = await assignDeviceTouserModel.findOne({userId:req.body.userId})
-    let arrLength = checkData.Assigned_Devices
-
-    // for logger user activity
-    const loggedInUser = await User.findById({_id:verified.user});
-    const normalUser = await User.findById({_id:req.body.userId});
-
-    if (arrLength == 0 || arrLength == undefined) {
-      
-      await saveActivity(verified.user,'Device assigned remove successfully!',`${loggedInUser.email} has removed device to ${normalUser.email}`);
-      await assignDeviceTouserModel.findOneAndRemove({userId:req.body.userId})
-      return res.status(200).json({
-        statusCode: 200,
-        statusValue: "SUCCESS",
-        message: "Data has been removed successfully!.",
-        data:removeData
-      });
-    }
-    await saveActivity(verified.user,'Device assigned remove successfully!',`${loggedInUser.email} has removed device to ${normalUser.email}`);
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
-      message: "Data has been removed successfully!.",
-      data:removeData
+      message: "Data deleted successfully.",
     }); 
   } catch (err) {
     res.status(500).json({
@@ -1917,7 +2546,7 @@ module.exports = {
   sendAndReceiveData,
   assignedDeviceToUser,
   getAssignedDeviceById,
-  deleteAssignedDeviceFromUser,
+  deleteDeviceAccessUser,
   getAdminDashboardDataCount,
   getTotalDevicesDataCount,
   getTotalDevicesDataCount1,
@@ -1928,5 +2557,10 @@ module.exports = {
   getDevicesByHospital,
   updateAboutData,
   trackDeviceLocation,
-  verifyOtpSms
+  verifyOtpSms,
+  updateTicketStatus,
+  closeTicket,
+  getAllServices,
+  getDeviceAccessUsersByDeviceId,
+  getDeviceAccessUsers
 }

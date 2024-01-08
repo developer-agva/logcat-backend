@@ -22,6 +22,9 @@ const registeredHospitalModel = require('../model/registeredHospitalModel.js');
 const assignTicketModel = require('../model/assignTicketModel.js');
 const sendSms = require('../helper/sendSms.js');
 const otpVerificationModel = require('../model/otpVerificationModel.js');
+const aboutDeviceModel = require('../model/aboutDeviceModel');
+const sendDeviceReqModel = require('../model/sendDeviceReqModel.js');
+const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel.js');
 
 /**
  * api      POST @/api/logger/register
@@ -40,6 +43,7 @@ const registerUser = async (req, res) => {
       passwordHash: Joi.string().min(5).max(10).required(),
       // countryName:Joi.string().required(),
       // stateName: Joi.string().required(),
+      speciality:Joi.string().required(),
     });
     let result = schema.validate(req.body);
     if (result.error) {
@@ -83,6 +87,8 @@ const registerUser = async (req, res) => {
       image:"",
       isSuperAdmin:false,
       accountStatus:"Initial",
+      requestedOn:new Date(),
+      speciality:req.body.speciality,
       // countryName:req.body.countryName,
       // stateName:req.body.stateName
     });
@@ -96,7 +102,7 @@ const registerUser = async (req, res) => {
       return res.status(201).json({
         statusCode:201,
         statusValue:"SUCCESS",
-        message:"Congratulations! You have successfully signed up with us , Please login.",
+        message:"Congratulations! You have successfully signed up with us , Please wait for approval.",
         data:saveDoc
       })
     }
@@ -124,10 +130,11 @@ const registerUserForSuperAdmin = async (req, res) => {
       firstName: Joi.string().required(),
       lastName: Joi.string().required(),
       email: Joi.string().email().required(),
-      hospitalName: Joi.string().required(),
+      employeeId: Joi.string().required(),
       passwordHash: Joi.string().min(5).max(10).required(),
       countryName:Joi.string().required(),
       stateName: Joi.string().required(),
+      userType: Joi.string().required(),
     });
     let result = schema.validate(req.body);
     if (result.error) {
@@ -147,14 +154,14 @@ const registerUserForSuperAdmin = async (req, res) => {
       });
     }
     // check hospital name
-    const checkHospital = await registeredHospitalModel.findOne({Hospital_Name:req.body.hospitalName});
-    if (!checkHospital) {
-      return res.status(400).json({
-        statusCode: 400,
-        statusValue: "FAIL",
-        message: "Error! Wrong hospital name.",
-      });
-    }
+    // const checkHospital = await registeredHospitalModel.findOne({Hospital_Name:req.body.hospitalName});
+    // if (!checkHospital) {
+    //   return res.status(400).json({
+    //     statusCode: 400,
+    //     statusValue: "FAIL",
+    //     message: "Error! Wrong hospital name.",
+    //   });
+    // }
     const salt = await bcrypt.genSalt();
     let mpwd = await bcrypt.hash(req.body.passwordHash, salt);
   
@@ -162,9 +169,9 @@ const registerUserForSuperAdmin = async (req, res) => {
       firstName:req.body.firstName,
       lastName:req.body.lastName,
       email:req.body.email,
-      hospitalName:req.body.hospitalName,
+      employeeId:req.body.employeeId,
       passwordHash:mpwd,
-      userType:"User",
+      userType:req.body.userType,
       image:"",
       isSuperAdmin:false,
       accountStatus:"Active",
@@ -181,7 +188,7 @@ const registerUserForSuperAdmin = async (req, res) => {
       return res.status(201).json({
         statusCode:201,
         statusValue:"SUCCESS",
-        message:"Congratulations! You have successfully signed up with us , Please login.",
+        message:"Data added successfully.",
         data:saveDoc
       })
     }
@@ -408,7 +415,8 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const isUserExist = await Users.findOne({ email: email });   
+    const isUserExist = await Users.findOne({ email: email, accountStatus: "Active" }); 
+    // const isUserExist = await Users.findOne({ email: email, accountStatus:"Approved" });   
     if (!isUserExist) {
       return res.status(404).json({
         statusCode: 404,
@@ -446,6 +454,7 @@ const loginUser = async (req, res) => {
     const token = await jwtr.sign(id, process.env.JWT_SECRET, {
       expiresIn: '15d',
     });
+    await Users.findByIdAndUpdate({_id:isUserExist._id},{lastLogin:new Date()},{upsert:true});
     // console.log(token)
     // req.session.user = {
     //   name:isUserExist._id
@@ -481,6 +490,412 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
+
+/**
+ * api      POST @/api/logger/users/add-experience
+ * desc     @addUserExperience individual users
+ */
+const addUserExperience = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      userId: Joi.string().required(),
+      associationName: Joi.string().required(),
+      workAddress: Joi.string().required(),
+      // startDate: Joi.string().required(),
+      // endDate: Joi.string().allow("").optional(),
+      workEmail: Joi.string().required(),
+      workPhoneNo: Joi.string().required(),
+      designation: Joi.string().required(),
+      department: Joi.string().required(),
+      // workType: Joi.string().required(),
+      skills: Joi.string().allow("").optional(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+    const checkUser = await Users.findOne({_id:mongoose.Types.ObjectId(req.body.userId)})
+    if (!checkUser) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "User id does not exist",
+      })
+    }
+    const checkData = await Users.findOne({
+      "_id":mongoose.Types.ObjectId(req.body.userId),
+      "profile.associationName":req.body.associationName,
+    })
+    // console.log(checkUser)
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: `Association ${req.body.associationName} already added.`,
+      })
+    }
+    let bodyObj = {
+      userId:req.body.userId,
+      associationName:req.body.associationName,
+      workAddress:req.body.workAddress,
+      startDate: new Date(),
+      endDate:"",
+      workEmail:req.body.workEmail,
+      workPhoneNo:req.body.workPhoneNo,
+      designation:req.body.designation,
+      department:req.body.department,
+      skills:""
+    }
+    // console.log("_id :", req.body._id, Users._id)
+    const updateUser = await Users.findByIdAndUpdate(
+      {_id:mongoose.Types.ObjectId(req.body.userId)},
+      {$push:{profile:bodyObj}},
+      { upsert:true }
+    );
+    if (!updateUser) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue:"FAIL",
+        message:"Error! while adding work experience."
+      });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: 'Work experience added successfully!',
+      data: updateUser
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+/**
+ * api      PUT @/api/logger/users/update-primary-email
+ * desc     @endAssociation individual users
+ */
+const updatePrimaryEmail = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      userId: Joi.string().required(),
+      email : Joi.string().required()
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+
+    const checkUser = await Users.findOne({
+      "_id":mongoose.Types.ObjectId(req.body.userId)
+    })
+    // console.log(checkUser)
+    if (!checkUser) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Wrong !! userId.",
+      })
+    }
+    const updateUser = await Users.findOneAndUpdate(
+      {
+        "_id":mongoose.Types.ObjectId(req.body.userId)
+      },
+      {
+        "email":req.body.email
+      },
+    );
+    if (!updateUser) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue:"FAIL",
+        message:"Error! while updating primary email."
+      });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: 'Primary email updated successfully!',
+      data: updateUser
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
+/**
+ * api      PUT @/api/logger/users/end-association
+ * desc     @endAssociation individual users
+ */
+const endAssociation = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      userId: Joi.string().required(),
+      profileId : Joi.string().required()
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+
+    const checkUser = await Users.findOne({
+      "_id":mongoose.Types.ObjectId(req.body.userId),
+      "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+    })
+    // console.log(checkUser)
+    if (!checkUser) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Wrong !! userId or profileId.",
+      })
+    }
+    var updateData = {
+      $set: {
+        "profile.$.endDate": new Date(),
+      }
+    };
+    const updateUser = await Users.updateOne(
+      {
+        "_id":mongoose.Types.ObjectId(req.body.userId),
+        "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+      },
+      updateData
+    );
+    if (!updateUser) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue:"FAIL",
+        message:"Error! while adding end association."
+      });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: 'Association end date added successfully!',
+      data: updateUser
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
+/**
+ * api      PUT @/api/logger/users/update-experience
+ * desc     @updateUserExperience individual users
+ */
+const updateUserExperience = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      userId: Joi.string().required(),
+      profileId : Joi.string().required(),
+      associationName: Joi.string().required(),
+      workAddress: Joi.string().required(),
+      workEmail: Joi.string().required(),
+      workPhoneNo: Joi.string().required(),
+      designation: Joi.string().required(),
+      department: Joi.string().required(),
+      // startDate: Joi.string().required()
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+
+    const checkUser = await Users.findOne({
+      "_id":mongoose.Types.ObjectId(req.body.userId),
+      "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+    })
+    // console.log(checkUser)
+    if (!checkUser) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Wrong !! userId or profileId.",
+      })
+    }
+    var updateData = {
+      $set: {
+          "profile.$.userId": mongoose.Types.ObjectId(req.body.userId),
+          "profile.$._id": mongoose.Types.ObjectId(req.body.profileId),
+          "profile.$.associationName": req.body.associationName,
+          "profile.$.workAddress": req.body.workAddress,
+          // "profile.$.startDate": req.body.startDate,
+          // "profile.$.endDate": req.body.endDate,
+          "profile.$.workEmail": req.body.workEmail,
+          "profile.$.workPhoneNo": req.body.workPhoneNo,
+          "profile.$.designation": req.body.designation,
+          "profile.$.department": req.body.department,
+          // "profile.$.workType": !!(req.body.workType) ? req.body.workType : "",
+          // "profile.$.skills": !!(req.body.skills) ? req.body.skills : "",
+      }
+    };
+    const updateUser = await Users.updateOne(
+      {
+        "_id":mongoose.Types.ObjectId(req.body.userId),
+        "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+      },
+      updateData
+    );
+    if (!updateUser) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue:"FAIL",
+        message:"Error! while updating work experience."
+      });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: 'Work details updated successfully!',
+      data: updateUser
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
+/**
+ * api      PUT @/api/logger/users/update-experience
+ * desc     @updateUserExperience individual users
+ */
+const updateUserExperiencee = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      userId: Joi.string().required(),
+      profileId : Joi.string().required(),
+      associationName: Joi.string().required(),
+      workAddress: Joi.string().required(),
+      startDate: Joi.string().required(),
+      endDate: Joi.string().required(),
+      workEmail: Joi.string().required(),
+      workPhoneNo: Joi.string().required(),
+      designation: Joi.string().required(),
+      department: Joi.string().required(),
+      workType: Joi.string().allow("").optional(),
+      skills: Joi.string().allow("").optional(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+
+    const checkUser = await Users.findOne({
+      "_id":mongoose.Types.ObjectId(req.body.userId),
+      "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+    })
+    // console.log(checkUser)
+    if (!checkUser) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Wrong !! userId or profileId.",
+      })
+    }
+    var updateData = {
+      $set: {
+          "profile.$.userId": mongoose.Types.ObjectId(req.body.userId),
+          "profile.$._id": mongoose.Types.ObjectId(req.body.profileId),
+          "profile.$.associationName": req.body.associationName,
+          "profile.$.workAddress": req.body.workAddress,
+          "profile.$.startDate": req.body.startDate,
+          "profile.$.endDate": req.body.endDate,
+          "profile.$.workEmail": req.body.workEmail,
+          "profile.$.workPhoneNo": req.body.workPhoneNo,
+          "profile.$.designation": req.body.designation,
+          "profile.$.department": req.body.department,
+          "profile.$.workType": !!(req.body.workType) ? req.body.workType : "",
+          "profile.$.skills": !!(req.body.skills) ? req.body.skills : "",
+      }
+    };
+    const updateUser = await Users.updateOne(
+      {
+        "_id":mongoose.Types.ObjectId(req.body.userId),
+        "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+      },
+      updateData
+    );
+    if (!updateUser) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue:"FAIL",
+        message:"Error! while updating work experience."
+      });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: 'Work details updated successfully!',
+      data: updateUser
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
 
 /**
  * api      PUT @/api/logger/users/update
@@ -929,6 +1344,52 @@ const getUserProfileById = async (req, res) => {
   }
 }
 
+/**
+ * @desc - get user profile experience by Id
+ * @api - GET /api/logger/users/userId 
+ * @returns json data
+ */
+const getUserProfileByExpId = async (req, res) => {
+  try {
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
+    // console.log(loggedInUser.profile)
+    const profileData = loggedInUser.profile;
+    // const getData = await profileData.find(ele => )
+    var finalData = profileData.find((obj) => {
+      if (obj._id == req.params.id) {
+        return obj;
+      }
+    }
+    );
+    // console.log(11,finalData)
+    if (!!finalData) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue:"SUCCESS",
+        message:"Get user profile successfully!",
+        data:finalData
+      });
+    } 
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "User not found!"
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message:"Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 
 /**
  * @desc - get user status by email
@@ -1053,14 +1514,22 @@ const getAllUsers = async (req, res) => {
       limit = 1000;
     }
     const skip = page > 0 ? (page - 1) * limit : 0
-    const getUsers = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"}]})
+
+    // Initialize empty obj
+    let filterObj = {};
+    // check user role
+    if (checkUser.userType == "Hospital-Admin") {
+      filterObj = {$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
+    }
+    filterObj = {$and:[{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
+    const getUsers = await User.find(filterObj)
     .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
     .sort({createdAt:-1})
     .skip(skip)
     .limit(limit);
-
+    
     // Count 
-    const count = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"}]})
+    const count = await User.find(filterObj)
     .sort({createdAt:-1})
     .countDocuments();
 
@@ -1094,6 +1563,272 @@ const getAllUsers = async (req, res) => {
   }
 }
 
+/**
+ * @desc - get all employee list
+ * @api - /api/logger/employee-list
+ * @returns json data
+ */
+const getAllEmployeeList = async (req, res) => {
+  try {
+    // for checking user roles
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // console.log(123, verified.user)
+    const checkUser = await User.findById({_id:verified.user})
+  
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 1000;
+    }
+    const skip = page > 0 ? (page - 1) * limit : 0
+
+    // Initialize empty obj
+    // let filterObj = {};
+    // check user role
+    // if (checkUser.userType == "Hospital-Admin") {
+    //   filterObj = {$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
+    // }
+    // filterObj = {$and:[{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
+    const getUsers = await User.find({$or:[{userType:"Production"},{userType:"Dispatch"},{userType:"Service-Engineer"},{userType:"Support"}]})
+    .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+    .sort({createdAt:-1})
+    .skip(skip)
+    .limit(limit);
+    
+    // Count 
+    const count = await User.find({$or:[{userType:"Production"},{userType:"Dispatch"},{userType:"Service-Engineer"},{userType:"Support"}]})
+    .sort({createdAt:-1})
+    .countDocuments();
+
+    if (getUsers.length>0) {
+      return res.status(200).json({
+        statusCode:200,
+        statusValue:"SUCCESS",
+        message:"Users list get successfully.",
+        data:getUsers,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not found.",
+      data: []
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+/**
+ * @desc - get all active users
+ * @api - /api/logger/active-users-list
+ * @returns json data
+ */
+const getAllActiveUSers = async (req, res) => {
+  try {
+    // for checking user roles
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // console.log(123, verified.user)
+    const checkUser = await User.findById({_id:verified.user})
+  
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 1000;
+    }
+    const skip = page > 0 ? (page - 1) * limit : 0
+    
+    // get data by user role
+
+    const getUsers = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:"Active"}]})
+      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+      .sort({createdAt:-1})
+      .skip(skip)
+      .limit(limit);
+
+    // Count 
+    const count = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:"Active"}]})
+    .sort({createdAt:-1})
+    .countDocuments();
+
+    if (getUsers.length>0) {
+      return res.status(200).json({
+        statusCode:200,
+        statusValue:"SUCCESS",
+        message:"Users list get successfully.",
+        data:getUsers,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not found.",
+      data: []
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+// get admin list
+const getAllActiveAdmin = async (req, res) => {
+  try {
+    // for checking user roles
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // console.log(123, verified.user)
+    const checkUser = await User.findById({_id:verified.user})
+  
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 1000;
+    }
+    const skip = page > 0 ? (page - 1) * limit : 0
+    
+    // get data by user role
+
+    const getUsers = await User.find({$and:[{userType:"Hospital-Admin"}]})
+      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+      .sort({createdAt:-1})
+      .skip(skip)
+      .limit(limit);
+
+    // Count 
+    const count = await User.find({$and:[{userType:"Hospital-Admin"}]})
+    .sort({createdAt:-1})
+    .countDocuments();
+
+    if (getUsers.length>0) {
+      return res.status(200).json({
+        statusCode:200,
+        statusValue:"SUCCESS",
+        message:"Hospital Admin list get successfully.",
+        data:getUsers,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not found.",
+      data: []
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+/**
+ * @desc - get all Inactive users
+ * @api - /api/logger/inactive-users-list
+ * @returns json data
+ */
+const getAllPendingUsers = async (req, res) => {
+  try {
+    // for checking user roles
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // console.log(123, verified.user)
+    const checkUser = await User.findById({_id:verified.user})
+  
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 1000;
+    }
+    const skip = page > 0 ? (page - 1) * limit : 0
+    
+    // get data by user role
+
+    const getUsers = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:"Initial"}]})
+      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+      .sort({createdAt:-1})
+      .skip(skip)
+      .limit(limit);
+
+    // Count 
+    const count = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:"Initial"}]})
+    .sort({createdAt:-1})
+    .countDocuments();
+
+    if (getUsers.length>0) {
+      return res.status(200).json({
+        statusCode:200,
+        statusValue:"SUCCESS",
+        message:"Users list get successfully.",
+        data:getUsers,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not found.",
+      data: []
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
 
 /**
  * @desc - get all user
@@ -1213,6 +1948,64 @@ const changeUserStatus = async (req, res) => {
 }
 
 /**
+ * @desc - change user account status by userId
+ * @api - PUT /api/logger/change-userType/userId
+ * @returns json data
+ */
+const changeUserAcStatus = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      accountStatus: Joi.string().valid("Active","Inactive").required()
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+    const userId = req.params.userId;
+    const checkUser = await Users.findById({ _id: mongoose.Types.ObjectId(userId)})
+    if (!checkUser) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "User not found with this userId"
+      })
+    }
+    const updateDoc = await Users.findByIdAndUpdate({ _id: mongoose.Types.ObjectId(userId) }, {
+      accountStatus: req.body.accountStatus
+    }, { new: true });
+    if (!updateDoc) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "data not update."
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "User approved successfully.",
+      data: updateDoc
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+/**
  * @desc - change user type by userId
  * @api - PUT /api/logger/change-userType/userId
  * @returns json data
@@ -1220,7 +2013,7 @@ const changeUserStatus = async (req, res) => {
 const changeUserType = async (req, res) => {
   try {
     const schema = Joi.object({
-      userType: Joi.string().valid('Admin', 'User', 'Dispatch', 'Production', 'Support', 'Service-Engineer','Nurse').required()
+      userType: Joi.string().valid('Admin', 'User', 'Dispatch', 'Production', 'Support', 'Service-Engineer','Nurse', 'Hospital-Admin').required()
     })
     let result = schema.validate(req.body);
     if (result.error) {
@@ -1355,6 +2148,174 @@ const deleteSingleUser = async (req, res) => {
   }
 }
 
+// User send req for device access
+const acceptOrRejectdeviceReq = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      deviceId: Joi.string().required(),
+      userId: Joi.string().required(),
+      isAssigned: Joi.string().required(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+
+    // check already exists
+    const checkData = await assignDeviceTouserModel.findOne({ deviceId:req.body.deviceId, userId:mongoose.Types.ObjectId(req.body.userId)});
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "already exists."
+      })
+    }
+    // for loggedin user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user}); 
+
+    const reqData = new assignDeviceTouserModel({
+      deviceId:req.body.deviceId,
+      userId:mongoose.Types.ObjectId(req.body.userId),
+      assignedBy:!!(loggedInUser.email) ? loggedInUser.email : "",
+      hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "",
+      deviceType:"Ventilator",
+      status:true,
+      isAssigned:req.body.isAssigned,
+    })
+    const saveDoc = await reqData.save();
+    await sendDeviceReqModel.findOneAndRemove({deviceId:req.body.deviceId,userId:mongoose.Types.ObjectId(req.body.userId)})
+    if (!saveDoc) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "data not added."
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Request sended successfully.",
+      data: saveDoc
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+// User send req for device access
+const sendReqForDevice = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      deviceId: Joi.string().required(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+    
+    // for loggedin user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user}); 
+    // check data
+    const checkData = await sendDeviceReqModel.findOne({userId:loggedInUser._id,
+      deviceId:req.body.deviceId});
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "You have already sended request.",
+      })
+    }  
+    const reqData = new sendDeviceReqModel({
+      requestedBy:!!(loggedInUser.email) ? loggedInUser.email : "",
+      userId:loggedInUser._id,
+      deviceId:req.body.deviceId,
+      hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "KGMU Lucknow",
+      deviceType:"Ventilator",
+      status:true,
+      isAssigned:"Pending",
+    })
+    const saveDoc = await reqData.save();
+    if (!saveDoc) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "data not added."
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Request sended successfully.",
+      data: saveDoc
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+const getUserDeviceReq = async (req, res) => {
+  try {
+    // const token = req.headers["authorization"].split(' ')[1];
+    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // const loggedInUser = await User.findById({_id:verified.user});
+    const loggedInUser = "";    
+    const getReqData = await sendDeviceReqModel.find({
+      hospitalName:!!(loggedInUser.hospitalName)?loggedInUser.hospitalName:"KGMU Lucknow"
+    })
+
+    if (getReqData.length<1) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "data not added."
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Request has been get successfully.",
+      data: getReqData,
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
 
 
 module.exports = {
@@ -1368,6 +2329,9 @@ module.exports = {
   getUserByUserId,
   getUserProfileById,
   getAllUsers,
+  getAllActiveUSers,
+  getAllPendingUsers,
+  changeUserAcStatus,
   deleteSingleUser,
   getServiceEngList,
   changeUserType,
@@ -1378,5 +2342,15 @@ module.exports = {
   getUserStatus,
   sendOtpSms,
   verifyOtpSms,
-  registerUserForSuperAdmin
+  registerUserForSuperAdmin,
+  sendReqForDevice,
+  getUserDeviceReq,
+  getAllActiveAdmin,
+  acceptOrRejectdeviceReq,
+  addUserExperience,
+  updateUserExperience,
+  getUserProfileByExpId,
+  endAssociation,
+  updatePrimaryEmail,
+  getAllEmployeeList
 };

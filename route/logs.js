@@ -38,6 +38,7 @@ const {
   getAlertsById,
   getLogsById,
   getAllDeviceId,
+  getAllDevicesForUsers,
   getCrashOccurrenceByLogMsgWithDeviceId,
   dateWiseLogOccurrencesByLogMsgWithDeviceId,
   crashlyticsData2,
@@ -62,24 +63,38 @@ router.post("/location/:project_code", locationController.saveNewLocation);
 router.get('/location/:deviceId/:project_code', locationController.getLocationByDeviceId);
 router.post('/calibration/:project_code', calibrationController.saveCalibrationData);
 router.get('/calibration/:deviceId', calibrationController.getCalibrationByDeviceId);
+
+// Service API
 router.post('/services/:project_code', deviceController.addDeviceService);
 router.post('/services/verify-sms-otp/:project_code', deviceController.verifyOtpSms);
-router.get('/services/:deviceId/:project_code', deviceController.getServicesById);
+router.get('/services/get-by-deviceId', deviceController.getServicesById);
+router.post('/services/ticket-status/:project_code', deviceController.updateTicketStatus);
+router.post('/services/verify-otp-for-ticket-close/:project_code', deviceController.closeTicket);
+router.get('/services/get-all', deviceController.getAllServices);
+
+// End service API
+
+// Dispatch API
 router.post('/status/:project_code', deviceController.saveStatus);
 router.get('/deviceOverview/:deviceId/:project_code', isAuth, deviceController.getDeviceOverviewById);
 router.post('/add-dispatch-details/:project_code', deviceController.addAboutDevice);
 router.put('/update-dispatch-data/:project_code', deviceController.updateAboutData);
 router.get('/track-dispatched-device-location/:deviceId', deviceController.trackDeviceLocation);
 
-
 router.get('/get-dispatch-data/:project_code', deviceController.getDispatchData);
 router.get('/get-dispatch-databyId/:deviceId', deviceController.getDispatchDataById);
+
+
 // router.put('/add-dispatch-details', deviceController.addDispatchDetails);
 router.get('/about/:deviceId', isAuth, deviceController.getAboutByDeviceId);
 router.get('/dynamicDeviceId/:deviceId', deviceController.sendAndReceiveData);
 router.put('/assignedDeviceToUser', isAuth, deviceController.assignedDeviceToUser);
 router.get('/getAssignedDeviceByUserId/:userId', isAuth, deviceController.getAssignedDeviceById);
-router.put('/deleteAssignedDeviceById', isAuth, isAdmin, deviceController.deleteAssignedDeviceFromUser);
+router.get('/get-device-access-list/:deviceId', isAuth, deviceController.getDeviceAccessUsersByDeviceId);
+router.get('/get-device-access-users', isAuth, deviceController.getDeviceAccessUsers);
+
+
+router.delete('/delete-access-from-user/:_id', isAuth, deviceController.deleteDeviceAccessUser);
 router.get('/adminDashboardDataCount', deviceController.getAdminDashboardDataCount);
 router.get('/getTotalDevicesCount/:filterType', deviceController.getTotalDevicesDataCount);
 router.get('/getTotalActiveDevicesCount/:filterType', deviceController.getTotalActiveDevicesCount);
@@ -167,6 +182,8 @@ router.get("/deviceAlerts/:did", getAlertsById);
 router.get("/deviceEvents/:did", getEventsById);
 router.get("/deviceLogs/:device", getLogsById);
 router.get("/Allevents/Events", getAllDeviceId);
+router.get("/Allevents/get-devices-for-users", getAllDevicesForUsers);
+
 
 
 // router.get("/example", async (req,res)=>{
