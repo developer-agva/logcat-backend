@@ -85,7 +85,7 @@ router.get('/get-dispatch-data/:project_code', deviceController.getDispatchData)
 router.get('/get-dispatch-databyId/:deviceId', deviceController.getDispatchDataById);
 
 
-// router.put('/add-dispatch-details', deviceController.addDispatchDetails);
+// router.post('/add-shipment-details/:serialNo', deviceController);
 router.get('/about/:deviceId', isAuth, deviceController.getAboutByDeviceId);
 router.get('/dynamicDeviceId/:deviceId', deviceController.sendAndReceiveData);
 router.put('/assignedDeviceToUser', isAuth, deviceController.assignedDeviceToUser);

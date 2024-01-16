@@ -426,12 +426,12 @@ const addDeviceService = async (req, res) => {
     // for otp sms on mobile
     const twilio = require('twilio');
     // const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
-    const accountSid = 'ACea4048023629d3c6f4c3434bd433fa9f';
+    const accountSid = 'ACcfb57440a71e762fbb460ba798c41325';
 
-    // const authToken = '515f24ec71a18ccd103dbe7e1c33c4f3';
-    const authToken = '926bb0293fe56b1b52c07338e1d65dd2';
-    // const twilioPhone = '+12057496028';
-    const twilioPhone = '+19082196991';
+    const authToken = '7c74373e82fe064c422feff9f79b1bcb';
+    // const authToken = '926bb0293fe56b1b52c07338e1d65dd2';
+    const twilioPhone = '+18022551136';
+    // const twilioPhone = '+19082196991';
     const contactNo = `+91${req.body.contactNo}`;
     const client = new twilio(accountSid, authToken);
 
@@ -652,12 +652,12 @@ const updateTicketStatus = async (req, res) => {
     // for otp sms on mobile
     const twilio = require('twilio');
     // const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
-    const accountSid = 'ACea4048023629d3c6f4c3434bd433fa9f';
+    const accountSid = 'ACcfb57440a71e762fbb460ba798c41325';
 
     // const authToken = '515f24ec71a18ccd103dbe7e1c33c4f3';
-    const authToken = '926bb0293fe56b1b52c07338e1d65dd2';
+    const authToken = '7c74373e82fe064c422feff9f79b1bcb';
     // const twilioPhone = '+12057496028';
-    const twilioPhone = '+19082196991';
+    const twilioPhone = '+18022551136';
     const contactNo = `+91${req.body.contactNo}`;
     const client = new twilio(accountSid, authToken);
 
@@ -977,15 +977,28 @@ const getServicesById = async (req, res) => {
     ]
 
     // get data
-    const resData = await servicesModel.aggregate(pipline);
-    const count = resData.length
+    let resData = await servicesModel.aggregate(pipline)
+    // Sort the array based on date property
+    resData.sort((a,b) => {
+      // Convert date obj to string
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA - dateB;
+    })
+
+    // Put "Open" tickets on top, followed by "Closed" tickets
+    const sortedData = [
+      ...resData.filter((item) => item.ticketStatus === "Open"),
+      ...resData.filter((item) => item.ticketStatus === "Closed")
+    ]
+    const count = sortedData.length
     // for pagination
-    const paginateArray =  (resData, page, limit) => {
-      const skip = resData.slice((page - 1) * limit, page * limit);
+    const paginateArray =  (sortedData, page, limit) => {
+      const skip = sortedData.slice((page - 1) * limit, page * limit);
       return skip;
     };
 
-    let finalData = paginateArray(resData, page, limit)
+    let finalData = paginateArray(sortedData, page, limit)
     // count data
     
 
@@ -1138,21 +1151,24 @@ const addAboutDevice = async (req, res) => {
       product_type: Joi.string().required(),
       serial_no: Joi.string().required(),
       purpose: Joi.string().required(),
-      concerned_person: Joi.string().required(),
+      concerned_person: Joi.string().allow("").optional(),
       batch_no: Joi.string(),                   // not required
       date_of_manufacturing: Joi.string(),      // not required
-      address: Joi.string().required(),
+      address: Joi.string().allow("").optional(),
       date_of_dispatch: Joi.string().required(),
-      hospital_name: Joi.string().required(),
-      phone_number: Joi.string().required(),
+      hospital_name: Joi.string().allow("").optional(),
+      phone_number: Joi.string().required().allow("").optional(),
       sim_no: Joi.string(),                     // not required
-      pincode: Joi.string().required(),
+      pincode: Joi.string().allow("").optional(),
       distributor_name: Joi.string().allow("").optional(), // not required
       distributor_contact: Joi.string().allow('').optional(),     // not required
       state: Joi.string().allow("").required(),
       city: Joi.string().allow("").required(),
       district: Joi.string().allow("").required(),
       document_no: Joi.string().allow("").optional(),
+      concerned_person_email: Joi.string().allow("").optional(),
+      gst_number: Joi.string().allow("").optional(),
+      marketing_lead: Joi.string().allow("").optional()
     });
     const result = schema.validate(req.body);
     if (result.error) {
@@ -1205,11 +1221,12 @@ const addAboutDevice = async (req, res) => {
     // console.log(22, getProduction)
     // get hospital
     const getHospital = await Device.findOne({$or:[{DeviceId:req.body.deviceId}]});
-    console.log(11,getHospital)
+    // console.log(11,getHospital)
     // console.log(11,req.body)
     
     let saveDispatchData
     if (!!getProduction) {
+      // console.log(1)
       saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
         { deviceId:!!getProduction? getProduction.deviceId : req.body.deviceId },
         {
@@ -1217,26 +1234,30 @@ const addAboutDevice = async (req, res) => {
           product_type:!!getProduction? getProduction.productType : req.body.product_type,
           serial_no:!!getProduction? getProduction.serialNumber : req.body.serial_no,
           purpose:req.body.purpose,
-          concerned_person:req.body.concerned_person,
+          concerned_person:!!(req.body.concerned_person) ? req.body.concerned_person : "NA",
           batch_no:!!getProduction? getProduction.batchNumber : req.body.batch_no,
           date_of_manufacturing:!!getProduction? getProduction.manufacturingDate : req.body.date_of_manufacturing,
-          address:req.body.address,
-          date_of_dispatch:req.body.date_of_dispatch,
-          hospital_name:!!getHospital? getHospital.Hospital_Name : req.body.hospital_name,
-          phone_number:req.body.phone_number,
+          address:!!(req.body.address) ? req.body.address : "NA",
+          date_of_dispatch:!!(req.body.date_of_dispatch) ? req.body.date_of_dispatch : "NA",
+          hospital_name:!!(req.body.hospital_name) ? req.body.hospital_name : "NA",
+          phone_number:!!(req.body.phone_number) ? req.body.phone_number : "NA",
           sim_no:!!getProduction? getProduction.simNumber : "NA",
-          pincode:req.body.pincode,
-          distributor_name:(!!req.body.distributor_name)? req.body.distributor_name : "NA",
-          distributor_contact:(!!req.body.distributor_contact)? req.body.distributor_contact : "NA",
-          state:(!!req.body.state)? req.body.state : "NA",
-          city:(!!req.body.city)? req.body.city : "NA",
+          pincode:!!(req.body.pincode) ? req.body.pincode : "NA",
+          distributor_name:(!!req.body.distributor_name) ? req.body.distributor_name : "NA",
+          distributor_contact:(!!req.body.distributor_contact) ? req.body.distributor_contact : "NA",
+          state:(!!req.body.state) ? req.body.state : "NA",
+          city:(!!req.body.city) ? req.body.city : "NA",
           district:(!!req.body.district)? req.body.district : "NA",
-          date_of_warranty:finalDate[0],
-          document_no:req.body.document_no,
+          date_of_warranty:!!(finalDate[0]) ? finalDate[0] : "NA",
+          document_no:!!(req.body.document_no) ? req.body.document_no : "NA",
+          concerned_person_email:!!(req.body.concerned_person_email) ? req.body.concerned_person_email : "NA",
+          gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
+          marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA" 
         },
         { upsert: true }
-      );
-
+      )
+      // for update shipmentMode
+      await productionModel.findOneAndUpdate({shipmentMode:"inprocess"})
     }
 
     saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
@@ -1246,13 +1267,13 @@ const addAboutDevice = async (req, res) => {
         product_type:req.body.product_type,
         serial_no:req.body.serial_no,
         purpose:req.body.purpose,
-        concerned_person:req.body.concerned_person,
-        batch_no:req.body.batch_no,
-        date_of_manufacturing:req.body.date_of_manufacturing,
-        address:req.body.address,
-        date_of_dispatch:req.body.date_of_dispatch,
-        hospital_name:req.body.hospital_name,
-        phone_number:req.body.phone_number,
+        concerned_person:!!(req.body.concerned_person) ? req.body.concerned_person : "NA",
+        batch_no:!!(req.body.batch_no) ? req.body.batch_no : "NA",
+        date_of_manufacturing:!!(req.body.date_of_manufacturing) ? req.body.date_of_manufacturing : "NA",
+        address:!!(req.body.address) ? req.body.address : "NA",
+        date_of_dispatch:!!(req.body.date_of_dispatch) ? req.body.date_of_dispatch : "NA",
+        hospital_name:!!(req.body.hospital_name) ? req.body.hospital_name : "NA",
+        phone_number:!!(req.body.phone_number) ? req.body.phone_number : "NA",
         sim_no:"NA",
         pincode:req.body.pincode,
         distributor_name:(!!req.body.distributor_name)? req.body.distributor_name : "NA",
@@ -1260,12 +1281,16 @@ const addAboutDevice = async (req, res) => {
         state:(!!req.body.state)? req.body.state : "NA",
         city:(!!req.body.city)? req.body.city : "NA",
         district:(!!req.body.district)? req.body.district : "NA",
-        date_of_warranty:!!finalDate[0]? finalDate[0] : "",
+        date_of_warranty:!!finalDate[0]? finalDate[0] : "NA",
         document_no:req.body.document_no,
+        concerned_person_email:!!(req.body.concerned_person_email) ? req.body.concerned_person_email : "NA",
+        gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
+        marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA"
       },
       { upsert: true }
     );
-    
+    await productionModel.findOneAndUpdate({shipmentMode:"inprocess"})
+    // console.log(2)
     const checkData = await aboutDeviceModel.findOne({deviceId:req.body.deviceId});
     if(!!checkData) {
       await productionModel.findOneAndUpdate(
@@ -1276,6 +1301,7 @@ const addAboutDevice = async (req, res) => {
           dispatchDate:checkData.date_of_dispatch,
           purpose:checkData.purpose,
           dateOfWarranty:checkData.date_of_warranty,
+          shipmentMode:"inprocess"
         }
       );
       return res.status(201).json({
@@ -1399,6 +1425,11 @@ const updateAboutData = async (req, res) => {
 
 const getDispatchData = async (req, res) => {
   try {
+    // Search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
     // Pagination
     let { page, limit } = req.query;
     if (!page || page === "undefined") {
@@ -1412,6 +1443,13 @@ const getDispatchData = async (req, res) => {
     let dispatchData = await aboutDeviceModel.aggregate(
         [
           {$match:{deviceId:{$ne:null}}},
+          {
+            "$match":{"$or":[
+                { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+                { serial_no: { $regex: ".*" + search + ".*", $options: "i" } },
+                { hospital_name: { $regex: ".*" + search + ".*", $options: "i" } },
+            ]}
+          },
           {$group:{
             _id:{
               deviceId:'$deviceId',

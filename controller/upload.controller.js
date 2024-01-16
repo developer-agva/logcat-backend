@@ -12,6 +12,9 @@ const s33 = new AWS.S3();
 const {sendOtp, sendEmailLink} = require('../helper/sendOtp');
 const s3PatientFileModel = require('../model/s3PatientFileModel');
 const patientModel = require('../model/patientModel');
+const s3invoiceBucketModel = require('../model/s3invoiceBucketModel');
+const s3ewayBillBucketModel = require('../model/s3ewayBillBucketModel');
+const s3shippingBucketModel = require('../model/s3bucketShippingModel');
 
 exports.uploadSingle = async (req, res) => {
     // req.file contains a file object
@@ -46,6 +49,54 @@ exports.uploadQualityReport = async (req, res) => {
   const saveDoc = new s3BucketProdModel(newObj);
   saveFile = saveDoc.save();
 //   await s3BucketProdModel.deleteMany({location: ""});
+}
+
+// upload invoice pdf for accounts modules
+exports.uploadInvoicePdf = async (req, res) => {
+    // req.file contains a file object
+    res.json(req.file);
+  //   console.log(req.file.fieldname, req.params.serialNo)
+    const newObj = {
+        "serialNo":req.params.serialNo,
+        "invoiceNo":req.params.invoiceNo,
+        "flag":"invoice_docs",
+        ...req.file,
+    }
+    const saveDoc = new s3invoiceBucketModel(newObj);
+    saveFile = saveDoc.save();
+  //   await s3BucketProdModel.deleteMany({location: ""});
+}
+
+// upload shipping pdf
+exports.uploadShippingInvoicePdf = async (req, res) => {
+    // req.file contains a file object
+    res.json(req.file);
+  //   console.log(req.file.fieldname, req.params.serialNo)
+    const newObj = {
+        "serialNo":req.params.serialNo,
+        "flag":"shipping_invoice_docs",
+        ...req.file,
+    }
+    const saveDoc = new s3shippingBucketModel(newObj);
+    saveFile = saveDoc.save();
+  //   await s3BucketProdModel.deleteMany({location: ""});
+}
+
+
+// upload ewaybill pdf for accounts modules
+exports.uploadewayBillPdf = async (req, res) => {
+    // req.file contains a file object
+    res.json(req.file);
+  //   console.log(req.file.fieldname, req.params.serialNo)
+    const newObj = {
+        "serialNo":req.params.serialNo,
+        "ewaybillNo":req.params.ewaybillNo,
+        "flag":"ewaybill_docs",
+        ...req.file,
+    }
+    const saveDoc = new s3ewayBillBucketModel(newObj);
+    saveFile = saveDoc.save();
+  //   await s3BucketProdModel.deleteMany({location: ""});
 }
 
 // Upload installation report for service module

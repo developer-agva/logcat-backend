@@ -20,6 +20,15 @@ const productionSchema = new mongoose.Schema({
     sw_version: { type: String, default: "" },
     displayNumber: { type: String, default: "" },
     turbineNumber: { type: String, default: "" },
+    shipmentMode: {
+        type: String,
+        enum: ["req_doc","inprocess","awaiting_for_shipped","shipped"],
+        default: "req_doc"
+    },
+    deviceflag: {
+        type: String,
+        default:""
+    },
 },
     { timestamps: true }
 );

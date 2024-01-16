@@ -12,7 +12,6 @@ const saveCalibrationData = async (req, res) => {
             message: Joi.string().required(),
             date: Joi.string().required(),
             name: Joi.string().required(),
-
         })
         let result = schema.validate(req.body);
         if (result.error) {

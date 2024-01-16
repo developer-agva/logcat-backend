@@ -102,6 +102,30 @@ const aboutSchema = mongoose.Schema({
         type: String,
         default: "",
     },
+    concerned_person_email: {
+        type: String,
+        default: ""
+    },
+    gst_number : {
+        type: String,
+        default: ""
+    },
+    // pan_number : {
+    //     type: String,
+    //     default: ""
+    // },
+    marketing_lead: {
+        type: String,
+        default: ""
+    },
+    billed_to : {        // for ac dept
+        type: String,
+        default: ""
+    },
+    consinee : {       // for acc dept
+        type: String,
+        default: ""
+    },
 
 },
     { timestamps: true })

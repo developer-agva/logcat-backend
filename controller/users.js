@@ -213,15 +213,16 @@ const sendOtpSms = async (req, res) => {
   try {
     const twilio = require('twilio');
     // const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
-    const accountSid = 'ACea4048023629d3c6f4c3434bd433fa9f';
+    // const accountSid = 'ACea4048023629d3c6f4c3434bd433fa9f';
+    const accountSid = 'ACcfb57440a71e762fbb460ba798c41325';
 
     // const authToken = '515f24ec71a18ccd103dbe7e1c33c4f3';
-    const authToken = '926bb0293fe56b1b52c07338e1d65dd2';
+    const authToken = '7c74373e82fe064c422feff9f79b1bcb';
 
 
 
     // const twilioPhone = '+12057496028';
-    const twilioPhone = '+19082196991';
+    const twilioPhone = '+18022551136';
 
     const contactNumber = `+91${req.params.contactNumber}`;
     const client = new twilio(accountSid, authToken); 
@@ -505,7 +506,7 @@ const addUserExperience = async (req, res) => {
     const schema = Joi.object({
       userId: Joi.string().required(),
       associationName: Joi.string().required(),
-      workAddress: Joi.string().required(),
+      // workAddress: Joi.string().allow("").optional(),
       // startDate: Joi.string().required(),
       // endDate: Joi.string().allow("").optional(),
       workEmail: Joi.string().required(),
@@ -531,6 +532,16 @@ const addUserExperience = async (req, res) => {
         message: "User id does not exist",
       })
     }
+    // find Hospital details
+    const hospitalData = await registeredHospitalModel.findOne({Hospital_Name:req.body.associationName});
+    if (!hospitalData) {
+      // console.log(hospitalData)
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Invalid Hospital name."
+      })
+    }
     const checkData = await Users.findOne({
       "_id":mongoose.Types.ObjectId(req.body.userId),
       "profile.associationName":req.body.associationName,
@@ -546,7 +557,7 @@ const addUserExperience = async (req, res) => {
     let bodyObj = {
       userId:req.body.userId,
       associationName:req.body.associationName,
-      workAddress:req.body.workAddress,
+      workAddress:!!(hospitalData.Hospital_Address) ? `${hospitalData.Hospital_Address}, ${hospitalData.State}, ${hospitalData.City}, ${hospitalData.Pincode}` : "",
       startDate: new Date(),
       endDate:"",
       workEmail:req.body.workEmail,
@@ -732,7 +743,7 @@ const updateUserExperience = async (req, res) => {
       userId: Joi.string().required(),
       profileId : Joi.string().required(),
       associationName: Joi.string().required(),
-      workAddress: Joi.string().required(),
+      workAddress: Joi.string().allow().optional(),
       workEmail: Joi.string().required(),
       workPhoneNo: Joi.string().required(),
       designation: Joi.string().required(),
@@ -747,11 +758,20 @@ const updateUserExperience = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-
+   
     const checkUser = await Users.findOne({
       "_id":mongoose.Types.ObjectId(req.body.userId),
       "profile._id":mongoose.Types.ObjectId(req.body.profileId)
     })
+    // check hospital
+    const hospitalData = await registeredHospitalModel.findOne({Hospital_Name:req.body.associationName});
+    if (!hospitalData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Wrong !! Invalid hospital name.",
+      })
+    }
     // console.log(checkUser)
     if (!checkUser) {
       return res.status(400).json({
@@ -765,7 +785,7 @@ const updateUserExperience = async (req, res) => {
           "profile.$.userId": mongoose.Types.ObjectId(req.body.userId),
           "profile.$._id": mongoose.Types.ObjectId(req.body.profileId),
           "profile.$.associationName": req.body.associationName,
-          "profile.$.workAddress": req.body.workAddress,
+          "profile.$.workAddress": !!hospitalData ? `${hospitalData.Hospital_Address}, ${hospitalData.State}, ${hospitalData.City}, ${hospitalData.Pincode}` : "",
           // "profile.$.startDate": req.body.startDate,
           // "profile.$.endDate": req.body.endDate,
           "profile.$.workEmail": req.body.workEmail,
@@ -1319,8 +1339,25 @@ const userPasswordChange = async (req, res) => {
  */
 const getUserProfileById = async (req, res) => {
   try {
-    const userData = await Users.findById({_id:mongoose.Types.ObjectId(req.params.userId)})
+    let userData = {}
+    userData = await Users.findById({_id:mongoose.Types.ObjectId(req.params.userId)})
     .select({createdAt:0, updatedAt:0, __v:0, otp:0});
+
+    let profile = userData.profile
+  
+    profile.sort((a, b) => {
+      // Convert string dates to Date objects
+      const endDateA = new Date(a.endDate);
+      const endDateB = new Date(b.endDate);
+  
+      // Handle cases where endDate is empty
+      if (!a.endDate) return -1; // a comes first
+      if (!b.endDate) return 1; // b comes first
+  
+      // Compare endDate values
+      return  endDateB - endDateA;
+    });
+  
     if (!userData) {
       return res.status(400).json({
         statusCode: 400,
@@ -1332,7 +1369,19 @@ const getUserProfileById = async (req, res) => {
       statusCode: 200,
       statusValue:"SUCCESS",
       message:"Get user profile successfully!",
-      data:userData
+      data:{
+        _id:userData._id,
+        firstName:userData.firstName,
+        lastName:userData.lastName,
+        email:userData.email,
+        hospitalName:userData.hospitalName,
+        designation:userData.designation,
+        contactNumber:userData.contactNumber,
+        department:userData.department,
+        speciality:userData.speciality,
+        passwordHash:userData.passwordHash,
+        profile:profile,
+      }
     });
 
   } catch (err) {
@@ -1520,40 +1569,72 @@ const getAllUsers = async (req, res) => {
     const skip = page > 0 ? (page - 1) * limit : 0
 
     // Initialize empty obj
-    let filterObj = {};
-    // check user role
+    // let filterObj = {};
+    // // check user role
     if (checkUser.userType == "Hospital-Admin") {
-      filterObj = {$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
-    }
-    filterObj = {$and:[{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
-    const getUsers = await User.find(filterObj)
-    .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
-    .sort({createdAt:-1})
-    .skip(skip)
-    .limit(limit);
-    
-    // Count 
-    const count = await User.find(filterObj)
-    .sort({createdAt:-1})
-    .countDocuments();
+      const getUsers = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:{$ne:"Initial"}}]})
+      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+      .sort({createdAt:-1})
+      .skip(skip)
+      .limit(limit);
 
-    if (getUsers.length>0) {
-      return res.status(200).json({
-        statusCode:200,
-        statusValue:"SUCCESS",
-        message:"Users list get successfully.",
-        data:getUsers,
-        totalDataCount: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: page
+      const count = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:{$ne:"Initial"}}]})
+      .sort({createdAt:-1})
+      .countDocuments();
+
+      if (getUsers.length>0) {
+        return res.status(200).json({
+          statusCode:200,
+          statusValue:"SUCCESS",
+          message:"Users list get successfully.",
+          data:getUsers,
+          totalDataCount: count,
+          totalPages: Math.ceil(count / limit),
+          currentPage: page
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
+      })
+    } else {
+      const getUsers = await User.find({$and:[{userType:"User"},{accountStatus:{$ne:"Initial"}}]})
+      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+      .sort({createdAt:-1})
+      .skip(skip)
+      .limit(limit);
+
+      const count = await User.find({$and:[{userType:"User"},{accountStatus:{$ne:"Initial"}}]})
+      .sort({createdAt:-1})
+      .countDocuments();
+
+      if (getUsers.length>0) {
+        return res.status(200).json({
+          statusCode:200,
+          statusValue:"SUCCESS",
+          message:"Users list get successfully.",
+          data:getUsers,
+          totalDataCount: count,
+          totalPages: Math.ceil(count / limit),
+          currentPage: page
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
       })
     }
-    return res.status(400).json({
-      statusCode: 400,
-      statusValue: "FAIL",
-      message: "Data not found.",
-      data: []
-    })
+    // filterObj = {$and:[{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
+    
+    
+    // Count 
+   
+
+    
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -1597,14 +1678,14 @@ const getAllEmployeeList = async (req, res) => {
     //   filterObj = {$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
     // }
     // filterObj = {$and:[{userType:"User"},{accountStatus:{$ne:"Initial"}}]}
-    const getUsers = await User.find({$or:[{userType:"Production"},{userType:"Dispatch"},{userType:"Service-Engineer"},{userType:"Support"}]})
+    const getUsers = await User.find({$or:[{userType:"Production"},{userType:"Dispatch"},{userType:"Service-Engineer"},{userType:"Support"},{userType:"Accounts"}]})
     .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
     .sort({createdAt:-1})
     .skip(skip)
     .limit(limit);
     
     // Count 
-    const count = await User.find({$or:[{userType:"Production"},{userType:"Dispatch"},{userType:"Service-Engineer"},{userType:"Support"}]})
+    const count = await User.find({$or:[{userType:"Production"},{userType:"Dispatch"},{userType:"Service-Engineer"},{userType:"Support"},{userType:"Accounts"}]})
     .sort({createdAt:-1})
     .countDocuments();
 
@@ -2245,14 +2326,14 @@ const sendReqForDevice = async (req, res) => {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "You have already sended request.",
+        message: "You have already sent request.",
       })
     }  
     const reqData = new sendDeviceReqModel({
       requestedBy:!!(loggedInUser.email) ? loggedInUser.email : "",
       userId:loggedInUser._id,
       deviceId:req.body.deviceId,
-      hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "KGMU Lucknow",
+      hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "NA",
       deviceType:"Ventilator",
       status:true,
       isAssigned:"Pending",

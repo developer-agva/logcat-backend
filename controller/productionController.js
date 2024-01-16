@@ -67,6 +67,8 @@ const createProduction = async (req, res) => {
                 sw_version:req.body.sw_version,
                 displayNumber:req.body.displayNumber,
                 turbineNumber:req.body.turbineNumber,
+                shipmentMode:"req_doc",
+                deviceflag:"new_device"
             },
             { upsert:true, new: true },
         );
@@ -113,8 +115,14 @@ const createProduction = async (req, res) => {
  */
 const getProductionData = async (req, res) => {
     try {
+        // Search
+        var search = "";
+        if (req.query.search && req.query.search !== "undefined") {
+        search = req.query.search;
+        }
         // for pagination
-        let { page, limit } = req.query;
+        let page = req.query.page
+        let limit = req.query.limit
         if (!page || page === "undefined") {
         page = 1;
         }
@@ -133,6 +141,13 @@ const getProductionData = async (req, res) => {
                 "foreignField": "deviceId",
                 "as": "bucket_mapping",
               },
+            },
+            // search operation
+            {
+                "$match":{"$or":[
+                    { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+                    { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
+                ]}
             },
             // For this data model, will always be 1 record in right-side
             // of join, so take 1st joined array element
@@ -156,7 +171,7 @@ const getProductionData = async (req, res) => {
               ]
             },
             {
-              "$sort": {"createdAt":-1}
+              "$sort": {"manufacturingDate":-1}
             },
         ]
       
@@ -248,37 +263,37 @@ const getProductionById = async (req, res) => {
 const getProductionBySrNo = async (req, res) => {
     try {
         // check serial already used or not
-        const isSerialNo = await aboutDeviceModel.findOne({serial_no:req.params.serialNumber});
-        // console.log(isSerialNo)
-        const errors = validationResult(req);
+        // const isSerialNo = await aboutDeviceModel.findOne({serial_no:req.params.serialNumber});
+        // // console.log(isSerialNo)
+        // const errors = validationResult(req);
+        // // if(!!isSerialNo) {
+        // //     return res.status(400).json({
+        // //         statusCode: 400,
+        // //         statusValue: "FAIL",
+        // //         message: "This serial already in used.",
+        // //     })
+        // // }
         // if(!!isSerialNo) {
         //     return res.status(400).json({
-        //         statusCode: 400,
-        //         statusValue: "FAIL",
-        //         message: "This serial already in used.",
-        //     })
+        //       statusCode: 400,
+        //       statusValue:"FAIL",
+        //       message:"This Serial No. already in used.",
+        //       data: {
+        //         err: {
+        //           generatedTime: new Date(),
+        //           errMsg: errors
+        //             .array()
+        //             .map((err) => {
+        //               return `${err.msg}: ${err.param}`;
+        //             })
+        //             .join(' | '),
+        //           msg: 'This Serial No. already in used.',
+        //           type: 'ValidationError',
+        //           statusCode:400,
+        //         },
+        //       },
+        //     });
         // }
-        if(!!isSerialNo) {
-            return res.status(400).json({
-              statusCode: 400,
-              statusValue:"FAIL",
-              message:"This Serial No. already in used.",
-              data: {
-                err: {
-                  generatedTime: new Date(),
-                  errMsg: errors
-                    .array()
-                    .map((err) => {
-                      return `${err.msg}: ${err.param}`;
-                    })
-                    .join(' | '),
-                  msg: 'This Serial No. already in used.',
-                  type: 'ValidationError',
-                  statusCode:400,
-                },
-              },
-            });
-        }
         const data = await productionModel.findOne({
             $or:[
                 {serialNumber:req.params.serialNumber},
@@ -395,6 +410,7 @@ const updateProduction = async (req, res) => {
             batchNumber: Joi.string().required(),
             serialNumber: Joi.string().required(),
             manufacturingDate: Joi.string().required(),
+            // manufacturingDate: Joi.string().required(),
             // dispatchDate: Joi.string().required(),
         })
         let result = schema.validate(req.body);
