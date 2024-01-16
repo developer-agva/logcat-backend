@@ -29,7 +29,7 @@ const saveMarkasShippedData = async (req, res) => {
         })
         let result = schema.validate(req.body);
         if (result.error) {
-            // console.log(req.body);
+            console.log(req.body);
             return res.status(200).json({
                 status: 0,
                 statusCode: 400,
@@ -119,7 +119,16 @@ const saveAwaitingForShippedData = async (req, res) => {
                 message: "No data found with this serial number",
             })
         }
-        await productionModel.findOneAndUpdate({serialNumber:"AGVATEST01"},{shipmentMode:"awaiting_for_shipped"})
+        // check already exists or not
+        const checkData = await accountsModel.find({serialNo:req.body.seriallNo})
+        if (checkData.length>0) {
+            return res.status(400).json({
+                statusCode: 400,
+                statusValue: "FAIL",
+                message: "data already exists",
+            })
+        }
+        await productionModel.findOneAndUpdate({serialNumber:req.body.seriallNo},{shipmentMode:"awaiting_for_shipped"})
         const accountsDoc = new accountsModel({
             serialNo:req.body.seriallNo,
             deviceId:!!(deviceData.deviceId) ? deviceData.deviceId : "NA",
@@ -452,60 +461,51 @@ const getAccountsData = async (req, res) => {
 
 const getProductionListV2 = async (req, res) => {
     try {
+         // Search
+         var search = "";
+         if (req.query.search && req.query.search !== "undefined") {
+             search = req.query.search;
+         }
+         // Pagination
+         let { page, limit } = req.query;
+         if (!page || page === "undefined") {
+             page = 1;
+         }
+         if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+             limit = 99999;
+         }
+
         // aggregate logic
         var pipline = [
             // Match
-           {"$match":{shipmentMode:"req_doc"}},
-        //    {
-        //        "$lookup":{
-        //          "from":"s3_bucket_shippings",
-        //          "localField":"serialNumber",
-        //          "foreignField":"serialNo",
-        //          "as":"shippingInvoiceData"
-        //        }
-        //    },
-        //    {
-        //        "$lookup":{
-        //          "from":"mark_as_shippeds",
-        //          "localField":"serialNumber",
-        //          "foreignField":"serialNo",
-        //          "as":"markAsShipped"
-        //        }
-        //    },
-
-        //    For this data model, will always be 1 record in right-side
-        //    of join, so take 1st joined array element
-        //    {
-        //        "$set": {
-        //          "shippingInvoiceData": {"$first": "$shippingInvoiceData"},
-        //          "markAsShipped": {"$first": "$markAsShipped"},
-        //         //  "dispatchData": {"$first": "$dispatchData"},
-        //        }
-        //    },
-           // Extract the joined embeded fields into top level fields
-        //    {
-        //        "$set": {"invoicePdf": "$shippingInvoiceData.location"},
-        //    },
-        //    {
-        //        "$unset": [
-        //          "shippingInvoiceData",
-        //         //  "markAsShipped",
-        //          "__v",
-        //          // "createdAt",
-        //          "updatedAt",
-        //          // "otp",
-        //          // "isVerified",
-        //        ]
-        //    },
+           {"$match":{shipmentMode:"inprocess"}},
+           // filter data from the above data list
+            // search operation
+            {
+                "$match":{"$or":[
+                    { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+                    { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
+                ]}
+            },
        ]
         // get data
-        const resData = await productionModel.aggregate(pipline);
+        const resData = await productionModel.aggregate(pipline)
+        // for pagination
+        const paginateArray =  (resData, page, limit) => {
+            const skip = resData.slice((page - 1) * limit, page * limit);
+            return skip;
+        };
+        let allData = paginateArray(resData, page, limit)
+
         if (!!resData.length>0) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue:"SUCCESS",
-                message:"Awaiting for shipped data get successfully.",
-                data:resData
+                message:"Production data get successfully.",
+                data: allData,
+                totalDataCount: resData.length,
+                totalPages: Math.ceil( (resData.length)/ limit),
+                currentPage: page,
             })
         }
         return res.status(400).json({
@@ -551,9 +551,17 @@ const getDispatchedDeviceList = async (req, res) => {
               [
                 {shipmentMode:"shipped"},
                 {shipmentMode:{$exists:false}},
-                { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+                // { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
               ]
-            }}
+            }},
+            // filter data from the above data list
+            // search operation
+            {
+                "$match":{"$or":[
+                    { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+                    { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
+                ]}
+            },
         ]
         // get data
         const resData = await productionModel.aggregate(pipline);
@@ -600,60 +608,102 @@ const getDispatchedDeviceList = async (req, res) => {
  */
 const getAwaitingForShippedData = async (req, res) => {
     try {
+
+        // Search
+        var search = "";
+        if (req.query.search && req.query.search !== "undefined") {
+            search = req.query.search;
+        }
+        // Pagination
+        let { page, limit } = req.query;
+        if (!page || page === "undefined") {
+            page = 1;
+        }
+        if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+            limit = 99999;
+        }
+
         // aggregate logic
         var pipline = [
             // Match
-           {"$match":{"shipmentMode":"awaiting_for_shipped"}},
+        //    {"$match":{"shipmentMode":"awaiting_for_shipped"}},
            {
                "$lookup":{
-                 "from":"s3_bucket_shippings",
-                 "localField":"serialNumber",
-                 "foreignField":"serialNo",
-                 "as":"shippingInvoiceData"
+                 "from":"s3_ewaybill_buckets",
+                 "localField":"ewaybillNo",
+                 "foreignField":"ewaybillNo",
+                 "as":"ewayBillData"
                }
            },
            {
                "$lookup":{
-                 "from":"mark_as_shippeds",
-                 "localField":"serialNumber",
-                 "foreignField":"serialNo",
-                 "as":"markAsShipped"
+                 "from":"s3_invoice_buckets",
+                 "localField":"invoiceNo",
+                 "foreignField":"invoiceNo",
+                 "as":"invoiceBillData"
                }
            },
-
+           {
+              "$lookup":{
+                "from":"productions",
+                "localField":"serialNumber",
+                "foreignField":"serialNo",
+                "as":"prodData"
+              }
+           },
+           // search operation
+           {
+            "$match":{"prodData.shipmentMode":"awaiting_for_shipped"},
+           },
         //    For this data model, will always be 1 record in right-side
         //    of join, so take 1st joined array element
            {
                "$set": {
-                 "shippingInvoiceData": {"$first": "$shippingInvoiceData"},
-                 "markAsShipped": {"$first": "$markAsShipped"},
-                //  "dispatchData": {"$first": "$dispatchData"},
+                 "ewayBillData": {"$first": "$ewayBillData"},
+                 "invoiceBillData": {"$first": "$invoiceBillData"},
+                 "prodData": {"$first": "$prodData"},
                }
            },
            // Extract the joined embeded fields into top level fields
            {
-               "$set": {"invoicePdf": "$shippingInvoiceData.location"},
+               "$set": {"ewayBillPdf": "$ewayBillData.location","invoiceBillPdf":"$invoiceBillData.location","shipmentMode":"$prodData.shipmentMode"},
            },
+           // search operation
+        //    {
+        //     "$match":{"shipmentMode":"awaiting_for_shipped"}
+        //    },
            {
                "$unset": [
-                 "shippingInvoiceData",
-                //  "markAsShipped",
+                 "invoiceBillData",
+                 "ewayBillData",
+                //  "prodData",
                  "__v",
                  // "createdAt",
-                 "updatedAt",
+                //  "updatedAt",
                  // "otp",
                  // "isVerified",
                ]
            },
-       ]
+        ]
         // get data
-        const resData = await productionModel.aggregate(pipline);
+        const resData = await accountsModel.aggregate(pipline)
+        // console.log(resData)
+        // for pagination
+        const paginateArray =  (resData, page, limit) => {
+            const skip = resData.slice((page - 1) * limit, page * limit);
+            return skip;
+        };
+        let allData = paginateArray(resData, page, limit)
+
         if (!!resData.length>0) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue:"SUCCESS",
                 message:"Awaiting for shipped data get successfully.",
-                data:resData
+                data: allData,
+                totalDataCount: resData.length,
+                totalPages: Math.ceil( (resData.length)/ limit),
+                currentPage: page,
             })
         }
         return res.status(400).json({

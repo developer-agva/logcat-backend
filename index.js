@@ -118,11 +118,12 @@ const { Server } = require("socket.io");
 const io = new Server(server, {
   cors: {
     // origin: "http://192.168.2.37:3000",
-    origin: "http://3.26.129.121:3000",
+    origin: process.env.ORIGIN || "http://3.26.129.121:3000",
+    
     methods: ["GET", "POST"],
   },
 });
-
+console.log(process.env.ORIGIN)
 // Global 
 // var deviceIdArr = [];
 // console.log(11,globalArray)
