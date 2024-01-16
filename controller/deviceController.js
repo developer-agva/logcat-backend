@@ -1168,7 +1168,9 @@ const addAboutDevice = async (req, res) => {
       document_no: Joi.string().allow("").optional(),
       concerned_person_email: Joi.string().allow("").optional(),
       gst_number: Joi.string().allow("").optional(),
-      marketing_lead: Joi.string().allow("").optional()
+      marketing_lead: Joi.string().allow("").optional(),
+      consinee:Joi.string().allow("").optional(),
+      consigneeAddress:Joi.string().allow("").optional()
     });
     const result = schema.validate(req.body);
     if (result.error) {
@@ -1252,7 +1254,9 @@ const addAboutDevice = async (req, res) => {
           document_no:!!(req.body.document_no) ? req.body.document_no : "NA",
           concerned_person_email:!!(req.body.concerned_person_email) ? req.body.concerned_person_email : "NA",
           gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
-          marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA" 
+          marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
+          consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
+          consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA" 
         },
         { upsert: true }
       )
@@ -1285,7 +1289,9 @@ const addAboutDevice = async (req, res) => {
         document_no:req.body.document_no,
         concerned_person_email:!!(req.body.concerned_person_email) ? req.body.concerned_person_email : "NA",
         gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
-        marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA"
+        marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
+        consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
+        consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA"
       },
       { upsert: true }
     );

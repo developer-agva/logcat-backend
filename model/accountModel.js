@@ -46,6 +46,10 @@ const accountsSchema = mongoose.Schema({
         type: String,
         default: ""
     },
+    consigneeAddress: {
+        type: String,
+        default: ""
+    },
     document_ref_no: {
         type: String,
         default: ""

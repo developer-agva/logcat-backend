@@ -126,6 +126,10 @@ const aboutSchema = mongoose.Schema({
         type: String,
         default: ""
     },
+    consigneeAddress:{
+        type: String,
+        default: ""
+    },
 
 },
     { timestamps: true })

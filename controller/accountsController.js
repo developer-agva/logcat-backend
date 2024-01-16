@@ -37,7 +37,16 @@ const saveMarkasShippedData = async (req, res) => {
             })
         }
         // get device details by serialNo
-        
+        // console.log(req.body)
+        const checkAlreadyMarked = await markAsShippedModel.findOne({serialNo:req.body.seriallNo})
+        // console.log(checkAlreadyMarked)
+        if (!!checkAlreadyMarked) {
+            return res.status(400).json({
+                statusCode: 400,
+                statusValue: "FAIL",
+                message: "Data already exists with this serial number.",
+            })
+        }
         const accountsDoc = new markAsShippedModel({
             serialNo:req.body.seriallNo,
             // deviceId:!!(deviceData.deviceId) ? deviceData.deviceId : "NA",
@@ -51,7 +60,7 @@ const saveMarkasShippedData = async (req, res) => {
             // document_ref_no:req.body.document_ref_no
         })
         const saveDoc = accountsDoc.save();
-        await productionModel.findOneAndUpdate({serialNumber:req.body.serialNo},{shipmentMode:"shipped"})
+        await productionModel.findOneAndUpdate({serialNumber:req.body.seriallNo},{shipmentMode:"shipped"})
         if (!!saveDoc) {
             return res.status(200).json({
                 statusCode: 200,
@@ -88,12 +97,13 @@ const saveAwaitingForShippedData = async (req, res) => {
             invoiceNo: Joi.string().required(),
             ewaybillNo: Joi.string().required(),
             billedTo: Joi.string().required(),
-            consinee: Joi.string().required(),
+            consinee: Joi.string().allow("").optional(),
             document_ref_no: Joi.string().required(),
+            consigneeAddress:Joi.string().allow("").optional(),
         })
         let result = schema.validate(req.body);
         if (result.error) {
-            // console.log(req.body);
+            console.log(11,req.body);
             return res.status(200).json({
                 status: 0,
                 statusCode: 400,
@@ -109,6 +119,7 @@ const saveAwaitingForShippedData = async (req, res) => {
                 message: "No data found with this serial number",
             })
         }
+        await productionModel.findOneAndUpdate({serialNumber:"AGVATEST01"},{shipmentMode:"awaiting_for_shipped"})
         const accountsDoc = new accountsModel({
             serialNo:req.body.seriallNo,
             deviceId:!!(deviceData.deviceId) ? deviceData.deviceId : "NA",
@@ -117,15 +128,12 @@ const saveAwaitingForShippedData = async (req, res) => {
             ewaybillNo:req.body.ewaybillNo,
             invoiceNo:req.body.invoiceNo,
             billedTo:req.body.billedTo,
-            consinee:req.body.consinee, 
-            document_ref_no:req.body.document_ref_no
+            consinee:!!(req.body.consinee) ? req.body.consinee : "NA", 
+            consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
+            document_ref_no:req.body.document_ref_no,
         })
         const saveDoc = accountsDoc.save();
-        await productionModel.findOneAndUpdate({serialNumber:req.body.serialNo},
-            {
-                serialNumber:req.body.serialNo,
-                shipmentMode:"awaiting_for_shipped"}
-            );
+        // console.log(req.body.serialNo)
         if (!!saveDoc) {
             return res.status(200).json({
                 statusCode: 200,
@@ -313,12 +321,24 @@ const getDispatchReqData = async (req, res) => {
         ]
         // get data
         const resData = await productionModel.aggregate(pipline);
+        // console.log(resData)
+        // for pagination
+        const paginateArray =  (resData, page, limit) => {
+            const skip = resData.slice((page - 1) * limit, page * limit);
+            return skip;
+        };
+        
+        let allData = paginateArray(resData, page, limit)
+
         if (!!resData.length>0) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue:"SUCCESS",
                 message:"Accounts data get successfully.",
-                data:resData
+                data:allData,
+                totalDataCount: resData.length,
+                totalPages: Math.ceil( (resData.length)/ limit),
+                currentPage: page,
             })
         }
         return res.status(400).json({
@@ -430,6 +450,150 @@ const getAccountsData = async (req, res) => {
 }
 
 
+const getProductionListV2 = async (req, res) => {
+    try {
+        // aggregate logic
+        var pipline = [
+            // Match
+           {"$match":{shipmentMode:"req_doc"}},
+        //    {
+        //        "$lookup":{
+        //          "from":"s3_bucket_shippings",
+        //          "localField":"serialNumber",
+        //          "foreignField":"serialNo",
+        //          "as":"shippingInvoiceData"
+        //        }
+        //    },
+        //    {
+        //        "$lookup":{
+        //          "from":"mark_as_shippeds",
+        //          "localField":"serialNumber",
+        //          "foreignField":"serialNo",
+        //          "as":"markAsShipped"
+        //        }
+        //    },
+
+        //    For this data model, will always be 1 record in right-side
+        //    of join, so take 1st joined array element
+        //    {
+        //        "$set": {
+        //          "shippingInvoiceData": {"$first": "$shippingInvoiceData"},
+        //          "markAsShipped": {"$first": "$markAsShipped"},
+        //         //  "dispatchData": {"$first": "$dispatchData"},
+        //        }
+        //    },
+           // Extract the joined embeded fields into top level fields
+        //    {
+        //        "$set": {"invoicePdf": "$shippingInvoiceData.location"},
+        //    },
+        //    {
+        //        "$unset": [
+        //          "shippingInvoiceData",
+        //         //  "markAsShipped",
+        //          "__v",
+        //          // "createdAt",
+        //          "updatedAt",
+        //          // "otp",
+        //          // "isVerified",
+        //        ]
+        //    },
+       ]
+        // get data
+        const resData = await productionModel.aggregate(pipline);
+        if (!!resData.length>0) {
+            return res.status(200).json({
+                statusCode: 200,
+                statusValue:"SUCCESS",
+                message:"Awaiting for shipped data get successfully.",
+                data:resData
+            })
+        }
+        return res.status(400).json({
+            statusCode: 400,
+            statusValue:"FAIL",
+            message:"data not found."
+        })
+        
+    } catch (error) {
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message:"Internal server error",
+            data:{
+                name:"locationCotroller/getLocationByDeviceId",
+                error:error
+            }
+        })
+    }
+}
+
+const getDispatchedDeviceList = async (req, res) => {
+    try {
+
+        // Search
+        var search = "";
+        if (req.query.search && req.query.search !== "undefined") {
+            search = req.query.search;
+        }
+        // Pagination
+        let { page, limit } = req.query;
+        if (!page || page === "undefined") {
+            page = 1;
+        }
+        if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+            limit = 99999;
+        }
+
+        // aggregate logic
+        var pipline = [
+            // Match
+           {"$match":{"$or":
+              [
+                {shipmentMode:"shipped"},
+                {shipmentMode:{$exists:false}},
+                { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+              ]
+            }}
+        ]
+        // get data
+        const resData = await productionModel.aggregate(pipline);
+
+        // for pagination
+        const paginateArray =  (resData, page, limit) => {
+            const skip = resData.slice((page - 1) * limit, page * limit);
+            return skip;
+        };
+        let allData = paginateArray(resData, page, limit)
+
+        if (!!resData.length>0) {
+            return res.status(200).json({
+                statusCode: 200,
+                statusValue:"SUCCESS",
+                message:"Complete shipped data get successfully.",
+                data: allData,
+                totalDataCount: resData.length,
+                totalPages: Math.ceil( (resData.length)/ limit),
+                currentPage: page,
+            })
+        }
+        return res.status(400).json({
+            statusCode: 400,
+            statusValue:"FAIL",
+            message:"data not found."
+        })
+        
+    } catch (error) {
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message:"Internal server error",
+            data:{
+                name:"locationCotroller/getLocationByDeviceId",
+                error:error
+            }
+        })
+    }
+}
 /**
  * @desc get all accounts data submitted by a/c dept. 
  * api GET@/api/logger/
@@ -681,5 +845,7 @@ module.exports = {
     // getMArkAsShipped,
     getMArkAsShipped,
     saveAwaitingForShippedData,
-    getAwaitingForShippedData
+    getAwaitingForShippedData,
+    getDispatchedDeviceList,
+    getProductionListV2
 }

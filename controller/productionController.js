@@ -32,6 +32,11 @@ const createProduction = async (req, res) => {
             sw_version: Joi.string().allow("").required(),
             displayNumber: Joi.string().required(),
             turbineNumber: Joi.string().required(),
+
+            qaDoneBy: Joi.string().allow("").optional(),
+            dataEnteredBy: Joi.string().allow("").optional(),
+            testingDoneBy: Joi.string().allow("").optional(),
+            partsIssuedBy: Joi.string().allow("").optional(),
         })
         let result = schema.validate(req.body);
         if (result.error) {
@@ -68,7 +73,11 @@ const createProduction = async (req, res) => {
                 displayNumber:req.body.displayNumber,
                 turbineNumber:req.body.turbineNumber,
                 shipmentMode:"req_doc",
-                deviceflag:"new_device"
+                deviceflag:"new_device",
+                qaDoneBy: !!(req.body.qaDoneBy) ? req.body.qaDoneBy : "",
+                dataEnteredBy: !!(req.body.dataEnteredBy) ? req.body.dataEnteredBy : "",
+                testingDoneBy: !!(req.body.testingDoneBy) ? req.body.testingDoneBy : "",
+                partsIssuedBy: !!(req.body.partsIssuedBy) ? req.body.partsIssuedBy : ""
             },
             { upsert:true, new: true },
         );
