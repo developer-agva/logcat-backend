@@ -123,7 +123,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-console.log(process.env.ORIGIN)
+// console.log(process.env.ORIGIN)
 // Global 
 // var deviceIdArr = [];
 // console.log(11,globalArray)

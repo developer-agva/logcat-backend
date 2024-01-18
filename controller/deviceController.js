@@ -1150,7 +1150,7 @@ const addAboutDevice = async (req, res) => {
       deviceId: Joi.string().optional(),
       product_type: Joi.string().required(),
       serial_no: Joi.string().required(),
-      purpose: Joi.string().required(),
+      purpose: Joi.string().allow("").optional(),
       concerned_person: Joi.string().allow("").optional(),
       batch_no: Joi.string(),                   // not required
       date_of_manufacturing: Joi.string(),      // not required
@@ -1170,7 +1170,8 @@ const addAboutDevice = async (req, res) => {
       gst_number: Joi.string().allow("").optional(),
       marketing_lead: Joi.string().allow("").optional(),
       consinee:Joi.string().allow("").optional(),
-      consigneeAddress:Joi.string().allow("").optional()
+      consigneeAddress:Joi.string().allow("").optional(),
+      poNumber:Joi.string().allow("").optional(),
     });
     const result = schema.validate(req.body);
     if (result.error) {
@@ -1235,7 +1236,7 @@ const addAboutDevice = async (req, res) => {
           deviceId:!!getProduction? getProduction.deviceId : req.body.deviceId,
           product_type:!!getProduction? getProduction.productType : req.body.product_type,
           serial_no:!!getProduction? getProduction.serialNumber : req.body.serial_no,
-          purpose:req.body.purpose,
+          purpose:!!(req.body.purpose) ? req.body.purpose : "NA",
           concerned_person:!!(req.body.concerned_person) ? req.body.concerned_person : "NA",
           batch_no:!!getProduction? getProduction.batchNumber : req.body.batch_no,
           date_of_manufacturing:!!getProduction? getProduction.manufacturingDate : req.body.date_of_manufacturing,
@@ -1270,7 +1271,7 @@ const addAboutDevice = async (req, res) => {
         deviceId:req.body.deviceId,
         product_type:req.body.product_type,
         serial_no:req.body.serial_no,
-        purpose:req.body.purpose,
+        purpose:!!(req.body.purpose) ? req.body.purpose : "NA",
         concerned_person:!!(req.body.concerned_person) ? req.body.concerned_person : "NA",
         batch_no:!!(req.body.batch_no) ? req.body.batch_no : "NA",
         date_of_manufacturing:!!(req.body.date_of_manufacturing) ? req.body.date_of_manufacturing : "NA",
@@ -1303,7 +1304,7 @@ const addAboutDevice = async (req, res) => {
         {deviceId:checkData.deviceId},
         {
           hospitalName:checkData.hospital_name,
-          address:checkData.address,
+          // address:checkData.address,
           dispatchDate:checkData.date_of_dispatch,
           purpose:checkData.purpose,
           dateOfWarranty:checkData.date_of_warranty,

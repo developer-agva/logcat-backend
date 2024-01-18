@@ -130,6 +130,10 @@ const aboutSchema = mongoose.Schema({
         type: String,
         default: ""
     },
+    poNumber:{
+        type: String,
+        default: ""
+    },
 
 },
     { timestamps: true })

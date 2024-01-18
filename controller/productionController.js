@@ -37,6 +37,7 @@ const createProduction = async (req, res) => {
             dataEnteredBy: Joi.string().allow("").optional(),
             testingDoneBy: Joi.string().allow("").optional(),
             partsIssuedBy: Joi.string().allow("").optional(),
+            purpose: Joi.string().allow("").optional(),
         })
         let result = schema.validate(req.body);
         if (result.error) {
@@ -77,7 +78,8 @@ const createProduction = async (req, res) => {
                 qaDoneBy: !!(req.body.qaDoneBy) ? req.body.qaDoneBy : "",
                 dataEnteredBy: !!(req.body.dataEnteredBy) ? req.body.dataEnteredBy : "",
                 testingDoneBy: !!(req.body.testingDoneBy) ? req.body.testingDoneBy : "",
-                partsIssuedBy: !!(req.body.partsIssuedBy) ? req.body.partsIssuedBy : ""
+                partsIssuedBy: !!(req.body.partsIssuedBy) ? req.body.partsIssuedBy : "",
+                purpose: !!(req.body.purpose) ? req.body.purpose : "NA" 
             },
             { upsert:true, new: true },
         );

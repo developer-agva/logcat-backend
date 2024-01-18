@@ -40,6 +40,7 @@ const saveMarkasShippedData = async (req, res) => {
         // console.log(req.body)
         const checkAlreadyMarked = await markAsShippedModel.findOne({serialNo:req.body.seriallNo})
         // console.log(checkAlreadyMarked)
+        const checkDevice = await productionModel.findOne({serialNumber:req.body.seriallNo})
         if (!!checkAlreadyMarked) {
             return res.status(400).json({
                 statusCode: 400,
@@ -49,7 +50,7 @@ const saveMarkasShippedData = async (req, res) => {
         }
         const accountsDoc = new markAsShippedModel({
             serialNo:req.body.seriallNo,
-            // deviceId:!!(deviceData.deviceId) ? deviceData.deviceId : "NA",
+            deviceId:!!(checkDevice.deviceId) ? checkDevice.deviceId : "NA",
             shippedThrough:req.body.shippedThrough,
             trackingNo:req.body.trackingNo,
             vehicleNo:req.body.vehicleNo,
@@ -422,12 +423,13 @@ const getAccountsData = async (req, res) => {
                   "invoiceData",
                   "ewaybillData",
                   "__v",
-                  // "createdAt",
+                  "createdAt",
                   "updatedAt",
                   // "otp",
                   // "isVerified",
                 ]
             },
+            {$sort:{"updatedAt":-1}},
         ]
         // get data
         const resData = await accountsModel.aggregate(pipline);
@@ -478,7 +480,7 @@ const getProductionListV2 = async (req, res) => {
         // aggregate logic
         var pipline = [
             // Match
-           {"$match":{shipmentMode:"inprocess"}},
+           {"$match":{$or:[{shipmentMode:"req_doc"},{shipmentMode:"inprocess"}]}},
            // filter data from the above data list
             // search operation
             {
@@ -487,6 +489,7 @@ const getProductionListV2 = async (req, res) => {
                     { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
                 ]}
             },
+            {$sort:{"updatedAt":-1}},
        ]
         // get data
         const resData = await productionModel.aggregate(pipline)
@@ -562,6 +565,7 @@ const getDispatchedDeviceList = async (req, res) => {
                     { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
                 ]}
             },
+            {$sort:{"updatedAt":-1}},
         ]
         // get data
         const resData = await productionModel.aggregate(pipline);
@@ -602,6 +606,7 @@ const getDispatchedDeviceList = async (req, res) => {
         })
     }
 }
+
 /**
  * @desc get all accounts data submitted by a/c dept. 
  * api GET@/api/logger/
@@ -626,57 +631,58 @@ const getAwaitingForShippedData = async (req, res) => {
         // aggregate logic
         var pipline = [
             // Match
-        //    {"$match":{"shipmentMode":"awaiting_for_shipped"}},
+           {"$match":{"shipmentMode":"awaiting_for_shipped"}},
            {
                "$lookup":{
                  "from":"s3_ewaybill_buckets",
-                 "localField":"ewaybillNo",
-                 "foreignField":"ewaybillNo",
+                 "localField":"deviceId",
+                 "foreignField":"deviceId",
                  "as":"ewayBillData"
                }
            },
            {
                "$lookup":{
                  "from":"s3_invoice_buckets",
-                 "localField":"invoiceNo",
-                 "foreignField":"invoiceNo",
+                 "localField":"deviceId",
+                 "foreignField":"deviceId",
                  "as":"invoiceBillData"
                }
            },
            {
               "$lookup":{
-                "from":"productions",
+                "from":"accounts",
                 "localField":"serialNumber",
                 "foreignField":"serialNo",
-                "as":"prodData"
+                "as":"accountsData"
               }
            },
-           // search operation
-           {
-            "$match":{"prodData.shipmentMode":"awaiting_for_shipped"},
-           },
+        //    // search operation
+        //    {
+        //     "$match":{"prodData.shipmentMode":"awaiting_for_shipped"},
+        //    },
         //    For this data model, will always be 1 record in right-side
         //    of join, so take 1st joined array element
            {
                "$set": {
                  "ewayBillData": {"$first": "$ewayBillData"},
                  "invoiceBillData": {"$first": "$invoiceBillData"},
-                 "prodData": {"$first": "$prodData"},
+                 "accountsData": {"$first": "$accountsData"},
                }
            },
            // Extract the joined embeded fields into top level fields
            {
-               "$set": {"ewayBillPdf": "$ewayBillData.location","invoiceBillPdf":"$invoiceBillData.location","shipmentMode":"$prodData.shipmentMode"},
+               "$set": {"ewayBillPdf": "$ewayBillData.location","invoiceBillPdf":"$invoiceBillData.location"},
            },
-           // search operation
         //    {
-        //     "$match":{"shipmentMode":"awaiting_for_shipped"}
+        //         "$match": {
+        //             "prodData.shipmentMode": "awaiting_for_shipped"
+        //         }
         //    },
            {
                "$unset": [
                  "invoiceBillData",
                  "ewayBillData",
-                //  "prodData",
+                //  "accountsData",
                  "__v",
                  // "createdAt",
                 //  "updatedAt",
@@ -686,7 +692,7 @@ const getAwaitingForShippedData = async (req, res) => {
            },
         ]
         // get data
-        const resData = await accountsModel.aggregate(pipline)
+        const resData = await productionModel.aggregate(pipline)
         // console.log(resData)
         // for pagination
         const paginateArray =  (resData, page, limit) => {
@@ -724,6 +730,148 @@ const getAwaitingForShippedData = async (req, res) => {
         })
     }
 }
+
+
+/**
+ * @desc get all accounts data submitted by a/c dept. 
+ * api GET@/api/logger/
+ */
+const getSignleDispatchedData = async (req, res) => {
+    try {
+        // aggregate logic
+        var pipline = [
+            // Match
+           {"$match":{"serialNumber":req.params.serialNo}},
+           {
+               "$lookup":{
+                 "from":"s3_ewaybill_buckets",
+                 "localField":"deviceId",
+                 "foreignField":"deviceId",
+                 "as":"ewayBillData"
+               }
+           },
+           {
+               "$lookup":{
+                 "from":"s3_invoice_buckets",
+                 "localField":"deviceId",
+                 "foreignField":"deviceId",
+                 "as":"invoiceBillData"
+               }
+           },
+           {
+              "$lookup":{
+                "from":"accounts",
+                "localField":"serialNumber",
+                "foreignField":"serialNo",
+                "as":"accountsData"
+              }
+           },
+           {
+            "$lookup":{
+              "from":"mark_as_shippeds",
+              "localField":"deviceId",
+              "foreignField":"deviceId",
+              "as":"markAsShippedData"
+            }
+         },
+         {
+            "$lookup":{
+              "from":"s3_bucket_productions",
+              "localField":"deviceId",
+              "foreignField":"deviceId",
+              "as":"prodData"
+            }
+        },
+        {
+            "$lookup":{
+              "from":"s3_po_buckets",
+              "localField":"deviceId",
+              "foreignField":"deviceId",
+              "as":"poFileData"
+            }
+        },
+        //    // search operation
+        //    {
+        //     "$match":{"prodData.shipmentMode":"awaiting_for_shipped"},
+        //    },
+        //    For this data model, will always be 1 record in right-side
+        //    of join, so take 1st joined array element
+           {
+               "$set": {
+                 "ewayBillData": {"$first": "$ewayBillData"},
+                 "invoiceBillData": {"$first": "$invoiceBillData"},
+                 "accountsData": {"$first": "$accountsData"},
+                 "prodData": {"$first": "$prodData"},
+                 "poFileData": {"$first":"$poFileData"},
+                //  "markAsShippedData": {"$first": "$markAsShippedData"},
+               }
+           },
+           // Extract the joined embeded fields into top level fields
+           {
+               "$set": {
+                "ewaybillNo": "$ewayBillData.ewaybillNo",
+                "ewayBillPdf": "$ewayBillData.location",
+                "invoiceNo":"$invoiceBillData.invoiceNo",
+                "invoiceBillPdf":"$invoiceBillData.location",
+                "billedTo":"$accountsData.billedTo",
+                "billedDate":"$accountsData.updatedAt",
+                "DhrPdf": "$prodData.location",
+                "poPdf":"$poFileData.location",
+                },
+           },
+        //    {
+        //         "$match": {
+        //             "prodData.shipmentMode": "awaiting_for_shipped"
+        //         }
+        //    },
+           {
+               "$unset": [
+                 "invoiceBillData",
+                 "ewayBillData",
+                 "accountsData",
+                 "__v",
+                 "markAsShippedData.__v",
+                 "markAsShippedData._id",
+                 "markAsShippedData.serialNo",
+                 "markAsShippedData.deviceId",
+                 "prodData",
+                 "poFileData",
+                 // "otp",
+                 // "isVerified",
+               ]
+           },
+        ]
+        // get data
+        const resData = await productionModel.aggregate(pipline)
+
+        if (resData.length>0) {
+            return res.status(200).json({
+                statusCode: 200,
+                statusValue:"SUCCESS",
+                message:"shipped data get successfully.",
+                data: resData[0]
+            })
+        }
+        return res.status(400).json({
+            statusCode: 400,
+            statusValue:"FAIL",
+            message:"data not found."
+        })
+        
+    } catch (error) {
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message:"Internal server error",
+            data:{
+                name:"locationCotroller/getLocationByDeviceId",
+                error:error
+            }
+        })
+    }
+}
+
+
 
 /**
  * @desc get all accounts data submitted by a/c dept. 
@@ -779,7 +927,7 @@ const getMArkAsShipped = async (req, res) => {
        ]
         // get data
         const resData = await productionModel.aggregate(pipline);
-        if (!!resData.length>0) {
+        if (resData.length>0) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue:"SUCCESS",
@@ -897,5 +1045,6 @@ module.exports = {
     saveAwaitingForShippedData,
     getAwaitingForShippedData,
     getDispatchedDeviceList,
-    getProductionListV2
+    getProductionListV2,
+    getSignleDispatchedData
 }
