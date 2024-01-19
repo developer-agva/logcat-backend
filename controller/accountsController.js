@@ -790,6 +790,14 @@ const getSignleDispatchedData = async (req, res) => {
               "as":"poFileData"
             }
         },
+        {
+            "$lookup":{
+              "from":"s3_bucket_shippings",
+              "localField":"serialNumber",
+              "foreignField":"serialNo",
+              "as":"shippingFileData"
+            }
+        },
         //    // search operation
         //    {
         //     "$match":{"prodData.shipmentMode":"awaiting_for_shipped"},
@@ -803,6 +811,7 @@ const getSignleDispatchedData = async (req, res) => {
                  "accountsData": {"$first": "$accountsData"},
                  "prodData": {"$first": "$prodData"},
                  "poFileData": {"$first":"$poFileData"},
+                 "shippingFileData": {"$first": "$shippingFileData"},
                 //  "markAsShippedData": {"$first": "$markAsShippedData"},
                }
            },
@@ -817,8 +826,9 @@ const getSignleDispatchedData = async (req, res) => {
                 "billedDate":"$accountsData.updatedAt",
                 "DhrPdf": "$prodData.location",
                 "poPdf":"$poFileData.location",
+                "shippingInvoicePdf": "$shippingFileData.location"
                 },
-           },
+            },
         //    {
         //         "$match": {
         //             "prodData.shipmentMode": "awaiting_for_shipped"
@@ -836,6 +846,7 @@ const getSignleDispatchedData = async (req, res) => {
                  "markAsShippedData.deviceId",
                  "prodData",
                  "poFileData",
+                 "shippingFileData",
                  // "otp",
                  // "isVerified",
                ]

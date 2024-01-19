@@ -1172,6 +1172,7 @@ const addAboutDevice = async (req, res) => {
       consinee:Joi.string().allow("").optional(),
       consigneeAddress:Joi.string().allow("").optional(),
       poNumber:Joi.string().allow("").optional(),
+      distributor_gst: Joi.string().allow('').optional(),
     });
     const result = schema.validate(req.body);
     if (result.error) {
@@ -1257,7 +1258,8 @@ const addAboutDevice = async (req, res) => {
           gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
           marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
           consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
-          consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA" 
+          consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
+          distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA" 
         },
         { upsert: true }
       )
@@ -1292,7 +1294,8 @@ const addAboutDevice = async (req, res) => {
         gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
         marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
         consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
-        consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA"
+        consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
+        distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA"
       },
       { upsert: true }
     );

@@ -234,10 +234,61 @@ const getProductionData = async (req, res) => {
 */
 const getProductionById = async (req, res) => {
     try {
-        const data = await productionModel.find({deviceId:req.params.deviceId})
-        .sort({updatedAt:-1})
-        .limit(1)
-        .select({ __v: 0, createdAt: 0, updatedAt: 0 })
+        // aggregate logic
+        var pipline = [
+            // Match
+           {"$match":{"deviceId":req.params.deviceId}},
+           
+           // lookup
+            {
+                "$lookup":{
+                "from":"s3_bucket_productions",
+                "localField":"deviceId",
+                "foreignField":"deviceId",
+                "as":"prodData"
+                }
+            },
+            // For this data model, will always be 1 record in right-side
+            //  of join, so take 1st joined array element
+            {
+                "$set": {
+                  "prodData": {"$first": "$prodData"},
+                }
+            },
+            // Extract the joined embeded fields into top level fields
+            {
+                "$set": {
+                //  "ewaybillNo": "$ewayBillData.ewaybillNo",
+                //  "ewayBillPdf": "$ewayBillData.location",
+                //  "invoiceNo":"$invoiceBillData.invoiceNo",
+                //  "invoiceBillPdf":"$invoiceBillData.location",
+                //  "billedTo":"$accountsData.billedTo",
+                //  "billedDate":"$accountsData.updatedAt",
+                 "DhrPdf": "$prodData.location",
+                //  "poPdf":"$poFileData.location",
+                //  "shippingInvoicePdf": "$shippingFileData.location"
+                },
+            },
+            // match stage
+            // unset stage
+            {
+                "$unset": [
+                  "__v",
+                  "prodData",
+                  "createdAt",
+                  "updatedAt",
+                  // "otp",
+                  // "isVerified",
+                ]
+            },
+
+        ]
+
+        const data = await productionModel.aggregate(pipline)
+        // const data = await productionModel.find({deviceId:req.params.deviceId})
+        // .sort({updatedAt:-1})
+        // .limit(1)
+        // .select({ __v: 0, createdAt: 0, updatedAt: 0 })
         if (data.length == 0) {
             return res.status(404).json({
                 statusCode: 404,
@@ -413,16 +464,26 @@ const getProductionDevices = async (req, res) => {
 const updateProduction = async (req, res) => {
     try {
         const schema = Joi.object({
-            id:Joi.string().required(),
             deviceId: Joi.string().required(),
-            // purpose: Joi.string().required(),
-            simNumber: Joi.string().required(),
+            purpose: Joi.string().optional(),
+            simNumber: Joi.string().optional(),
             productType: Joi.string().required(),
-            batchNumber: Joi.string().required(),
+            batchNumber: Joi.string().optional(),
+            iopr: Joi.string().optional(),
             serialNumber: Joi.string().required(),
             manufacturingDate: Joi.string().required(),
-            // manufacturingDate: Joi.string().required(),
-            // dispatchDate: Joi.string().required(),
+            dispatchDate : Joi.string().optional(),
+            hospitalName: Joi.string().allow("").optional(),
+            dateOfWarranty: Joi.string().allow("").optional(),
+            address: Joi.string().allow("").optional(),
+            hw_version: Joi.string().allow("").optional(),
+            sw_version: Joi.string().allow("").optional(),
+            displayNumber: Joi.string().allow("").optional(),
+            turbineNumber: Joi.string().allow("").optional(),
+            qaDoneBy:Joi.string().allow("").optional(),
+            dataEnteredBy:Joi.string().allow("").optional(),
+            testingDoneBy:Joi.string().allow("").optional(),
+            partsIssuedBy:Joi.string().allow("").optional(),
         })
         let result = schema.validate(req.body);
         if (result.error) {
@@ -432,16 +493,21 @@ const updateProduction = async (req, res) => {
                 message: result.error.details[0].message,
             })
         }
+        // console.log(11,req.body)
         // const project_code = req.params.project_code;
-        const updateDoc = await productionModel.findByIdAndUpdate({_id:req.body.id}, req.body, {upsert:true, new: true});
-    
-        if (!updateDoc) {
+        const prodData = await productionModel.findOne({serialNumber:req.body.serialNumber})
+        if (!prodData) {
             return res.status(400).json({
                 statusCode: 400,
                 statusValue: "FAIL",
-                message: "Production data not updated."
+                message: "Invalid serial number"
             });
         }
+        const updateDoc = await productionModel.findOneAndUpdate(
+            {serialNumber:req.body.serialNumber},
+            req.body,
+            {upsert:true, new: true}
+        );
         return res.status(201).json({
             statusCode: 201,
             statusValue: "SUCCESS",

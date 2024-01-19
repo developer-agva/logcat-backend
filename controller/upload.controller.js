@@ -48,8 +48,11 @@ exports.uploadQualityReport = async (req, res) => {
       "flag":req.params.flag,
       ...req.file,
   }
-  const saveDoc = new s3BucketProdModel(newObj);
-  saveFile = saveDoc.save();
+  // update file data
+  await s3BucketProdModel.findOneAndUpdate({"deviceId":req.params.deviceId,
+  "flag":req.params.flag}, newObj, {upsert:true})
+//   const saveDoc = new s3BucketProdModel(newObj);
+//   saveFile = saveDoc.save();
 //   await s3BucketProdModel.deleteMany({location: ""});
 }
 

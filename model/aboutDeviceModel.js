@@ -134,6 +134,10 @@ const aboutSchema = mongoose.Schema({
         type: String,
         default: ""
     },
+    distributor_gst:{
+        type: String,
+        default: ""
+    },
 
 },
     { timestamps: true })
