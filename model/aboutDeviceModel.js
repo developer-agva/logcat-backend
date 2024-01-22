@@ -126,7 +126,11 @@ const aboutSchema = mongoose.Schema({
         type: String,
         default: ""
     },
-    consigneeAddress:{
+    buyerAddress:{
+        type: String,
+        default: ""
+    },
+    buyerName:{
         type: String,
         default: ""
     },
