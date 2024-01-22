@@ -23,7 +23,7 @@ router.post('/upload-ewaybill-file/:serialNo/:ewaybillNo', upload.single('file')
 router.post('/upload-shipping-file/:serialNo', upload.single('file'), uploadController.uploadShippingInvoicePdf);
 router.post('/save-shipping-data', accountsController.saveMarkasShippedData);
 router.get('/mark-as-shipped-data', accountsController.getMArkAsShipped);
-router.get('/get-awaiting-for-shipped', accountsController.getAwaitingForShippedData);  //
+router.get('/get-awaiting-for-shipped', accountsController.getAwaitingForShippedData);  // completed
 
 router.get('/get-dispatched-device-list', accountsController.getDispatchedDeviceList);   // completed
 router.get('/get-production-list/v2', accountsController.getProductionListV2);   // completed

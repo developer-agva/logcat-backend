@@ -101,6 +101,9 @@ const saveAwaitingForShippedData = async (req, res) => {
             consinee: Joi.string().allow("").optional(),
             document_ref_no: Joi.string().required(),
             consigneeAddress:Joi.string().allow("").optional(),
+            irn: Joi.string().required(),
+            ackDate: Joi.string().required(),
+            ackNo: Joi.string().required(),
         })
         let result = schema.validate(req.body);
         if (result.error) {
@@ -141,6 +144,9 @@ const saveAwaitingForShippedData = async (req, res) => {
             consinee:!!(req.body.consinee) ? req.body.consinee : "NA", 
             consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
             document_ref_no:req.body.document_ref_no,
+            irn:req.body.irn,
+            ackDate:req.body.ackDate,
+            ackNo:req.body.ackNo
         })
         const saveDoc = accountsDoc.save();
         // console.log(req.body.serialNo)
@@ -822,8 +828,8 @@ const getSignleDispatchedData = async (req, res) => {
                 "ewayBillPdf": "$ewayBillData.location",
                 "invoiceNo":"$invoiceBillData.invoiceNo",
                 "invoiceBillPdf":"$invoiceBillData.location",
-                "billedTo":"$accountsData.billedTo",
-                "billedDate":"$accountsData.updatedAt",
+                // "billedTo":"$accountsData.billedTo",
+                // "billedDate":"$accountsData.updatedAt",
                 "DhrPdf": "$prodData.location",
                 "poPdf":"$poFileData.location",
                 "shippingInvoicePdf": "$shippingFileData.location"
@@ -838,7 +844,7 @@ const getSignleDispatchedData = async (req, res) => {
                "$unset": [
                  "invoiceBillData",
                  "ewayBillData",
-                 "accountsData",
+                //  "accountsData",
                  "__v",
                  "markAsShippedData.__v",
                  "markAsShippedData._id",

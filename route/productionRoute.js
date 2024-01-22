@@ -21,4 +21,5 @@ router.post('/upload-production-file/:deviceId/:flag', upload.single('file'), up
 router.delete('/delete-file/:key', isAuth, uploadController.deleteProductionFile);
 router.get('/get-production-file/:deviceId/:flag', isAuth, uploadController.getProductionFile);
 
+
 module.exports = router;

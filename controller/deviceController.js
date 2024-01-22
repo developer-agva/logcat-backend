@@ -1072,8 +1072,8 @@ const saveStatus = async (req, res) => {
         upsert:true,
       }
     );
-    return res.status(200).json({
-      statusCode: 200,
+    return res.status(201).json({
+      statusCode: 201,
       statusValue: "SUCCESS",
       message: "Data added successfully."
     })
@@ -1167,12 +1167,14 @@ const addAboutDevice = async (req, res) => {
       district: Joi.string().allow("").required(),
       document_no: Joi.string().allow("").optional(),
       concerned_person_email: Joi.string().allow("").optional(),
-      gst_number: Joi.string().allow("").optional(),
+      // gst_number: Joi.string().allow("").optional(),
       marketing_lead: Joi.string().allow("").optional(),
       consinee:Joi.string().allow("").optional(),
       consigneeAddress:Joi.string().allow("").optional(),
       poNumber:Joi.string().allow("").optional(),
       distributor_gst: Joi.string().allow('').optional(),
+      panNo: Joi.string().allow('').optional(),
+      otherRef: Joi.string().allow('').optional(),
     });
     const result = schema.validate(req.body);
     if (result.error) {
@@ -1255,11 +1257,13 @@ const addAboutDevice = async (req, res) => {
           date_of_warranty:!!(finalDate[0]) ? finalDate[0] : "NA",
           document_no:!!(req.body.document_no) ? req.body.document_no : "NA",
           concerned_person_email:!!(req.body.concerned_person_email) ? req.body.concerned_person_email : "NA",
-          gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
+          // gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
           marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
           consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
           consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
-          distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA" 
+          distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA" ,
+          panNo:!!(req.body.panNo) ? req.body.panNo : "NA", 
+          otherRef:!!(req.body.otherRef) ? req.body.otherRef : "NA" 
         },
         { upsert: true }
       )
@@ -1291,11 +1295,13 @@ const addAboutDevice = async (req, res) => {
         date_of_warranty:!!finalDate[0]? finalDate[0] : "NA",
         document_no:req.body.document_no,
         concerned_person_email:!!(req.body.concerned_person_email) ? req.body.concerned_person_email : "NA",
-        gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
+        // gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
         marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
         consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
         consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
-        distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA"
+        distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA",
+        panNo:!!(req.body.panNo) ? req.body.panNo : "NA", 
+        otherRef:!!(req.body.otherRef) ? req.body.otherRef : "NA" 
       },
       { upsert: true }
     );
@@ -1349,18 +1355,39 @@ const addAboutDevice = async (req, res) => {
   }
 };
 
+
 // PUT - update dispatch data
 const updateAboutData = async (req, res) => {
   try {
     const schema = Joi.object({
       deviceId: Joi.string().optional(),
-      serial_no: Joi.string().optional(),
-      hospital_name: Joi.string().optional(),
-      address: Joi.string().optional(),
-      document_no: Joi.string().optional(),
-      phone_number: Joi.string().optional(),
-      concerned_person: Joi.string().optional(),
+      product_type: Joi.string().optional(),
+      serial_no: Joi.string().required(),
+      purpose: Joi.string().allow("").optional(),
+      concerned_person: Joi.string().allow("").optional(),
+      batch_no: Joi.string().optional(),                   // not required
+      date_of_manufacturing: Joi.string().optional(),      // not required
+      address: Joi.string().allow("").optional(),
       date_of_dispatch: Joi.string().optional(),
+      hospital_name: Joi.string().allow("").optional(),
+      phone_number: Joi.string().required().allow("").optional(),
+      sim_no: Joi.string().optional(),                     // not required
+      pincode: Joi.string().allow("").optional(),
+      distributor_name: Joi.string().allow("").optional(), // not required
+      distributor_contact: Joi.string().allow('').optional(),     // not required
+      state: Joi.string().allow("").optional(),
+      city: Joi.string().allow("").optional(),
+      district: Joi.string().allow("").optional(),
+      document_no: Joi.string().allow("").optional(),
+      concerned_person_email: Joi.string().allow("").optional(),
+      // gst_number: Joi.string().allow("").optional(),
+      marketing_lead: Joi.string().allow("").optional(),
+      consinee:Joi.string().allow("").optional(),
+      consigneeAddress:Joi.string().allow("").optional(),
+      poNumber:Joi.string().allow("").optional(),
+      distributor_gst: Joi.string().allow('').optional(),
+      panNo: Joi.string().allow('').optional(),
+      otherRef: Joi.string().allow('').optional(),
     });
     const result = schema.validate(req.body);
     if (result.error) {
@@ -1380,45 +1407,35 @@ const updateAboutData = async (req, res) => {
       });
     }
     // console.log(req.body)
-    const saveDispatchData = new aboutDeviceModel(
-      {
-        deviceId:req.body.deviceId,
-        product_type:getData[0].product_type,
-        serial_no:getData[0].serial_no,
-        purpose:getData[0].purpose,
-        concerned_person:(!!req.body.concerned_person)? req.body.concerned_person : getData[0].concerned_person,
-        batch_no:getData[0].batch_no,
-        date_of_manufacturing:getData[0].date_of_manufacturing,
-        address:(!!req.body.address)? req.body.address : getData[0].address,
-        // date_of_dispatch:!!getData ? getData[0].date_of_dispatch : "NA",
-        date_of_dispatch:(!!req.body.date_of_dispatch)? req.body.date_of_dispatch : getData[0].date_of_dispatch,
-        hospital_name:(!!req.body.hospital_name)? req.body.hospital_name : getData[0].hospital_name,
-        phone_number:(!!req.body.phone_number)? req.body.phone_number : getData[0].phone_number,
-        sim_no:!!getData? getData[0].sim_no : "NA",
-        pincode:!!getData? getData[0].pincode : "NA",
-        distributor_name:!!getData? getData[0].distributor_name : "NA",
-        distributor_contact:!!getData? getData[0].distributor_contact : "NA",
-        state:!!getData? getData[0].state : "NA",
-        city:!!getData? getData[0].city : "NA",
-        district:!!getData? getData[0].district : "NA",
-        date_of_warranty:!!getData? getData[0].date_of_warranty : "NA",
-        document_no:(!!req.body.document_no)? req.body.document_no : getData[0].document_no,
-      },
+    // const saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
+      
+    // )
+    const saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
+      {$or:[{deviceId:req.body.deviceId},{serial_no:req.body.serial_no}]},
+      req.body,
+      {upsert:true}
     )
-    const saveDoc = await saveDispatchData.save();
-    if (!saveDoc) {
+    // const saveDoc = await saveDispatchData.save();
+    if (!saveDispatchData) {
       return res.status(400).json({
           statusCode: 400,
           statusValue: "FAIL",
           message: "Error!! Data not updated."
       });
-  }
-  return res.status(200).json({
-    statusCode: 200,
-    statusValue: "SUCCESS",
-    message: "Dispatch Data updated successfully.",
-    data: saveDoc
-  });
+    }
+    // for user logs activity 
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
+    var bodyData = {...req.body, email:loggedInUser.email}
+    await dispatchActivityLogModel.findOneAndUpdate(bodyData,bodyData,{upsert:true})
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Dispatch Data updated successfully.",
+      data: saveDispatchData
+    });
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -1637,10 +1654,12 @@ const getDispatchDataById = async (req, res) => {
   }
 }
 
+
 let redisClient = require("../config/redisInit");
 const activityModel = require('../model/activityModel');
 const productionModel = require('../model/productionModel');
 const registeredHospitalModel = require('../model/registeredHospitalModel');
+const dispatchActivityLogModel = require('../model/dispatchActivityLogModel');
 
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
@@ -1681,6 +1700,7 @@ const getAboutByDeviceId = async (req, res) => {
     })
   }
 }
+
 
 const sendAndReceiveData = async (req, res) => {
   try {

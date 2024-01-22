@@ -1429,10 +1429,10 @@ const createAlertsNew = async (req, res) => {
         },
       });
     }
-
+    console.log(11,req.body)
     if (!findProjectWithCode) {
       return res.status(404).json({
-        status: 0,
+        status: 404,
         data: {
           err: {
             generatedTime: new Date(),
@@ -1444,9 +1444,19 @@ const createAlertsNew = async (req, res) => {
       });
     }
     const collectionName = findProjectWithCode.alert_collection_name;
-
+    
     const modelReference = require(`../model/${collectionName}`);
     const { did, type, ack, date } = req.body;
+    console.log(12,req.body)
+    // ack = req.body.ack
+    // if (ack.length<1) {
+    //   return res.status(400).json({
+    //     status: 400,
+    //     data: req.body,
+    //     message: 'ack array is empty',
+    //   });
+    // }
+    // { ack: [], did: 'd6edb19162a04c8b', type: '002' }
     let dbSavePromise = ack.map(async (ac) => {
       const putDataIntoLoggerDb = await new modelReference({
         did: did,
@@ -1478,7 +1488,7 @@ const createAlertsNew = async (req, res) => {
 
     if (!alertsErrArr.includes('rejected')) {
       return res.status(201).json({
-        status: 1,
+        status: 201,
         data: { alertCount: alerts.length },
         message: 'Successful',
       });
@@ -1579,7 +1589,7 @@ const createEvents = async (req, res, next) => {
     const SaveEvents = await events.save(events);
     if (SaveEvents) {
       res.status(201).json({
-        status: 1,
+        status: 201,
         data: { eventCounts: SaveEvents.length },
         message: 'Event has been added successfully!',
 

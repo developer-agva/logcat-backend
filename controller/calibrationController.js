@@ -16,8 +16,8 @@ const saveCalibrationData = async (req, res) => {
         let result = schema.validate(req.body);
         if (result.error) {
             console.log(req.body);
-            return res.status(200).json({
-                status: 0,
+            return res.status(201).json({
+                status: 201,
                 statusCode: 400,
                 message: result.error.details[0].message,
             })
@@ -28,12 +28,12 @@ const saveCalibrationData = async (req, res) => {
         const saveDoc = await calibrationData.save();
         if (!saveDoc) {
             return res.status(404).json({
-                status: 0,
+                status: 404,
                 msg: "Calibration data not saved."
             });
         }
         return res.status(201).json({
-            status: 1,
+            status: 201,
             msg: "Calibration data has been saved successfully.",
             data: saveDoc
         });

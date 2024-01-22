@@ -12,7 +12,7 @@ const createNewLog = async (req, res) => {
         const findProjectWithCode = await Projects.findOne({ code: project_code });
         if (!findProjectWithCode) {
             return res.status(404).json({
-                status: 0,
+                status: 404,
                 data: {
                     err: {
                         generatedTime: new Date(),
@@ -28,12 +28,12 @@ const createNewLog = async (req, res) => {
         const saveDoc = await logData.save();
         if (!saveDoc) {
             return res.status(404).json({
-                status: 0,
+                status: 404,
                 msg: "Log data not saved."
             });
         }
         return res.status(201).json({
-            status: 1,
+            status: 201,
             message: 'Log data has been saved successfully.',
             data: saveDoc
         });

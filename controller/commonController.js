@@ -20,6 +20,8 @@ const emailVerificationModel = require('../model/emailVerificationModel');
 var query = require('india-pincode-search');
 const aboutDeviceModel = require('../model/aboutDeviceModel.js');
 const productionModel = require('../model/productionModel.js');
+const prodActivityLogModel = require('../model/productionActivityLogModel.js');
+const dispatchActivityLogModel = require('../model/dispatchActivityLogModel.js');
 
 
 /**
@@ -240,10 +242,133 @@ const getDeviceSerialNumber = async (req, res) => {
   }
 }
 
+/**
+* api      GET @/common/get-serial-number-list
+* desc     @getDeviceSerialNumber for public access
+*/
+const getProdLogsData = async (req, res) => {
+  try {
+    // for aggregate logic
+    var pipline = [
+      // match
+      // {"$match":{}},
+      {
+        "$lookup":{
+          "from":"productions",
+          "localField":"deviceId",
+          "foreignField":"deviceId",
+          "as":"prodData"
+        }
+      },
+      {
+        "$set":{"prodData":{"$first":"$prodData"}},
+      },
+      {
+        "$unset": [
+          "__v",
+          "userId"
+          // "otp",
+          // "isVerified",
+        ],
+      },
+    ]
+    // get data
+    const resData = await prodActivityLogModel.aggregate(pipline)
+    
+    if (resData.length < 1) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Opps something went wrong!",
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data get successfully.",
+      data:resData,
+    })
+    
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+
+/**
+* api      GET @/common/get-serial-number-list
+* desc     @getDeviceSerialNumber for public access
+*/
+const getDispatchLogsData = async (req, res) => {
+  try {
+    // for aggregate logic
+    var pipline = [
+      // match
+      // {"$match":{}},
+      {
+        "$lookup":{
+          "from":"about_devices",
+          "localField":"deviceId",
+          "foreignField":"deviceId",
+          "as":"dispatchData"
+        }
+      },
+      {
+        "$set":{"dispatchData":{"$first":"$dispatchData"}},
+      },
+      {
+        "$unset": [
+          "__v",
+          "userId"
+          // "otp",
+          // "isVerified",
+        ],
+      },
+    ]
+    // get data
+    const resData = await dispatchActivityLogModel.aggregate(pipline)
+    
+    if (resData.length < 1) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Opps something went wrong!",
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data get successfully.",
+      data:resData,
+    })
+    
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
 
 module.exports = {
     sendVerificationEmail,
     verifyOtp,
     getCountryByPincode,
-    getDeviceSerialNumber
+    getDeviceSerialNumber,
+    getProdLogsData,
+    getDispatchLogsData
 }

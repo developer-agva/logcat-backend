@@ -9,6 +9,14 @@ const installationModel = require('../model/deviceInstallationModel');
 const aboutDeviceModel = require('../model/aboutDeviceModel');
 const RegisterDevice = require('../model/RegisterDevice');
 const registeredHospitalModel = require('../model/registeredHospitalModel.js');
+const prodActivityLogModel = require('../model/productionActivityLogModel.js');
+let redisClient = require("../config/redisInit");
+const User = require('../model/users.js');
+const JWTR = require("jwt-redis").default;
+const jwtr = new JWTR(redisClient);
+
+
+
 
 /**
  * 
@@ -465,9 +473,9 @@ const updateProduction = async (req, res) => {
     try {
         const schema = Joi.object({
             deviceId: Joi.string().required(),
-            purpose: Joi.string().optional(),
+            // purpose: Joi.string().optional(),
             simNumber: Joi.string().optional(),
-            productType: Joi.string().required(),
+            productType: Joi.string().optional(),
             batchNumber: Joi.string().optional(),
             iopr: Joi.string().optional(),
             serialNumber: Joi.string().required(),
@@ -486,6 +494,7 @@ const updateProduction = async (req, res) => {
             partsIssuedBy:Joi.string().allow("").optional(),
         })
         let result = schema.validate(req.body);
+        // console.log(11,req.body)
         if (result.error) {
             return res.status(200).json({
                 status: 0,
@@ -493,7 +502,8 @@ const updateProduction = async (req, res) => {
                 message: result.error.details[0].message,
             })
         }
-        // console.log(11,req.body)
+        // const d = await prodActivityLogModel.find({})
+        // console.log(d)
         // const project_code = req.params.project_code;
         const prodData = await productionModel.findOne({serialNumber:req.body.serialNumber})
         if (!prodData) {
@@ -508,6 +518,14 @@ const updateProduction = async (req, res) => {
             req.body,
             {upsert:true, new: true}
         );
+        // for user activity logs
+        // console.log(10,req.body)
+        const token = req.headers["authorization"].split(' ')[1];
+        const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+        const loggedInUser = await User.findById({_id:verified.user});
+        var bodyData = {...req.body, email:loggedInUser.email}
+        await prodActivityLogModel.findOneAndUpdate(bodyData,bodyData,{upsert:true})
+        
         return res.status(201).json({
             statusCode: 201,
             statusValue: "SUCCESS",

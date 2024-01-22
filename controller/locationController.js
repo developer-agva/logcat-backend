@@ -43,7 +43,7 @@ const saveNewLocation = async (req, res) => {
             });
         }
         return res.status(201).json({
-            status: 1,
+            status: 201,
             msg: "Location has been saved successfully.",
             data: saveDoc
         });

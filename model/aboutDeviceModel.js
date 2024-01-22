@@ -138,6 +138,14 @@ const aboutSchema = mongoose.Schema({
         type: String,
         default: ""
     },
+    panNo: {
+        type: String,
+        default: ""
+    },
+    otherRef: {
+        type: String,
+        default:""
+    },
 
 },
     { timestamps: true })

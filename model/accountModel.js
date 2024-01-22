@@ -53,6 +53,18 @@ const accountsSchema = mongoose.Schema({
     document_ref_no: {
         type: String,
         default: ""
+    },
+    irn:{
+        type: String,
+        default: ""
+    },
+    ackNo:{
+        type: String,
+        default:""
+    },
+    ackDate:{
+        type: String,
+        default:""
     }
 
 },
