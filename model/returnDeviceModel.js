@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema;
 
-const aboutSchema = mongoose.Schema({
+const returnDeviceSchema = mongoose.Schema({
     userId: {
         type: Schema.Types.ObjectId,
         ref: "User" 
@@ -158,5 +158,5 @@ const aboutSchema = mongoose.Schema({
 },
     { timestamps: true })
 
-const aboutDeviceModel = mongoose.model('about_device', aboutSchema)
-module.exports = aboutDeviceModel
+const returnDeviceModel = mongoose.model('return_device', returnDeviceSchema)
+module.exports = returnDeviceModel;

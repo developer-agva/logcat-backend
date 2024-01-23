@@ -33,6 +33,7 @@ const productionSchema = new mongoose.Schema({
     dataEnteredBy:{ type: String, default: "" },
     testingDoneBy:{ type: String, default: "" },
     partsIssuedBy:{ type: String, default: "" },
+    return:{ type: Boolean, default:false }
 
 },
     { timestamps: true }

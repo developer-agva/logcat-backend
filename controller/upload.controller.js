@@ -17,6 +17,7 @@ const s3ewayBillBucketModel = require('../model/s3ewayBillBucketModel');
 const s3shippingBucketModel = require('../model/s3bucketShippingModel');
 const productionModel = require('../model/productionModel');
 const s3poBucketModel = require('../model/s3BucketPoPdfModel');
+const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
 
 exports.uploadSingle = async (req, res) => {
     // req.file contains a file object
@@ -107,6 +108,32 @@ exports.uploadewayBillPdf = async (req, res) => {
     saveFile = saveDoc.save();
   //   await s3BucketProdModel.deleteMany({location: ""});
 }
+
+
+exports.uploadreturnPoPdf = async (req, res) => {
+    if (!(req.file)) {
+        return res.status(400).json({
+            statusCode: 400,
+            statusValue: "FAIL",
+            message: "PO document is required."
+        })
+    }
+    const prodData = await productionModel.findOne({serialNumber:req.params.serialNo})
+    // req.file contains a file object
+    res.json(req.file);
+  //   console.log(req.file.fieldname, req.params.serialNo)
+    const newObj = {
+        "deviceId":!!(prodData.deviceId) ? prodData.deviceId : "",
+        "serialNo":req.params.serialNo,
+        "flag":"return_po_docs",
+        ...req.file,
+    }
+    // await s3poBuc.findOneAndUpdate({serialNo:req.params.serialNo},newObj,{upsert:true})
+    const saveDoc = new s3ReturnPoBucketModel(newObj);
+    saveFile = saveDoc.save();
+  //   await s3BucketProdModel.deleteMany({location: ""});
+}
+
 
 // upload purchase order (po) pdf for dispatch dept
 exports.uploadpoPdf = async (req, res) => {

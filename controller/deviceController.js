@@ -1144,6 +1144,252 @@ const getDeviceOverviewById = async (req, res) => {
   }
 }
 
+// get return device history
+const getReturnDeviceData = async (req, res) => {
+  try {
+      // aggregate logic
+      var pipline1 = [
+        // Match
+      {
+          "$match":{"deviceId":req.params.deviceId}
+      },
+      {
+          "$lookup":{
+            "from":"s3_po_buckets",
+            "localField":"deviceId",
+            "foreignField":"deviceId",
+            "as":"poPdfData"
+          }
+      },
+
+      // For this data model, will always be 1 record in right-side
+      // of join, so take 1st joined array element
+      {
+          "$set": {
+            "poPdfData": {"$first": "$poPdfData"},
+          }
+      },
+      // Extract the joined embeded fields into top level fields
+      {
+          "$set": {"poPdf": "$poPdfData.location"},
+      },
+      {
+          "$unset": [
+            "__v",
+            // "createdAt",
+            "poPdfData",
+            "updatedAt",
+            // "otp",
+            // "isVerified",
+            // "dispatchData.__v"
+          ]
+      },
+    ]
+
+    var pipline2 = [
+      // Match
+    {
+        "$match":{"deviceId":req.params.deviceId}
+    },
+    {
+        "$lookup":{
+          "from":"s3_return_po_buckets",
+          "localField":"deviceId",
+          "foreignField":"deviceId",
+          "as":"poPdfData"
+        }
+    },
+
+    // For this data model, will always be 1 record in right-side
+    // of join, so take 1st joined array element
+    {
+        "$set": {
+          "poPdfData": {"$first": "$poPdfData"},
+        }
+    },
+    // Extract the joined embeded fields into top level fields
+    {
+        "$set": {"poPdf": "$poPdfData.location"},
+    },
+    {
+        "$unset": [
+          "__v",
+          // "createdAt",
+          "poPdfData",
+          "updatedAt",
+          // "otp",
+          // "isVerified",
+          // "dispatchData.__v"
+        ]
+    },
+  ]
+    // get data
+    const resData1 = await returnDeviceModel.aggregate(pipline1);
+    const resData2 = await aboutDeviceModel.aggregate(pipline2);
+    finalArr = [...resData1, ...resData2]
+    // console.log(resData)
+    if (resData1.length>0) {
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue:"SUCCESS",
+            message:"data get successfully.",
+            data:finalArr
+        })
+    }
+    return res.status(400).json({
+        statusCode: 400,
+        statusValue:"FAIL",
+        message:"data not found.",
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      },
+    });
+  }
+};
+
+// return device
+const returnDevice = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      deviceId: Joi.string().optional(),
+      product_type: Joi.string().required(),
+      serial_no: Joi.string().required(),
+      purpose: Joi.string().allow("").optional(),
+      concerned_person: Joi.string().allow("").optional(),
+      batch_no: Joi.string(),                   // not required
+      date_of_manufacturing: Joi.string(),      // not required
+      address: Joi.string().allow("").optional(),
+      date_of_dispatch: Joi.string().required(),
+      hospital_name: Joi.string().allow("").optional(),
+      phone_number: Joi.string().required().allow("").optional(),
+      sim_no: Joi.string(),                     // not required
+      pincode: Joi.string().allow("").optional(),
+      distributor_name: Joi.string().allow("").optional(), // not required
+      distributor_contact: Joi.string().allow('').optional(),     // not required
+      state: Joi.string().allow("").optional(),
+      city: Joi.string().allow("").optional(),
+      district: Joi.string().allow("").optional(),
+      document_no: Joi.string().allow("").optional(),
+      concerned_person_email: Joi.string().allow("").optional(),
+      // gst_number: Joi.string().allow("").optional(),
+      marketing_lead: Joi.string().allow("").optional(),
+      consinee:Joi.string().allow("").optional(),
+      consigneeAddress:Joi.string().allow("").optional(),
+      buyerAddress:Joi.string().allow("").optional(),
+      buyerName:Joi.string().allow("").optional(),
+      poNumber:Joi.string().allow("").optional(),
+      distributor_gst: Joi.string().allow('').optional(),
+      panNo: Joi.string().allow('').optional(),
+      otherRef: Joi.string().allow('').optional(),
+    });
+    const result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation Error",
+        message: result.error.details[0].message,
+      });
+    }
+    // console.log(req.body)
+    const project_code = req.query.project_code;
+    // check already serial number exixts or not
+    const isSerialNo = await aboutDeviceModel.findOne({serial_no:req.body.serial_no});
+    
+    // set date of warranty
+    function addOneYear(date) {
+      date.setFullYear(date.getFullYear() + 1);
+      return date;
+    }
+    const date = new Date(new Date());
+    const date_of_warranty = addOneYear(date);
+    const cstr = date_of_warranty.toISOString()
+    const finalDate = cstr.split("T")
+    // console.log(11,nStr[0])
+
+    // get Production data
+    const getProduction = await productionModel.findOne({$or:[{serialNumber:req.body.serial_no},{deviceId:req.body.deviceId}]});
+    // console.log(22, getProduction)
+    // get hospital
+    const getHospital = await Device.findOne({$or:[{DeviceId:req.body.deviceId}]});
+    // console.log(11,getHospital)
+    const oldData = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
+    // console.log(12,oldData)
+    // console.log(11,req.body)
+    await returnDeviceModel.findOneAndUpdate({deviceId:"59b5ffc658031f311"},oldData,{upsert:true})
+    let saveDispatchData
+    if (!!getProduction) {
+    saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
+      { deviceId:req.body.deviceId },
+      {
+        deviceId:req.body.deviceId,
+        product_type:req.body.product_type,
+        serial_no:req.body.serial_no,
+        purpose:!!(req.body.purpose) ? req.body.purpose : "NA",
+        concerned_person:!!(req.body.concerned_person) ? req.body.concerned_person : "NA",
+        batch_no:!!(req.body.batch_no) ? req.body.batch_no : "NA",
+        date_of_manufacturing:!!(req.body.date_of_manufacturing) ? req.body.date_of_manufacturing : "NA",
+        address:!!(req.body.address) ? req.body.address : "NA",
+        date_of_dispatch:!!(req.body.date_of_dispatch) ? req.body.date_of_dispatch : "NA",
+        hospital_name:!!(req.body.hospital_name) ? req.body.hospital_name : "NA",
+        phone_number:!!(req.body.phone_number) ? req.body.phone_number : "NA",
+        sim_no:"NA",
+        pincode:req.body.pincode,
+        distributor_name:(!!req.body.distributor_name)? req.body.distributor_name : "NA",
+        distributor_contact:(!!req.body.distributor_contact)? req.body.distributor_contact : "NA",
+        state:(!!req.body.state)? req.body.state : "NA",
+        city:(!!req.body.city)? req.body.city : "NA",
+        district:(!!req.body.district)? req.body.district : "NA",
+        date_of_warranty:!!finalDate[0]? finalDate[0] : "NA",
+        document_no:req.body.document_no,
+        concerned_person_email:!!(req.body.concerned_person_email) ? req.body.concerned_person_email : "NA",
+        // gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
+        marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
+        consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
+        consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
+        buyerAddress:!!(req.body.buyerAddress) ? req.body.buyerAddress : "NA",
+        buyerName:!!(req.body.buyerName) ? req.body.buyerName : "NA",
+        distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA",
+        panNo:!!(req.body.panNo) ? req.body.panNo : "NA", 
+        otherRef:!!(req.body.otherRef) ? req.body.otherRef : "NA" 
+      },
+      { upsert: true }
+    );
+    await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{shipmentMode:"inprocess",return:true},{upsert:true})
+    await markAsShippedModel.findOneAndDelete({deviceId:req.body.deviceId})
+    // console.log(2)
+    return res.status(201).json({
+        statusCode: 201,
+        statusValue: "SUCCESS",
+        message: "Data added successfully.",
+      });
+    }
+    return res.status(201).json({
+      statusCode: 201,
+      statusValue: "SUCCESS",
+      message: "Data added successfully.",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      },
+    });
+  }
+};
+
+
+
 const addAboutDevice = async (req, res) => {
   try {
     const schema = Joi.object({
@@ -1162,14 +1408,15 @@ const addAboutDevice = async (req, res) => {
       pincode: Joi.string().allow("").optional(),
       distributor_name: Joi.string().allow("").optional(), // not required
       distributor_contact: Joi.string().allow('').optional(),     // not required
-      state: Joi.string().allow("").required(),
-      city: Joi.string().allow("").required(),
-      district: Joi.string().allow("").required(),
+      state: Joi.string().allow("").optional(),
+      city: Joi.string().allow("").optional(),
+      district: Joi.string().allow("").optional(),
       document_no: Joi.string().allow("").optional(),
       concerned_person_email: Joi.string().allow("").optional(),
       // gst_number: Joi.string().allow("").optional(),
       marketing_lead: Joi.string().allow("").optional(),
       consinee:Joi.string().allow("").optional(),
+      consigneeAddress:Joi.string().allow("").optional(),
       buyerAddress:Joi.string().allow("").optional(),
       buyerName:Joi.string().allow("").optional(),
       poNumber:Joi.string().allow("").optional(),
@@ -1229,7 +1476,7 @@ const addAboutDevice = async (req, res) => {
     // get hospital
     const getHospital = await Device.findOne({$or:[{DeviceId:req.body.deviceId}]});
     // console.log(11,getHospital)
-    // console.log(11,req.body)
+    console.log(11,req.body)
     
     let saveDispatchData
     if (!!getProduction) {
@@ -1261,6 +1508,7 @@ const addAboutDevice = async (req, res) => {
           // gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
           marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
           consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
+          consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
           buyerAddress:!!(req.body.buyerAddress) ? req.body.buyerAddress : "NA",
           buyerName:!!(req.body.buyerName) ? req.body.buyerName : "NA",
           distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA" ,
@@ -1300,6 +1548,7 @@ const addAboutDevice = async (req, res) => {
         // gst_number:!!(req.body.gst_number) ? req.body.gst_number : "NA",
         marketing_lead:!!(req.body.marketing_lead) ? req.body.marketing_lead : "NA",
         consinee:!!(req.body.consinee) ? req.body.consinee : "NA",
+        consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
         buyerAddress:!!(req.body.buyerAddress) ? req.body.buyerAddress : "NA",
         buyerName:!!(req.body.buyerName) ? req.body.buyerName : "NA",
         distributor_gst:!!(req.body.distributor_gst) ? req.body.distributor_gst : "NA",
@@ -1664,6 +1913,8 @@ const activityModel = require('../model/activityModel');
 const productionModel = require('../model/productionModel');
 const registeredHospitalModel = require('../model/registeredHospitalModel');
 const dispatchActivityLogModel = require('../model/dispatchActivityLogModel');
+const returnDeviceModel = require('../model/returnDeviceModel');
+const markAsShippedModel = require('../model/markAsShippedModel');
 
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
@@ -2678,5 +2929,7 @@ module.exports = {
   closeTicket,
   getAllServices,
   getDeviceAccessUsersByDeviceId,
-  getDeviceAccessUsers
+  getDeviceAccessUsers,
+  returnDevice,
+  getReturnDeviceData
 }

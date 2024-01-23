@@ -29,6 +29,8 @@ router.get('/get-dispatched-device-list', accountsController.getDispatchedDevice
 router.get('/get-production-list/v2', accountsController.getProductionListV2);   // completed
 router.get('/get-complete-device-details/:serialNo', accountsController.getSignleDispatchedData);   // completed
 router.post('/upload-po-file/:serialNo', upload.single('file'), uploadController.uploadpoPdf);  // completed
+router.post('/upload-return-po-file/:serialNo', upload.single('file'), uploadController.uploadreturnPoPdf);  // completed
+
 
 
 
