@@ -1364,6 +1364,7 @@ const returnDevice = async (req, res) => {
     await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{shipmentMode:"inprocess",return:true},{upsert:true})
     await markAsShippedModel.findOneAndDelete({deviceId:req.body.deviceId})
     // console.log(2)
+    
     return res.status(201).json({
         statusCode: 201,
         statusValue: "SUCCESS",
