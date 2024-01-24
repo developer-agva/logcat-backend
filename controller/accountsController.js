@@ -8,6 +8,7 @@ const aboutDeviceModel = require('../model/aboutDeviceModel.js');
 const accountsModel = require('../model/accountModel.js');
 const productionModel = require('../model/productionModel.js');
 const markAsShippedModel = require('../model/markAsShippedModel.js');
+const accountsHistoryModel = require('../model/accountHistoryModel.js');
 
 
 /**
@@ -124,44 +125,51 @@ const saveAwaitingForShippedData = async (req, res) => {
             })
         }
         // check already exists or not
-        const checkData = await accountsModel.find({serialNo:req.body.seriallNo})
-        if (checkData.length>0) {
-            return res.status(400).json({
-                statusCode: 400,
-                statusValue: "FAIL",
-                message: "data already exists",
-            })
+        // const checkData = await accountsModel.find({serialNo:req.body.seriallNo})
+        // if (checkData.length>0) {
+        //     return res.status(400).json({
+        //         statusCode: 400,
+        //         statusValue: "FAIL",
+        //         message: "data already exists",
+        //     })
+        // }
+        const accountData = await accountsModel.findOne({serialNo:req.body.seriallNo})
+        if (!!accountData) {
+            await accountsHistoryModel.findOneAndUpdate({serialNo:"AGVATESTING09990"},accountData,{upsert:true})
         }
         await productionModel.findOneAndUpdate({serialNumber:req.body.seriallNo},{shipmentMode:"awaiting_for_shipped"})
-        const accountsDoc = new accountsModel({
-            serialNo:req.body.seriallNo,
-            deviceId:!!(deviceData.deviceId) ? deviceData.deviceId : "NA",
-            batchNo:!!(deviceData.batch_no) ? deviceData.batch_no : "NA",
-            manufacturingDate:!!(deviceData.date_of_manufacture) ? deviceData.date_of_manufacture : "NA",
-            ewaybillNo:req.body.ewaybillNo,
-            invoiceNo:req.body.invoiceNo,
-            billedTo:req.body.billedTo,
-            consinee:!!(req.body.consinee) ? req.body.consinee : "NA", 
-            consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
-            document_ref_no:req.body.document_ref_no,
-            irn:req.body.irn,
-            ackDate:req.body.ackDate,
-            ackNo:req.body.ackNo
-        })
-        const saveDoc = accountsDoc.save();
+        const accountsDoc = await accountsModel.findOneAndUpdate(
+            {serialNo:req.body.seriallNo},
+            {
+                serialNo:req.body.seriallNo,
+                deviceId:!!(deviceData.deviceId) ? deviceData.deviceId : "NA",
+                batchNo:!!(deviceData.batch_no) ? deviceData.batch_no : "NA",
+                manufacturingDate:!!(deviceData.date_of_manufacture) ? deviceData.date_of_manufacture : "NA",
+                ewaybillNo:req.body.ewaybillNo,
+                invoiceNo:req.body.invoiceNo,
+                billedTo:req.body.billedTo,
+                consinee:!!(req.body.consinee) ? req.body.consinee : "NA", 
+                consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
+                document_ref_no:req.body.document_ref_no,
+                irn:req.body.irn,
+                ackDate:req.body.ackDate,
+                ackNo:req.body.ackNo},
+                {upsert:true}
+        )
+        // const saveDoc = accountsDoc.save();
         // console.log(req.body.serialNo)
-        if (!!saveDoc) {
+        if (!!accountsDoc) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue: "SUCCESS",
                 message: "data added successfully.",
             }) 
         }
-        return res.status(400).json({
-            statusCode: 400,
-            statusValue: "FAIL",
-            message: "Error !! data not added.",
-        })
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "data added successfully.",
+        }) 
     } catch (err) {
         return res.status(500).json({
             status: -1,
@@ -353,7 +361,7 @@ const getDispatchReqData = async (req, res) => {
                 message:"Accounts data get successfully.",
                 data:allData,
                 totalDataCount: resData.length,
-                totalPages: Math.ceil( (resData.length)/ limit),
+                totalPages: Math.ceil( (resData.length)/limit),
                 currentPage: page,
             })
         }
