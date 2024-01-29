@@ -20,6 +20,10 @@ router.get('/get-devices-by-hospital/:hospital_name', deviceController.getDevice
 // router.post('/register', deviceController.registerNewDevice);
 router.get('/registered_devices', isAuth, deviceController.getAllDevices);
 
+// replace deviceId from all coll and insert new deviceId
+router.put('/replace-deviceId', deviceController.replaceDeviceId);
+
+
 // Upload files
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {

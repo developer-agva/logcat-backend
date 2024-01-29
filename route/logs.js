@@ -177,9 +177,10 @@ router.get(
   isAuth,
   crashFreeUsersDatewise
 );
+
 router.get("/alerts/:projectCode", isAuth, getAlertsWithFilter);
-router.get("/events/:projectCode",isAuth, getEventsWithFilter);
-router.get("/trends/:projectCode",isAuth, getTrendsWithFilter);
+router.get("/events/:projectCode", isAuth, getEventsWithFilter);
+router.get("/trends/:projectCode", isAuth, getTrendsWithFilter);
 router.get("/deviceTrends/:did", getTrendsById);
 router.get("/deviceAlerts/:did", getAlertsById);
 router.get("/deviceEvents/:did", getEventsById);

@@ -108,7 +108,7 @@ const saveAwaitingForShippedData = async (req, res) => {
         })
         let result = schema.validate(req.body);
         if (result.error) {
-            console.log(11,req.body);
+            // console.log(11,req.body);
             return res.status(200).json({
                 status: 0,
                 statusCode: 400,
