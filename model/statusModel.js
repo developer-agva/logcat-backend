@@ -33,6 +33,11 @@ const statusSchema = mongoose.Schema({
     address: {
         type: String,
         default:"",
+    },
+    addTofocus:{
+        type: Boolean,
+        required:true,
+        default: false,
     }
 },
     { timestamps: true })

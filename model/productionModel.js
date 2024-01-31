@@ -23,7 +23,7 @@ const productionSchema = new mongoose.Schema({
     shipmentMode: {
         type: String,
         enum: ["req_doc","inprocess","awaiting_for_shipped","shipped"],
-        default: "req_doc"
+        default: ""
     },
     deviceflag: {
         type: String,

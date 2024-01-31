@@ -266,7 +266,8 @@ const getProdLogsData = async (req, res) => {
       {
         "$unset": [
           "__v",
-          "userId"
+          "userId",
+          // "prodData"
           // "otp",
           // "isVerified",
         ],
@@ -274,6 +275,13 @@ const getProdLogsData = async (req, res) => {
     ]
     // get data
     const resData = await prodActivityLogModel.aggregate(pipline)
+    var newArr = []
+    resData.map((item) => {
+      if (!!item.prodData) {
+        newArr.push(item.prodData)
+      }
+    })
+    // console.log(newArr)
     
     if (resData.length < 1) {
       return res.status(400).json({
@@ -287,8 +295,8 @@ const getProdLogsData = async (req, res) => {
       statusValue: "SUCCESS",
       message: "Data get successfully.",
       data:resData,
+      data2:newArr
     })
-    
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,

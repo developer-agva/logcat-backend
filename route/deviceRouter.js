@@ -8,7 +8,6 @@ const router = express.Router();
 const { isAuth, isAdmin } = require("../middleware/authMiddleware.js");
 const File = require("../model/File.js");
 
-
 router.post('/register', deviceController.createDevice);
 router.get('/', deviceController.getAllDevices);
 router.put('/update/:DeviceId', deviceController.updateDevice);
@@ -16,6 +15,8 @@ router.get('/getdevice/:DeviceId', deviceController.getDeviceById);
 router.get('/get-details/:DeviceId', deviceController.getDeviceById);
 router.delete('/delete-byid/:DeviceId', deviceController.deleteSingleDevice);
 router.get('/get-devices-by-hospital/:hospital_name', deviceController.getDevicesByHospital);
+router.put('/update-addtofocus/:deviceId', isAuth, deviceController.updateAddtofocus);    // tested and done
+// router.get()
 
 // router.post('/register', deviceController.registerNewDevice);
 router.get('/registered_devices', isAuth, deviceController.getAllDevices);
@@ -63,4 +64,4 @@ router.post("/upload-files", upload.single("file"), (req, res) => {
   
 
 
-module.exports = router;
+module.exports = router

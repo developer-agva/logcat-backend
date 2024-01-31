@@ -44,6 +44,7 @@ const {
   crashlyticsData2,
   getTrendsWithFilter,
   getTrendsById,
+  getAllFocusedDevicesForUsers
 } = require("../controller/logs");
 // New controller
 const logController = require('../controller/logController.js');
@@ -186,9 +187,8 @@ router.get("/deviceAlerts/:did", getAlertsById);
 router.get("/deviceEvents/:did", getEventsById);
 router.get("/deviceLogs/:device", getLogsById);
 router.get("/Allevents/Events", getAllDeviceId);
-router.get("/Allevents/get-devices-for-users", getAllDevicesForUsers);
-
-
+router.get("/Allevents/get-devices-for-users", getAllDevicesForUsers)
+router.get("/Allevents/get-focused-devices", getAllFocusedDevicesForUsers)
 
 // router.get("/example", async (req,res)=>{
 //     console.log("value of something")

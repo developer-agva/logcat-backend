@@ -164,6 +164,50 @@ const updateDevice = async (req, res) => {
 
 
 /**
+ * api      UPDATE @/update-autofocus/:deviceId
+ * desc     @update devices for logger access only
+ */
+const updateAddtofocus = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      addTofocus: Joi.boolean().required(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(200).json({
+        status: 0,
+        statusCode: 400,
+        message: result.error.details[0].message,
+      })
+    }
+    const deviceData = await Device.findOneAndUpdate(
+      { DeviceId: req.params.deviceId },
+      { addTofocus: req.body.addTofocus },
+      { upsert: true, new: true },
+    )
+    await statusModel.updateMany({deviceId:req.params.deviceId},{addTofocus:req.body.addTofocus},{upsert:true})
+    const getAddTofocusList = await Device.find({addTofocus:true})
+    // console.log(11,getAddTofocusList.length)
+    return res.status(200).json({
+      "statusCode": 200,
+      "statusValue": "SUCCESS",
+      data: deviceData
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
+/**
  * api      UPDATE @/devices/update/DeviceId
  * desc     @update devices for logger access only
  */
@@ -2935,6 +2979,7 @@ const replaceDeviceId = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
+
     const aboutData = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
     const prodData = await productionModel.findOne({deviceId:req.body.deviceId})
     if (!aboutData || !prodData) {
@@ -2944,10 +2989,11 @@ const replaceDeviceId = async (req, res) => {
         message: "deviceId does not exists."
       })
     }
+
     const updateAbout = await aboutDeviceModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
     const updateProd = await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
     if (updateProd && updateAbout) {
-      
+
       await accountsHistoryModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
       await accountsModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
       await markAsShippedModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
@@ -2972,12 +3018,14 @@ const replaceDeviceId = async (req, res) => {
         data: req.body,
       })
     }
+
     return res.status(400).json({
       statusCode: 400,
       statusValue: "FAIL",
       message: "Error! while updating deviceId",
       data: req.body
     })
+
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -3029,5 +3077,6 @@ module.exports = {
   getDeviceAccessUsers,
   returnDevice,
   getReturnDeviceData,
-  replaceDeviceId
+  replaceDeviceId,
+  updateAddtofocus
 }

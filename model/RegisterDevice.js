@@ -53,6 +53,11 @@ const RegisterDeviceSchema = mongoose.Schema({
         required:true,
         default: false,
     },
+    addTofocus:{
+        type: Boolean,
+        required:true,
+        default: false,
+    }
 },
     { timestamps: true })
 

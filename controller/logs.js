@@ -920,9 +920,14 @@ const getAllDeviceId2 = async (req, res) => {
       },
     });
   }
-};
+}
 
-// get all device for users
+/**
+ * searching
+ * @param {*} req 
+ * @param {*} res 
+ * @returns [{object}]
+ */
 const getAllDevicesForUsers = async (req, res) => {
   try {
      // Search
@@ -943,7 +948,7 @@ const getAllDevicesForUsers = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user});
-    console.log(loggedInUser.hospitalName)
+    // console.log(loggedInUser.hospitalName)
     // Declare blank obj
     let filterObj = {};
     // check user
@@ -1125,6 +1130,212 @@ const getAllDevicesForUsers = async (req, res) => {
   }
 };
 
+// get all focused device for users
+const getAllFocusedDevicesForUsers = async (req, res) => {
+  try {
+     // Search
+     var search = "";
+     if (req.query.search && req.query.search !== "undefined") {
+       search = req.query.search;
+    }
+     // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+       page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+       limit = 99999;
+    }
+
+    // get loggedin user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
+    // console.log(loggedInUser.hospitalName)
+    // Declare blank obj
+    let filterObj = {};
+    // check user
+    if (!!loggedInUser && loggedInUser.userType === "User") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {"deviceInfo.addTofocus":true},
+        // {"deviceReqData.userId":loggedInUser._id},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  } else {
+    filterObj = {
+      $match:{$or:[
+        {"deviceInfo.addTofocus":true},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+      ]}
+    } 
+  }
+    
+    
+  // check user
+  
+  const activeDevices = await statusModel.aggregate([
+    {
+      $match: {
+        "message":"ACTIVE",
+      }
+    },
+    {
+      $lookup:
+      {
+        from: "registerdevices",
+        localField: "deviceId",
+        foreignField: "DeviceId",
+        as: "deviceInfo"
+      }
+    },
+    {
+      $lookup:
+      {
+        from: "assigned_devices_tousers",
+        localField: "deviceId",
+        foreignField: "deviceId",
+        as: "deviceReqData"
+      }
+    },
+    // For this data model, will always be 1 record in right-side
+    // of join, so take 1st joined array element
+    {
+      "$set": {
+        "deviceReqData": {"$first": "$deviceReqData"},
+      }
+    },
+    // Extract the joined embeded fields into top level fields
+    {
+      "$set": {"isAssigned": "$deviceReqData.isAssigned"},
+    },
+    filterObj,
+    // {
+    //   $project:{
+    //     "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+    //     "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+    //   }
+    // },
+    {
+      "$unset": [
+        "deviceReqData",
+        "__v",
+        "createdAt",
+        "deviceInfo.__v",
+        "deviceInfo.createdAt",
+        "deviceInfo.updatedAt",
+        "deviceInfo.Status"
+      ]
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+   
+  const inactiveDevices = await statusModel.aggregate([
+    {
+      $match: {
+        "message":"INACTIVE",
+      }
+    },
+    {
+      $lookup:
+        {
+          from: "registerdevices",
+          localField: "deviceId",
+          foreignField: "DeviceId",
+          as: "deviceInfo"
+        }
+    },
+    {
+      $lookup:
+      {
+        from: "assigned_devices_tousers",
+        localField: "deviceId",
+        foreignField: "deviceId",
+        as: "deviceReqData"
+      }
+    },
+    // For this data model, will always be 1 record in right-side
+    // of join, so take 1st joined array element
+    {
+      "$set": {
+        "deviceReqData": {"$first": "$deviceReqData"},
+      }
+    },
+    // Extract the joined embeded fields into top level fields
+    {
+      "$set": {"isAssigned": "$deviceReqData.isAssigned"},
+    },
+    filterObj,
+    {
+      "$unset": [
+        "deviceReqData",
+        "__v",
+        "createdAt",
+        "deviceInfo.__v",
+        "deviceInfo.createdAt",
+        "deviceInfo.updatedAt",
+        "deviceInfo.Status"
+      ]
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+  var finalArr = [...activeDevices, ...inactiveDevices];
+  // remove duplicate records
+  var key = "deviceId";
+  let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
+
+  // let resArr1 = [];
+  // let resArr2 = [];
+  // filter data on the basis of userType
+ 
+  // console.log(loggedInUser)
+  // get data by user role
+  // console.log(333, resultArr)
+  // For pagination
+  const paginateArray =  (arrayUniqueByKey, page, limit) => {
+  const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
+  return skip;
+  };
+
+  var allDevices = paginateArray(arrayUniqueByKey, page, limit)
+  if (arrayUniqueByKey.length > 0) {
+    return res.status(200).json({
+      status: 200,
+      statusValue: "SUCCESS",
+      message: "Event lists has been retrieved successfully.",
+      data: { data: allDevices, },
+      totalDataCount: arrayUniqueByKey.length,
+      totalPages: Math.ceil( (arrayUniqueByKey.length)/ limit),
+      currentPage: page,
+      // tempData: allDevices,
+    })
+  }
+  return res.status(400).json({
+    status: 400,
+    statusValue: "FAIL",
+    message: 'Data not found.',
+    data: {}
+  });
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
 
 
 // get all devices by on the basis of userType
@@ -3879,6 +4090,8 @@ const getErrorCountByVersion = async (req, res) => {
   }
 };
 
+
+
 module.exports = {
   createLogsV2,
   createAlerts,
@@ -3907,5 +4120,77 @@ module.exports = {
   getAllDevicesForUsers,
   crashlyticsData2,
   getCrashOccurrenceByLogMsgWithDeviceId,
-  dateWiseLogOccurrencesByLogMsgWithDeviceId
+  dateWiseLogOccurrencesByLogMsgWithDeviceId,
+  getAllFocusedDevicesForUsers
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Hey Mike, How's it going ?
+ * Not bad, John. Just trying to survive another monday, you know ?
+ * I hear you. Mondays can be tough. Anyting exciting happening this week?
+ * Not really, just the usual work grind. I have got that project deadline on friday. so it's heads 
+ * down for me.
+ * 
+ * Ah, the joy of project deadlines. i have got a meeting with clients tomorrow. they always have last 
+ * minute changes.
+ * Okay tell me about it. clients seem to have sixth sense for that. How's the family?
+ * they are good. the kids are keeping us our toes, as usual. how about yours ?
+ * same here. Little league practice, dance classes - it's like running ataxi service sometimes.
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
