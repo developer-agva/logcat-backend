@@ -1,0 +1,1162 @@
+{
+	"info": {
+		"_postman_id": "a56a57c2-6195-47ee-80a6-afd088d974f5",
+		"name": "Logger Server",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "21183928"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Admin Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"saman.arshad97@gmail.com\",\n    \"password\": \"test0000\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/auth/login",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Saman\",\n    \"email\": \"saman@agvahealthtech.com\",\n    \"password\": \"123456\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/auth/register",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjEzODU3ODE1OWQ2MTI4Y2Q1NWUzZjBiIiwianRpIjoiR3pJSk9pSzhjSyIsImlhdCI6MTYzMjE5ODA0NCwiZXhwIjoxNjMyMjg0NDQ0fQ.G_fVmXxSr4QD3ONGBTz6AsEjL_GTRP4yW4Xn10IZaKk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/auth/logout",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\" : \"saman.arshad97@gmail.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/auth/forget",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"auth",
+								"forget"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"saman.arshad97@gmail.com\",\n    \"otp\": \"PZVKTU\",\n    \"password\": \"test0000\",\n    \"passwordVerify\": \"test0000\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/auth/resetPassword",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"auth",
+								"resetPassword"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Logs",
+			"item": [
+				{
+					"name": "Alerts",
+					"item": [
+						{
+							"name": "Save alert from device (Used by devices) ***",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"did\": \"10:EC:81:1C:12:71\",\n    \"type\": \"002\",\n    \"ack\": [\n        {\n            \"msg\": \"Just testing alert API from Heroku\",\n            \"code\": \"ACK-01\",\n            \"timestamp\": \"2022-04-22 12:35:45\"\n        },\n        {\n            \"msg\": \"Just testing alert API\",\n            \"code\": \"ACK-01\",\n            \"timestamp\": \"2022-04-22 12:35:45\"\n        },\n        {\n            \"msg\": \"Just testing alert API\",\n            \"code\": \"ACK-01\",\n            \"timestamp\": \"2022-04-22 12:35:45\"\n        }\n    ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{URL}}api/logger/logs/alerts/SBXMH",
+									"host": [
+										"{{URL}}api"
+									],
+									"path": [
+										"logger",
+										"logs",
+										"alerts",
+										"SBXMH"
+									]
+								},
+								"description": "{{URL}}api/logger/logs/alerts/SBXMH ( here SBXMH is product id (Ventilator in this case) )\n\ntype = for e.g Ventilator has many variants (AgVa Pro, AgVa Advanced) - so in DB we have model_type as code for each variant (e.g. \"001\" for AgVa Pro)\n\ndid = MAC address\n\nack\\[\"code\"\\] = Code (e.g. - ACK 01 )\n\nack\\[\"msg\"\\] = Any message that you send\n\nack\\[\"timestamp\"\\] = Log generation timestamp in this format (YY-MM-DD hh:mm:ss)"
+							},
+							"response": []
+						},
+						{
+							"name": "Get all alerts (Filter)",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiY0Nmelh1b291ZyIsImlhdCI6MTY1MjM0Njk5OCwiZXhwIjoxNjUzNjQyOTk4fQ.grQKC58CMQLCIxZTDZyOwcScIhe8oq27LQN4jkPiDsY",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{URL}}api/logger/logs/alerts/SBXMH?projectType=002&limit=25&page=1&startDate=2022-02-12&endDate=2022-05-12",
+									"host": [
+										"{{URL}}api"
+									],
+									"path": [
+										"logger",
+										"logs",
+										"alerts",
+										"SBXMH"
+									],
+									"query": [
+										{
+											"key": "projectType",
+											"value": "002"
+										},
+										{
+											"key": "limit",
+											"value": "25"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "startDate",
+											"value": "2022-02-12"
+										},
+										{
+											"key": "endDate",
+											"value": "2022-05-12"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Get all logs (Filter)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiSGxQanJSRnNtdyIsImlhdCI6MTY1Mzg4Mjg4NCwiZXhwIjoxNjU1MTc4ODg0fQ.RPrr0iwFsX37cymg_lCspbOqpther9Kv6FQ1X4I_gbI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/SBXMH?limit=100&page=1&projectType=001&logType=&startDate=2022-01-25&endDate=2022-04-25",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "did",
+									"value": "10:EC:81:1C:12:30",
+									"disabled": true
+								},
+								{
+									"key": "sort",
+									"value": "-logMsg",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "100"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "projectType",
+									"value": "001"
+								},
+								{
+									"key": "logType",
+									"value": ""
+								},
+								{
+									"key": "",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "startDate",
+									"value": "2022-01-25"
+								},
+								{
+									"key": "endDate",
+									"value": "2022-04-25"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create log for device with code (Used by devices) ***",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"version\": \"1.0.0\",\n    \"type\": \"001\",\n    \"log\": {\n        \"file\": \"SplashActivity.kt\",\n        \"date\": \"2022-04-20 08:35:10\",\n        \"msg\": \"java.lang.ArithmeticException: divide by zero \\n\\tat com.agvahealthcare.ventilator_ext.MainActivity.onCreate(MainActivity.kt:458) \\n\\tat android.app.Activity.performCreate(Activity.java:7036) at\\n\\t android.app.Activity.performCreate(Activity.java:7027) \\n\\tat android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1214) \\n\\tat android.app.ActivityThread.performLaunchActivity(ActivityThread.java:2731) \\n\\tat android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:2856 \\n\\tat android.app.ActivityThread.-wrap11(Unknown Source:0) \\n\\tat android.app.ActivityThread$H.handleMessage(ActivityThread.java:1589) \\n\\tat android.os.Handler.dispatchMessage(Handler.java:106) \\n\\tat android.os.Looper.loop(Looper.java:164) \\n\\tat android.app.ActivityThread.main(ActivityThread.java:6494) \\n\\tat java.lang.reflect.Method.invoke(Native Method) \\n\\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:438) \\n\\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)\",\n        \"type\": \"error\"\n    },\n    \"device\": {\n        \"did\": \"10:EC:81:1C:12:71\",\n        \"name\": \"Lenovo Tab 1\",\n        \"manufacturer\": \"Agva Healthcare\",\n        \"battery\": null,\n        \"os\": {\n            \"name\": \"Ubuntu 20.04\",\n            \"type\": \"linux\"\n        }\n    }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/logs/SBXMH",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"SBXMH"
+							]
+						},
+						"description": "{{URL}}api/logger/logs/SBXMH ( here SBXMH is product id (Ventilator in this case) )\n\ntype = for e.g Ventilator has many variants (AgVa Pro, AgVa Advanced) - so in DB we have model_type as code for each variant (e.g. \"001\" for AgVa Pro)\n\nversion = 1.0.0\n\nlog\\[\"file\"\\] = file from where log is being generated\n\nlog\\[\"date\"\\] = Log generation timestamp in this format (YY-MM-DD hh:mm:ss)\n\nlog\\[\"msg\"\\] = Any log message that you send/stack trace\n\nlog\\[\"type\"\\] = any one from \"error\" , \"info\" , \"warn\" , \"debug\" or \"verbose\" (verbose is default if you send no log type)\n\ndevice\\[\"did\"\\] = MAC address\n\ndevice\\[\"name\"\\] = Lenovo Tab 1\n\ndevice\\[\"manufacturer\"\\] = Agva Healthcare\n\ndevice\\[\"battery\"\\] = 90 (can be null as well)\n\ndevice\\[\"os\"\\]\\[\"name\"\\] = Ubuntu 20.04\n\ndevice\\[\"os\"\\]\\[\"type\"\\] = linux/windows/iOS/other"
+					},
+					"response": []
+				},
+				{
+					"name": "Create log for device with code (UPDATED) ***",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "version",
+									"value": "1.0.1",
+									"type": "text"
+								},
+								{
+									"key": "type",
+									"value": "001",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"value": "SplashActivity.kt",
+									"type": "text"
+								},
+								{
+									"key": "date",
+									"value": "2022-04-20 08:35:10",
+									"type": "text"
+								},
+								{
+									"key": "logMsg",
+									"value": "",
+									"type": "text"
+								},
+								{
+									"key": "logType",
+									"value": "error",
+									"type": "text"
+								},
+								{
+									"key": "did",
+									"value": "10:EC:81:1C:12:71",
+									"type": "text"
+								},
+								{
+									"key": "deviceName",
+									"value": "Lenovo Tab 1",
+									"type": "text"
+								},
+								{
+									"key": "osName",
+									"value": "Ubuntu 20",
+									"type": "text"
+								},
+								{
+									"key": "osType",
+									"value": "linux",
+									"type": "text"
+								},
+								{
+									"key": "manufacturer",
+									"value": "AgVa Healthcare",
+									"type": "text"
+								},
+								{
+									"key": "filePath",
+									"type": "file",
+									"src": "/home/agva/Pictures/Screenshot from 2022-04-04 12-12-04.png"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/logs/v2/SBXMH",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"v2",
+								"SBXMH"
+							]
+						},
+						"description": "{{URL}}api/logger/logs/SBXMH ( here SBXMH is product id (Ventilator in this case) )\n\ntype = for e.g Ventilator has many variants (AgVa Pro, AgVa Advanced) - so in DB we have model_type as code for each variant (e.g. \"001\" for AgVa Pro)\n\nversion = 1.0.0\n\nlog\\[\"file\"\\] / file = file from where log is being generated\n\nlog\\[\"date\"\\] / date = Log generation timestamp in this format (YY-MM-DD hh:mm:ss)\n\nlog\\[\"msg\"\\] / logMsg = Any log message that you send/stack trace\n\nlog\\[\"type\"\\] / logType = any one from \"error\" , \"info\" , \"warn\" , \"debug\" or \"verbose\" (verbose is default if you send no log type)\n\nlog\\[\"filePath\"\\] / filePath = File upload (will be blank in case of JSON body)\n\ndevice\\[\"did\"\\] / did= MAC address\n\ndevice\\[\"name\"\\] / deviceName = Lenovo Tab 1\n\ndevice\\[\"manufacturer\"\\] / manufacturer = Agva Healthcare\n\ndevice\\[\"battery\"\\] / battery = 90 (can be null as well)\n\ndevice\\[\"os\"\\]\\[\"name\"\\] / osName = Ubuntu 20.04\n\ndevice\\[\"os\"\\]\\[\"type\"\\] / osType = linux/windows/iOS/other"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Log Count Log wise (Pie chart)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiMmNCSHdadUhzQSIsImlhdCI6MTY1MDQyNjM0MCwiZXhwIjoxNjUxNzIyMzQwfQ.yhF_RuAE8AzBOvfsOiHMG3j585yqdapzn6xeAUN5CsQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/getLogsCount/SBXMH?startDate=2022-04-13&endDate=2022-04-20&projectType=001",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"getLogsCount",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2022-04-13"
+								},
+								{
+									"key": "endDate",
+									"value": "2022-04-20"
+								},
+								{
+									"key": "projectType",
+									"value": "001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get crashes count on date range (Graph)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoibWZocTFLbXlyWSIsImlhdCI6MTY1MDM2NzY5NywiZXhwIjoxNjUxNjYzNjk3fQ.EAjLeNw_bP7l4oPPkbzndxAAIKTN9qeYBWsKBiEoft4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/logs/datewiselogcount/SBXMH?startDate=2022-04-13&endDate=2022-04-20&projectType=001",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"datewiselogcount",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2022-04-13"
+								},
+								{
+									"key": "endDate",
+									"value": "2022-04-20"
+								},
+								{
+									"key": "projectType",
+									"value": "001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get error count OS architecture wise",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiWk1yNjl5MjJCViIsImlhdCI6MTY0OTk0MjU0NywiZXhwIjoxNjUxMjM4NTQ3fQ.XFxqKT2ENvXo9Ljn-Yz5UT-Txp0QZJPoF8lxNzkBURk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/getErrorCountByOSArchitecture/SBXMH?projectType=001",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"getErrorCountByOSArchitecture",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "projectType",
+									"value": "001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get error count version wise",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiWk1yNjl5MjJCViIsImlhdCI6MTY0OTk0MjU0NywiZXhwIjoxNjUxMjM4NTQ3fQ.XFxqKT2ENvXo9Ljn-Yz5UT-Txp0QZJPoF8lxNzkBURk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/getErrorCountByVersion/SBXMH?projectType=001",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"getErrorCountByVersion",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "projectType",
+									"value": "001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get log count model name wise",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjE1NTgyMzk1ZGFiYmYwMjU1NjIxYjRmIiwianRpIjoiV1ltZVIxTXhaYSIsImlhdCI6MTYzNDcwMjQ4NSwiZXhwIjoxNjM1OTk4NDg1fQ.z9Kqcj61A-4oe_fSBJZaXjUtW4dXi6wfCtCOhSJo37M",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/getLogsCountWithModelName/MF7OW",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"getLogsCountWithModelName",
+								"MF7OW"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get log count OS architecture wise",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjE1NTQwODQ0MmYwZmMyZGU0M2UwMmVjIiwianRpIjoiUnJ1RHhrc1BwQiIsImlhdCI6MTYzOTM3MTQwMSwiZXhwIjoxNjQwNjY3NDAxfQ.gWFSI5F1DPhBzelfYXACPIhsLZ9utKZeOuW4aoNW61U",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/getLogsCountWithOs/MF7OW",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"getLogsCountWithOs",
+								"MF7OW"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all occurrences of log message",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiOUdycW1haEFqNyIsImlhdCI6MTY1MjUyNDcyNCwiZXhwIjoxNjUzODIwNzI0fQ.vftgdbw2I5M43eB9Nz6LQ2JEOnFuXvauLdv6HJXOf1w",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/log-occurrences-datewise/SBXMH?startDate=2022-02-12&projectType=001&logMsg=[Ljava.lang.StackTraceElement;@13d7a73&endDate=2022-05-13",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"log-occurrences-datewise",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2022-02-12"
+								},
+								{
+									"key": "projectType",
+									"value": "001"
+								},
+								{
+									"key": "logMsg",
+									"value": "[Ljava.lang.StackTraceElement;@13d7a73"
+								},
+								{
+									"key": "endDate",
+									"value": "2022-05-13"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get error count for log msg for a particular MAC address",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjE1NTQwODQ0MmYwZmMyZGU0M2UwMmVjIiwianRpIjoiaXB0OFhXUTczcCIsImlhdCI6MTY0NTQyODE5MywiZXhwIjoxNjQ2NzI0MTkzfQ.7ryvv2Jy1ACD24m5o5Rd99td9ZvTflFvz_B3QhJ04Yw",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/logMsgOccurence/SBXMH?projectType=001&msg=Stack trace here",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"logMsgOccurence",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "projectType",
+									"value": "001"
+								},
+								{
+									"key": "msg",
+									"value": "Stack trace here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get grashlytics data",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiQUxHaGw3UmxDRSIsImlhdCI6MTY0OTA1Mjk0MiwiZXhwIjoxNjUwMzQ4OTQyfQ.8vZa-eGGa2ypVNu0BK6SrtCfVoukftxyXimYxx3QtzE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/get-crashlytics-data/SBXMH?startDate=2022-01-01&endDate=2022-04-04&logMsg=java.lang.Integer.parseInt(Integer.java:608&projectType=001",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"get-crashlytics-data",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2022-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2022-04-04"
+								},
+								{
+									"key": "logMsg",
+									"value": "java.lang.Integer.parseInt(Integer.java:608"
+								},
+								{
+									"key": "projectType",
+									"value": "001"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Crash-free (error free) users date-wise",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoibWZocTFLbXlyWSIsImlhdCI6MTY1MDM2NzY5NywiZXhwIjoxNjUxNjYzNjk3fQ.EAjLeNw_bP7l4oPPkbzndxAAIKTN9qeYBWsKBiEoft4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/logs/crashfree-users-datewise/SBXMH?startDate=2022-04-13&endDate=2022-04-20&projectType=001",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"logs",
+								"crashfree-users-datewise",
+								"SBXMH"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2022-04-13"
+								},
+								{
+									"key": "endDate",
+									"value": "2022-04-20"
+								},
+								{
+									"key": "projectType",
+									"value": "001"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Project",
+			"item": [
+				{
+					"name": "Get all project",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjE1NTQwODQ0MmYwZmMyZGU0M2UwMmVjIiwianRpIjoiNGZ4SmtEcHZ1VyIsImlhdCI6MTYzODM0MjMxOSwiZXhwIjoxNjM5NjM4MzE5fQ.IYOLJyraVdPjEvDCUw6iumHWWavDNycSOIuXltFZOXA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/projects/",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"projects",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create project",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiTG55SWIxVzFreiIsImlhdCI6MTY1MzM3NjQ3NywiZXhwIjoxNjU0NjcyNDc3fQ.y04lRFOZos9nl9gAD3HUkwMguQroCigavXfvRBNT4WQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\":\"Emmbedded Project\",\n    \"description\": \"Testing for LogCat Server\",\n    \"device_type\":[\"Type 1\",\"Type 2\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/projects",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update project by project code",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjEzODU3ODE1OWQ2MTI4Y2Q1NWUzZjBiIiwianRpIjoibERNdUJlRWFlciIsImlhdCI6MTYzMjExNjI0NiwiZXhwIjoxNjMyMjAyNjQ2fQ.CYnjZtSJuoBixiL1tV0bILFDdCz6U3_rVXD4qo56mPs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"\",\n    \"device_type\": [\"type3\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/projects/XW3ZC",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"projects",
+								"XW3ZC"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Project by Project Code",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjE1NTQwODQ0MmYwZmMyZGU0M2UwMmVjIiwianRpIjoiUWlFSGEzd3NmTCIsImlhdCI6MTY0NzIzNDI2OCwiZXhwIjoxNjQ4NTMwMjY4fQ.44jC3-_rAJhA3opo9su65eabWfMQsrLeNRxM5O6pEnI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/projects/SBXMH",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"projects",
+								"SBXMH"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get project details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoiWk1yNjl5MjJCViIsImlhdCI6MTY0OTk0MjU0NywiZXhwIjoxNjUxMjM4NTQ3fQ.XFxqKT2ENvXo9Ljn-Yz5UT-Txp0QZJPoF8lxNzkBURk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/projects/getDeviceCount/GR1BT",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"projects",
+								"getDeviceCount",
+								"GR1BT"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add/Update Crash forwarding email id(s) list",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoidVE5TE9ZRTVBNSIsImlhdCI6MTY1MjA2OTkxNCwiZXhwIjoxNjUzMzY1OTE0fQ.wnzcgnlCXmDzA2y9MG0y3dmjfDGEQWH6kHPReMcibYM",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\" : [\"saman.arshad97@gmail.com\"]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/projects/updateEmail/SBXMH",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"projects",
+								"updateEmail",
+								"SBXMH"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Change User Password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjE1NTQwODQ0MmYwZmMyZGU0M2UwMmVjIiwianRpIjoidjk4TUF1bnhMOCIsImlhdCI6MTY0NzkzODI4MywiZXhwIjoxNjQ5MjM0MjgzfQ.ROSzvIn56axkE2aqCAPm87f0P1NhOZgRwbSpnT3tTuU",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"currentPassword\": \"test00002\",\n    \"newPassword\" :\"test0000\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/users/changepassword",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"users",
+								"changepassword"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjE1NTQwODQ0MmYwZmMyZGU0M2UwMmVjIiwianRpIjoidGtvdk5lTXIxeCIsImlhdCI6MTY0ODQ0NDczNCwiZXhwIjoxNjQ5NzQwNzM0fQ.9bGWLTjb0COBXsYoi7UVEZ5ZY1h1Pn4ZKijJ4qorkOI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\" : \"Saman Arshad\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL}}api/logger/users/update",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"users",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get logged in user details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiNjI0MTU0MDM5ZDQxZjZhYTY3YzBjZDkzIiwianRpIjoia0pQUHJZRTBEcSIsImlhdCI6MTY1NTcxMTUwMCwiZXhwIjoxNjU3MDA3NTAwfQ.X4VPt4t0soLeoWiLnEXwHN0YmbHM4odivM8RHKlt6CI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL}}api/logger/users",
+							"host": [
+								"{{URL}}api"
+							],
+							"path": [
+								"logger",
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
