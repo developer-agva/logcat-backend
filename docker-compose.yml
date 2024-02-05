@@ -1,70 +1,25 @@
-version: '3.8'
+version: '3'
+
 services:
-  # Node.js application
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
       - "8000:8000"
     depends_on:
-      - mongo
+      - mongodb
       - redis
 
-  # MongoDB
-  mongo:
-    build:
-      context: ./mongodb
+  mongodb:
+    image: mongo:latest
     ports:
       - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
 
-  # Redis
   redis:
-    build:
-      context: ./redis
+    image: redis:latest
     ports:
       - "6379:6379"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# version: "3.8"
-
-# services:
-#   mongodb:
-#     image: mongo:latest
-#     restart: always 
-#     ports:
-#       - "27017:27017"
-#     environment:
-#       MONGO_INITDB_ROOT_USERNAME: "ddtech"
-#       MONGO_INITDB_ROOT_PASSWORD: "agva1234"
-#     # volumes:
-#     #   - mongodb-data:/data/db    
-
-#   # postgres:
-#   #   image: postgres  # hub.docker.com
-#   #   ports:
-#   #     - "5432:5432"
-#   #   environment:
-#   #     POSTGRES_USER: postgres
-#   #     POSTGRES_DB: review
-#   #     POSTGRES_PASSWORD: password 
-
-#   redis:
-#     image: redis
-#     ports:
-#       - "6379:6379"     
+volumes:
+  mongodb-data:

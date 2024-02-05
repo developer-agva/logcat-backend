@@ -21,3 +21,4 @@ router.get('/get-uploaded-files/:deviceId', isAuth, uploadController.getFileByDe
 router.post('/upload-single-v2', uploadController.uploadSingleV2);
 
 module.exports = router;
+

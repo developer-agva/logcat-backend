@@ -6,6 +6,7 @@ const User = require('../model/users');
 const RegisterDevice = require('../model/RegisterDevice');
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
+// const jwt = require('jsonwebtoken')
 
 
 /**

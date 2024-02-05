@@ -21,10 +21,9 @@ const s3 = new AWS.S3({
   Bucket: process.env.S3_BUCKET,
   region: 'ap-south-1',
 });
-
-let redisClient = require("../config/redisInit");
 const User = require('../model/users');
 const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel');
+let redisClient = require("../config/redisInit");
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 const {deviceIdArr} = require('../middleware/msgResponse');
@@ -430,8 +429,24 @@ const getAlertsById = async (req, res) => {
   }
 }
 
+// get device trends by deviceId
 const getTrendsById = async (req, res) => {
   try {
+    let { page, limit} = req.query;
+    // for search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+
+    // for pagination
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 999999;
+    }
+
     const { did } = req.params;
     const findDeviceById = await trends_ventilator_collection.find({ did: did }).sort({_id:-1});
     if (!findDeviceById) {
@@ -478,16 +493,43 @@ const getTrendsById = async (req, res) => {
         },
       });
     }
+    // for pagination
+    const paginateArray = (findDeviceById, page, limit) => {
+      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    let finalData = paginateArray(findDeviceById, page, limit)
+    // for count
+    const count = await trends_ventilator_collection.find({ did: did })
+    .sort({_id:-1})
+    .countDocuments()
     // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
     // console.log(collectionName,'collectionName');
-    return res.status(200).json({
-      status: 1,
-      statusCode: 200,
-      data: {
-        findDeviceById: findDeviceById
-      },
-      message: 'successfull'
-    });
+    if (finalData.length > 0) {
+      return res.status(200).json({
+        status: 1,
+        statusCode: 200,
+        message: 'successfull',
+      //   data: {
+      //     findDeviceById: finalData
+      //   },
+      //   message: 'successfull'
+      // });
+        data: {
+          findDeviceById:finalData
+        },
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(400).json({
+      status:0,
+      statusCode:400,
+      message:"Data not found",
+      data:{}
+    })
   }
   catch (err) {
     return res.status(500).json({

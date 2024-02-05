@@ -10,7 +10,7 @@ const bodyParser = require("body-parser");
 const nodemailer = require("nodemailer");
 const http = require("http");
 var cookieParser = require('cookie-parser');
-const {deviceIdArr} = require('./middleware/msgResponse.js');
+const {deviceIdArr} = require('./middleware/msgResponse');
 
 // sendin blue
 const Sib = require("sib-api-v3-sdk");
@@ -24,12 +24,12 @@ apiKey.apiKey = process.env.API_KEY;
 
 // importing router
 const users = require("./route/users.js");
-const projects = require("./route/projects.js"); 
-const logs = require("./route/logs.js");
+const projects = require("./route/projects"); 
+const logs = require("./route/logs");
 // const RegisterDevice=require('./route/RegisterDevice');
 const deviceRouter = require("./route/deviceRouter.js");
 const patientRouter = require("./route/patientRoute.js");
-const hospitalRouter = require("./route/hospitalRoute.js");
+const hospitalRouter = require("./route/hospitalRoute");
 const projectRouter = require("./route/projectRouter.js");
 const productionRouter = require("./route/productionRoute.js");
 const supportRouter = require("./route/supportRoute.js");
@@ -140,7 +140,7 @@ io.on('connection', (socket) => {
     }
   })
 
-  // start react logic
+  // start react logic`
   socket.on('ReactStartUp',(deviceIdReact)=>{
     console.log("run react startup")
      if(deviceIdArr.includes(deviceIdReact)){

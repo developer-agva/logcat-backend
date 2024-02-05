@@ -10,10 +10,11 @@ const aboutDeviceModel = require('../model/aboutDeviceModel');
 const RegisterDevice = require('../model/RegisterDevice');
 const registeredHospitalModel = require('../model/registeredHospitalModel.js');
 const prodActivityLogModel = require('../model/productionActivityLogModel.js');
-let redisClient = require("../config/redisInit");
 const User = require('../model/users.js');
+let redisClient = require("../config/redisInit");
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
+// const jwt = require('jsonwebtoken')
 
 
 

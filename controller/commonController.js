@@ -251,7 +251,7 @@ const getProdLogsData = async (req, res) => {
     // for aggregate logic
     var pipline = [
       // match
-      // {"$match":{}},
+      {"$match":{"serialNumber":req.params.serialNo}},
       {
         "$lookup":{
           "from":"productions",
@@ -287,7 +287,7 @@ const getProdLogsData = async (req, res) => {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "Opps something went wrong!",
+        message: "data not found",
       })
     }
     return res.status(200).json({
@@ -320,7 +320,7 @@ const getDispatchLogsData = async (req, res) => {
     // for aggregate logic
     var pipline = [
       // match
-      // {"$match":{}},
+      {"$match":{"serial_no":req.params.serialNo}},
       {
         "$lookup":{
           "from":"about_devices",

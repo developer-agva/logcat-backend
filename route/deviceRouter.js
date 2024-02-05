@@ -7,6 +7,10 @@ const locationController = require('../controller/locationController');
 const router = express.Router();
 const { isAuth, isAdmin } = require("../middleware/authMiddleware.js");
 const File = require("../model/File.js");
+const statusModel = require('../model/statusModel.js')
+
+// const statusData = await statusModel.find({})
+// console.log(statusData)
 
 router.post('/register', deviceController.createDevice);
 router.get('/', deviceController.getAllDevices);
@@ -17,7 +21,7 @@ router.delete('/delete-byid/:DeviceId', deviceController.deleteSingleDevice);
 router.get('/get-devices-by-hospital/:hospital_name', deviceController.getDevicesByHospital);
 router.put('/update-addtofocus/:deviceId', isAuth, deviceController.updateAddtofocus);    // tested and done
 // router.get()
-
+router.get("/update/devices/new", deviceController.updateDevices)
 // router.post('/register', deviceController.registerNewDevice);
 router.get('/registered_devices', isAuth, deviceController.getAllDevices);
 

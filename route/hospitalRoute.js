@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { isAuth, isAdmin, isDispatch } = require("../middleware/authMiddleware.js");
 const hospitalController = require('../controller/hospitalController');
+const verifyAdmin = require("../middleware/verifyAdmin.js");
 
 // Hospital routes
 

@@ -14,7 +14,10 @@ const mongoose = require('mongoose');
 const User = require('../model/users');
 // const { registerDevice } = require('./RegisterDevice');
 const { validationResult } = require('express-validator');
-
+const emailVerificationModel = require("../model/emailVerificationModel")
+// let redisClient = require("../config/redisInit");
+// const JWTR = require("jwt-redis").default;
+// const jwtr = new JWTR(redisClient);
 
 /**
  * api      POST @/devices/register
@@ -30,8 +33,7 @@ const createDevice = async (req, res) => {
       Doctor_Name: Joi.string().required(),
       IMEI_NO: Joi.string().required(),
       Bio_Med: Joi.string().required(),
-      Alias_Name: Joi.string().required(),
-
+      Alias_Name: Joi.string().required()
     })
     let result = schema.validate(req.body);
 
@@ -45,7 +47,7 @@ const createDevice = async (req, res) => {
 
     // for logger user activity
     // const token = req.headers["authorization"].split(' ')[1];
-    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
     // const normalUser = await User.findById({_id:req.body._id});
 
@@ -100,6 +102,59 @@ const createDevice = async (req, res) => {
     });
   }
 };
+
+
+/**
+ * api      UPDATE @/devices/update/DeviceId
+ * desc     @update devices for logger access only
+ */
+const updateDevices = async (req, res) => {
+  try {
+  
+    // let data = [9, 45, 2, 8, 45, 23, 7, 78, 0, 11, 41, 77];
+    
+    // for (let i = 0; i<data.length; i++) {
+    //   console.log(data[i])
+    // }
+    
+
+
+
+
+
+    // check hospital
+    // const checkDevices = await productionModel.find({},{deviceId:1});
+    // if (!checkDevices) {
+    //   return res.status(400).json({
+    //     statusCode: 400,
+    //     statusValue: "FAIL",
+    //     message: "Error! Wrong hospital name.",
+    //   });
+    // }
+    // // console.log(checkDevices)
+    // const deviceData = await productionModel.updateMany({version:{$in:["1.0.0"]}},{$set:{version:"2.0.0"}})
+    // // const newDevice = new Device(req.body);
+    // // const savedDevice = await newDevice.save();
+    return res.status(200).json({
+      "statusCode": 200,
+      "statusValue": "SUCCESS",
+      // data: 
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
+
 
 
 /**
@@ -379,7 +434,7 @@ const getAllDevices = async (req, res) => {
 
     // get loggedin user details
     // const token = req.headers["authorization"].split(' ')[1];
-    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
 
     // Declare blank obj
@@ -1729,7 +1784,7 @@ const updateAboutData = async (req, res) => {
     }
     // for user logs activity 
     const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const verified = await jwtr.verify(token, process.env.jwtr_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user });
     var bodyData = { ...req.body, email: loggedInUser.email }
     await dispatchActivityLogModel.findOneAndUpdate(bodyData, bodyData, { upsert: true })
@@ -1983,8 +2038,9 @@ const s3PatientFileModel = require('../model/s3PatientFileModel');
 const s3poBucketModel = require('../model/s3BucketPoPdfModel');
 const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
 
-const JWTR = require("jwt-redis").default;
-const jwtr = new JWTR(redisClient);
+// const jwtr = require("jwtr-redis").default;
+// const jwtr = new jwtrR(redisClient);
+// const jwtr = require('jsonwebtoken')
 
 const getAboutByDeviceId = async (req, res) => {
   try {
@@ -2070,7 +2126,7 @@ const assignedDeviceToUser = async (req, res) => {
       })
     }
     const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const verified = await jwtr.verify(token, process.env.jwtr_SECRET);
 
     // console.log('resp2',verified.user)
 
@@ -2134,7 +2190,7 @@ const assignedDeviceToUser2 = async (req, res) => {
   try {
 
     const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const verified = await jwtr.verify(token, process.env.jwtr_SECRET);
 
     // console.log('resp2',verified.user)
 
@@ -2246,7 +2302,7 @@ const getAssignedDeviceById = async (req, res) => {
   try {
     const userId = req.params.userId;
     const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const verified = await jwtr.verify(token, process.env.jwtr_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user }, { firstName: 1, lastName: 1, email: 1, hospitalName: 1, designation: 1, speciality: 1 });
     var pipline = [
       // Match
@@ -2401,7 +2457,7 @@ const getDeviceAccessUsersByDeviceId = async (req, res) => {
 const getDeviceAccessUsers = async (req, res) => {
   try {
     const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const verified = await jwtr.verify(token, process.env.jwtr_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user });
 
     var pipline = [
@@ -2492,7 +2548,7 @@ const deleteDeviceAccessUser = async (req, res) => {
   try {
     // for logger activity
     // const token = req.headers["authorization"].split(' ')[1];
-    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
     const removeData = await assignDeviceTouserModel.findByIdAndDelete(
       { _id: mongoose.Types.ObjectId(req.params._id) },
@@ -2968,15 +3024,15 @@ const getDevicesNeedingAttention = async (req, res) => {
 const replaceDeviceId = async (req, res) => {
   try {
     const schema = Joi.object({
-      deviceId: Joi.string().required(),
-      newDeviceId: Joi.string().required()
+      deviceId: Joi.string().min(16).max(16).required(),
+      newDeviceId: Joi.string().min(16).max(16).required()
     })
-    let result = schema.validate(req.body);
-    if (result.error) {
+    let validationResult = schema.validate(req.body);
+    if (validationResult.error) {
       return res.status(200).json({
         statusValue: 0,
         statusCode: 400,
-        message: result.error.details[0].message,
+        message: validationResult.error.details[0].message,
       })
     }
 
@@ -3053,6 +3109,7 @@ module.exports = {
   saveStatus,
   getDeviceOverviewById,
   addAboutDevice,
+  updateDevices,
   // addDispatchDetails,
   getAboutByDeviceId,
   sendAndReceiveData,
