@@ -63,6 +63,10 @@ const patientSchema = mongoose.Schema({
         type: String,
         default: "",
     },
+    patientProfile: {
+        type: String,
+        default: ""
+    }
 },
     { timestamps: true })
 

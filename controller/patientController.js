@@ -15,24 +15,31 @@ const jwtr = new JWTR(redisClient);
  */
 const saveUhid = async (req, res) => {
   try {
-    let bodyObj = {};
     const deviceDetails = await RegisterDevice.findOne({DeviceId:req.body.deviceId});
-    // console.log(deviceDetails)
-    bodyObj = {...req.body, alias_name:!!deviceDetails ? deviceDetails.Alias_Name : ""}
-    // console.log(bodyObj)
     const patientData = await patientModel.findOneAndUpdate(
-      {UHID:req.body.UHID},
-      bodyObj,
+      { UHID:"Agva121" },
+      { 
+        UHID:!!(req.body.UHID) ? req.body.UHID : "",
+        deviceId:!!(req.body.deviceId) ? req.body.deviceId : "",
+        age:!!(req.body.age) ? req.body.age : "",
+        weight:!!(req.body.weight) ? req.body.weight : "",
+        height:!!(req.body.height) ? req.body.height : "",
+        ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
+        alias_name:!!(deviceDetails) ? deviceDetails.Alias_Name : "",
+        patientProfile:!!(req.body.patientProfile) ? req.body.patientProfile : "",
+      },
       { upsert: true, new: true }
-    );
-    if (!patientData) {
-      return res.status(400).json({
-        statusCode: 400,
-        statusValue: "FAIL",
-        message: "Data not added."
-      });
-    }
-    res.status(200).json({
+    )
+    console.log(11,req.body)
+    // if (!patientData) {
+    //   return res.status(200).json({
+    //     statusCode: 200,
+    //     statusValue: "SUCCESS",
+    //     message: "Data added successfully.",
+    //     data: patientData
+    //   });
+    // }
+    return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Data added successfully.",

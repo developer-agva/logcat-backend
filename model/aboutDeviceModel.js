@@ -98,6 +98,10 @@ const aboutSchema = mongoose.Schema({
        type: String,
        default: "",
     },
+    country: {
+        type: String,
+        default: "",
+    },
     document_no: {
         type: String,
         default: "",
