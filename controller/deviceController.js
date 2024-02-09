@@ -18,6 +18,8 @@ const emailVerificationModel = require("../model/emailVerificationModel")
 // let redisClient = require("../config/redisInit");
 // const JWTR = require("jwt-redis").default;
 // const jwtr = new JWTR(redisClient);
+require("dotenv").config({ path: "../.env" });
+// console.log(11111,process.env.ORIGIN)
 
 /**
  * api      POST @/devices/register
@@ -524,13 +526,13 @@ const addDeviceService = async (req, res) => {
     // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
     const twilio = require('twilio');
-    // const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
-    const accountSid = 'ACcfb57440a71e762fbb460ba798c41325';
 
-    const authToken = '7c74373e82fe064c422feff9f79b1bcb';
-    // const authToken = '926bb0293fe56b1b52c07338e1d65dd2';
-    const twilioPhone = '+18022551136';
-    // const twilioPhone = '+19082196991';
+    const accountSid = process.env.ACCOUNTSID
+
+    const authToken = process.env.AUTHTOKEN
+    
+    const twilioPhone = process.env.TWILIOPHONE
+    
     const contactNo = `+91${req.body.contactNo}`;
     const client = new twilio(accountSid, authToken);
 
@@ -595,7 +597,7 @@ const addDeviceService = async (req, res) => {
     const savedServices = await newServices.save();
 
     const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 });
-
+    // console.log(11, getLastData) 
     if (!!savedServices) {
       await servicesModel.findOneAndUpdate(
         { serialNo: getLastData[0].serialNo },
@@ -747,29 +749,30 @@ const updateTicketStatus = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-    console.log(req.body);
+    // console.log(12, req.body);
     var otp = Math.floor(1000 + Math.random() * 9000);
     // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
     const twilio = require('twilio');
-    // const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
-    const accountSid = 'ACcfb57440a71e762fbb460ba798c41325';
+  
+    const accountSid = process.env.ACCOUNTSID
 
-    // const authToken = '515f24ec71a18ccd103dbe7e1c33c4f3';
-    const authToken = '7c74373e82fe064c422feff9f79b1bcb';
-    // const twilioPhone = '+12057496028';
-    const twilioPhone = '+18022551136';
+    const authToken = process.env.AUTHTOKEN
+    
+    const twilioPhone = process.env.TWILIOPHONE
+    
     const contactNo = `+91${req.body.contactNo}`;
     const client = new twilio(accountSid, authToken);
 
-    const checkTicket = await servicesModel.findById({ _id: mongoose.Types.ObjectId(req.body._id) });
-
+    const checkTicket = await servicesModel.findById({ _id: mongoose.Types.ObjectId(req.body._id)});
+    
     if (!!checkTicket) {
+      // console.log(13,otp)
       await servicesModel.findOneAndUpdate(
         { _id: mongoose.Types.ObjectId(req.body._id) },
         {
           otp: otp,
-          UId: req.body.UId,
+          UID: req.body.UId,
           serviceEngName: req.body.serviceEngName,
         }, { upsert: true },
       );

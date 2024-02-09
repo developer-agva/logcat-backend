@@ -30,6 +30,8 @@
     "express-async-handler": "^1.2.0",
     "express-session": "^1.18.0",
     "express-validator": "^6.14.2",
+    "firebase": "^10.8.0",
+    "firebase-admin": "^12.0.0",
     "html-to-text": "^8.2.0",
     "india-pincode-search": "^1.0.2",
     "joi": "^17.9.2",

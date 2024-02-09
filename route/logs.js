@@ -66,10 +66,10 @@ router.post('/calibration/:project_code', calibrationController.saveCalibrationD
 router.get('/calibration/:deviceId', calibrationController.getCalibrationByDeviceId);
 
 // Service API
-router.post('/services/:project_code', deviceController.addDeviceService);
-router.post('/services/verify-sms-otp/:project_code', deviceController.verifyOtpSms);
+router.post('/services/:project_code', deviceController.addDeviceService);   // step 1 for ventilator   done
+router.post('/services/verify-sms-otp/:project_code', deviceController.verifyOtpSms); // step 2 for ventilator  done
 router.get('/services/get-by-deviceId', deviceController.getServicesById);
-router.post('/services/ticket-status/:project_code', deviceController.updateTicketStatus);
+router.post('/services/ticket-status/:project_code', deviceController.updateTicketStatus);  // step 1 for close ticket  done
 router.post('/services/verify-otp-for-ticket-close/:project_code', deviceController.closeTicket);
 router.get('/services/get-all', deviceController.getAllServices);
 
@@ -186,7 +186,7 @@ router.get("/deviceTrends/:did", getTrendsById);
 router.get("/deviceAlerts/:did", getAlertsById);
 router.get("/deviceEvents/:did", getEventsById);
 router.get("/deviceLogs/:device", getLogsById);
-router.get("/Allevents/Events", getAllDeviceId);
+router.get("/Allevents/Events",isAuth, getAllDeviceId);
 router.get("/Allevents/get-devices-for-users", getAllDevicesForUsers)
 router.get("/Allevents/get-focused-devices", getAllFocusedDevicesForUsers)
 

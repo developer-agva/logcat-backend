@@ -39,7 +39,7 @@ const isAuth = async (req, res, next) => {
     }
 
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-    // console.log(verified)
+    // console.log(11, verified)
     if (!verified) {
       return res.status(401).json({
         status: 0,

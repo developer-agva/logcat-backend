@@ -25,7 +25,7 @@ const otpVerificationModel = require('../model/otpVerificationModel.js');
 const aboutDeviceModel = require('../model/aboutDeviceModel');
 const sendDeviceReqModel = require('../model/sendDeviceReqModel.js');
 const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel.js');
-
+require("dotenv").config({ path: "../.env" });
 /**
  * api      POST @/api/logger/register
  * desc     @register for logger access only
@@ -212,17 +212,12 @@ const registerUserForSuperAdmin = async (req, res) => {
 const sendOtpSms = async (req, res) => {
   try {
     const twilio = require('twilio');
-    // const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
-    // const accountSid = 'ACea4048023629d3c6f4c3434bd433fa9f';
-    const accountSid = 'ACcfb57440a71e762fbb460ba798c41325';
 
-    // const authToken = '515f24ec71a18ccd103dbe7e1c33c4f3';
-    const authToken = '7c74373e82fe064c422feff9f79b1bcb';
+    const accountSid = process.env.ACCOUNTSID
+    
+    const authToken = process.env.AUTHTOKEN
 
-
-
-    // const twilioPhone = '+12057496028';
-    const twilioPhone = '+18022551136';
+    const twilioPhone = process.env.TWILIOPHONE
 
     const contactNumber = `+91${req.params.contactNumber}`;
     const client = new twilio(accountSid, authToken); 

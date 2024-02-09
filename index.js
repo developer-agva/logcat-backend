@@ -1,4 +1,5 @@
 const express = require("express");
+const {json} = require('express');
 const path = require("path");
 const cors = require("cors");
 const connectDB = require("./config/db.js");
@@ -21,6 +22,8 @@ const apiKey = client.authentications["api-key"];
 apiKey.apiKey = process.env.API_KEY;
 
 // end sendin blue
+
+
 
 // importing router
 const users = require("./route/users.js");
@@ -54,6 +57,57 @@ app.use(morgan("tiny"));
 // }
 
 app.use(cors());
+
+// firebase service start
+const {initializeApp, applicationDefault} = require("firebase-admin/app");
+const {getMessaging} = require('firebase-admin/messaging');
+
+
+process.env.GOOGLE_APPLICATION_CREDENTIALS;
+// var serviceAccount = require("path/to/serviceAccountKey.json");
+app.use(function (req, res, next) {
+  res.setHeader('Content-Type', 'application/json');
+  next()
+});
+
+
+initializeApp({
+  credential: applicationDefault(),
+  projectId: 'logcat-1c5d0'
+});
+
+
+app.post("/send", function (req, res) {
+  const receivedToken = req.body.fcmToken;
+  const message = {
+    notification: {
+      title:"Welcome msg",
+      body:"This is my first msg"
+    },
+    token:"",
+  };
+
+  getMessaging()
+  .send(message)
+  .then((response) => {
+    res.status(200).json({
+      message: "Successfully sent message",
+      token:receivedToken,
+    });
+    console.log("Successfully sent message", response)
+  })
+  .catch((error) => {
+    res.status(400);
+    res.send(error);
+    console.log("Error sending message", error)
+  })
+});
+
+
+// end firebase service
+
+
+
 
 // For session
 app.use(
@@ -114,6 +168,7 @@ const PORT = process.env.PORT || 5000;
 
 // Socket start
 const { Server } = require("socket.io");
+const { messaging } = require("firebase-admin");
 
 const io = new Server(server, {
   cors: {
