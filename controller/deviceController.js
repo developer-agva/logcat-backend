@@ -1198,6 +1198,63 @@ const saveStatus = async (req, res) => {
   }
 }
 
+// new api for all upcomming products
+const saveStatusV2 = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      deviceId: Joi.string().required(),
+      message: Joi.string().required(),
+      health: Joi.string().required(),
+      last_hours: Joi.string().required(),
+      total_hours: Joi.string().required(),
+      address: Joi.string().required()
+    });
+    const result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation Error",
+        message: result.error.details[0].message,
+      });
+    }
+
+    // const newStatus = new statusModel(req.body);
+    const saveDoc = await statusModelV2.updateMany(
+      {
+        deviceId: req.body.deviceId
+      },
+      {
+        deviceId: req.body.deviceId,
+        message: req.body.message,
+        health: req.body.health,
+        last_hours: req.body.last_hours,
+        total_hours: req.body.total_hours,
+        address: req.body.address,
+        type:req.params.productCode
+      },
+      {
+        upsert: true,
+      }
+    );
+    return res.status(201).json({
+      statusCode: 201,
+      statusValue: "SUCCESS",
+      message: "Data added successfully."
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
 /**
  * api      GET @/api/logger/logs/deviceOverview/:deviceId/:project_code
  * desc     @getDeviceOverviewById for logger access only
@@ -2043,6 +2100,7 @@ const s3invoiceBucketModel = require('../model/s3invoiceBucketModel');
 const s3PatientFileModel = require('../model/s3PatientFileModel');
 const s3poBucketModel = require('../model/s3BucketPoPdfModel');
 const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
+const statusModelV2 = require('../model/statusModelV2');
 
 // const jwtr = require("jwtr-redis").default;
 // const jwtr = new jwtrR(redisClient);
@@ -3141,5 +3199,6 @@ module.exports = {
   returnDevice,
   getReturnDeviceData,
   replaceDeviceId,
-  updateAddtofocus
+  updateAddtofocus,
+  saveStatusV2
 }

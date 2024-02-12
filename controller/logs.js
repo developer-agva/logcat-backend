@@ -27,6 +27,8 @@ let redisClient = require("../config/redisInit");
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 const {deviceIdArr} = require('../middleware/msgResponse');
+const alert_ventilator_collectionV2 = require('../model/alert_ventilator_collection_v2');
+const event_ventilator_collection_v2 = require('../model/event_ventilator_collection_v2');
 
 
 
@@ -1035,6 +1037,7 @@ const getAllDevicesForUsers = async (req, res) => {
         as: "deviceReqData"
       }
     },
+    
     // For this data model, will always be 1 record in right-side
     // of join, so take 1st joined array element
     {
@@ -1054,6 +1057,27 @@ const getAllDevicesForUsers = async (req, res) => {
     //   }
     // },
     {
+      $lookup:
+      {
+        from: "alert_ventilator_collections",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$did", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "alarmData"
+      },
+    },
+    {
       "$unset": [
         "deviceReqData",
         "__v",
@@ -1067,7 +1091,7 @@ const getAllDevicesForUsers = async (req, res) => {
     {
       $sort: { updatedAt:-1 },
     },
-  ]);
+  ])
    
   const inactiveDevices = await statusModel.aggregate([
     {
@@ -1105,6 +1129,27 @@ const getAllDevicesForUsers = async (req, res) => {
       "$set": {"isAssigned": "$deviceReqData.isAssigned"},
     },
     filterObj,
+    {
+      $lookup:
+      {
+        from: "alert_ventilator_collections",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$did", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "alarmData"
+      },
+    },
     {
       "$unset": [
         "deviceReqData",
@@ -1682,7 +1727,7 @@ const createAlertsNew = async (req, res) => {
         },
       });
     }
-    console.log(11,req.body)
+    // console.log(11,req.body)
     if (!findProjectWithCode) {
       return res.status(404).json({
         status: 404,
@@ -1700,7 +1745,7 @@ const createAlertsNew = async (req, res) => {
     
     const modelReference = require(`../model/${collectionName}`);
     const { did, type, ack, date } = req.body;
-    console.log(12,req.body)
+    // console.log(12,req.body)
     // ack = req.body.ack
     // if (ack.length<1) {
     //   return res.status(400).json({
@@ -1774,6 +1819,92 @@ const createAlertsNew = async (req, res) => {
 }
 
 
+/**
+ * desc     Alert
+ * api      POST @/api/logger/logs/alerts-new/v2/:productCode
+ */
+const createAlertsNewV2 = async (req, res) => {
+  try {
+    // console.log(11,req.body)
+    if (req.params.productCode !== "003") {
+      return res.status(404).json({
+        status: 404,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Product code does not exist',
+            msg: 'Product code does not exist',
+            type: 'MongoDb Error',
+          },
+        },
+      });
+    }
+  
+    const { did, type, ack, date } = req.body;
+    let dbSavePromise = ack.map(async (ac) => {
+      const putDataIntoLoggerDb = await new alert_ventilator_collectionV2({
+        did: did,
+        ack: {
+          msg: ac.msg,
+          code: ac.code,
+          date: ac.timestamp,
+        },
+        type: type,
+        priority: ac.priority,
+        date: date
+      });
+
+      return putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+    });
+    
+    let alerts = await Promise.allSettled(dbSavePromise);
+    //console.log(alerts,'alerts');
+
+    var alertsErrArr = [];
+    var alertsErrMsgArr = [];
+
+    alerts.map((alert) => {
+      alertsErrArr.push(alert.status);
+      if (alert.status === 'rejected') {
+        alertsErrMsgArr.push(alert.reason.message);
+      }
+    });
+
+    if (!alertsErrArr.includes('rejected')) {
+      return res.status(201).json({
+        status: 201,
+        data: { alertCount: alerts.length },
+        message: 'Successful',
+      });
+    } else {
+      res.status(400).json({
+        status: alertsErrArr.length === alerts.length ? -1 : 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: alertsErrMsgArr.join(' | '),
+            msg: `Error saving ${alertsErrMsgArr.length} out of ${alerts.length} alert(s)`,
+            type: 'ValidationError',
+          },
+        },
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+}
+
+// create or save device id from ventilators
 const createEvents = async (req, res, next) => {
   try {
     const { project_code } = req.params;
@@ -1876,6 +2007,89 @@ const createEvents = async (req, res, next) => {
     });
   }
 };
+
+// create events or save device id -- for all upcomming products
+const createEventsV2 = async (req, res, next) => {
+  try {
+    
+    if (req.params.productCode !== "003") {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Product code does not exist',
+            msg: 'Product code does not exist',
+            type: 'MongoDb Error',
+          },
+        },
+      });
+    }
+    
+    //console.log(modelReference,'modelReference');
+    const { did, type, message, date } = req.body;
+    // console.log(`did : ${did}`)
+    if (!did || !type || !message || !date) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Please fill all the details.',
+            msg: 'Please fill all the details.',
+            type: 'Client Error',
+          },
+        },
+      });
+    }
+
+    const events = await new event_ventilator_collection_v2({
+      did: did,
+      message: message,
+      type: type,
+      date: date,
+    });
+
+    console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
+
+    const SaveEvents = await events.save(events);
+    if (SaveEvents) {
+      res.status(201).json({
+        status: 201,
+        data: { eventCounts: SaveEvents.length },
+        message: 'Event has been added successfully!',
+      });
+    }
+    else {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'data not added',
+            msg: 'Some error happened during registration',
+            type: 'MongodbError',
+          },
+        },
+      }); I
+    }
+  }
+  catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
+
 const createTrends = async (req, res, next) => {
   try {
 
@@ -4163,7 +4377,9 @@ module.exports = {
   crashlyticsData2,
   getCrashOccurrenceByLogMsgWithDeviceId,
   dateWiseLogOccurrencesByLogMsgWithDeviceId,
-  getAllFocusedDevicesForUsers
+  getAllFocusedDevicesForUsers,
+  createAlertsNewV2,
+  createEventsV2
 };
 
 

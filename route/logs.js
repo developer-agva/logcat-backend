@@ -44,7 +44,9 @@ const {
   crashlyticsData2,
   getTrendsWithFilter,
   getTrendsById,
-  getAllFocusedDevicesForUsers
+  getAllFocusedDevicesForUsers,
+  createAlertsNewV2,
+  createEventsV2
 } = require("../controller/logs");
 // New controller
 const logController = require('../controller/logController.js');
@@ -57,12 +59,19 @@ const { validateHeader } = require("../middleware/validateMiddleware");
 const hospitalController = require("../controller/hospitalController");
 
 // Unprotected routes
+// old API
 router.post("/:project_code", logController.createNewLog);
+// New API for all products instead of AGVA PRO
+router.post("/v2/:productCode", logController.createNewLogV2);
 
 
-router.post("/location/:project_code", locationController.saveNewLocation);
+
+
+
+
+router.post("/location/:project_code", locationController.saveNewLocation);    // for all products
 router.get('/location/:deviceId/:project_code', locationController.getLocationByDeviceId);
-router.post('/calibration/:project_code', calibrationController.saveCalibrationData);
+router.post('/calibration/:project_code', calibrationController.saveCalibrationData);  // for all products
 router.get('/calibration/:deviceId', calibrationController.getCalibrationByDeviceId);
 
 // Service API
@@ -77,6 +86,9 @@ router.get('/services/get-all', deviceController.getAllServices);
 
 // Dispatch API
 router.post('/status/:project_code', deviceController.saveStatus);
+// new route for all upcomming products
+router.post('/v2/status/:productCode', deviceController.saveStatusV2);
+
 router.get('/deviceOverview/:deviceId/:project_code', isAuth, deviceController.getDeviceOverviewById);
 router.post('/add-dispatch-details/:project_code', deviceController.addAboutDevice);
 router.post('/return-device/:project_code', deviceController.returnDevice);
@@ -151,16 +163,29 @@ router.post("/alerts/:project_code",
   body('ack.*.timestamp').notEmpty(),
   createAlerts);
 
-  // New alerts or alarm api for new ventilators
-  router.post("/alerts-new/:project_code",
-  createAlertsNew);
+// New alerts or alarm api for new ventilators
+router.post("/alerts-new/:project_code", createAlertsNew);
 
-  router.post("/events/:project_code",
+// for new alert API for all upcomming products
+router.post("/v2/alerts-new/:productCode", createAlertsNewV2)
+  
+// old route for agva pro
+router.post("/events/:project_code",
   body('did').notEmpty(),
   body('type').notEmpty(),
   body('ack.*.code').notEmpty(),
   body('ack.*.timestamp').notEmpty(),
-  createEvents);
+createEvents);
+
+// new route for all upcomming products
+router.post("/v2/events/:productCode",
+  body('did').notEmpty(),
+  body('type').notEmpty(),
+  body('ack.*.code').notEmpty(),
+  body('ack.*.timestamp').notEmpty(),
+createEventsV2);
+
+
   router.post("/trends/:project_code",
   body('did').notEmpty(),
   body('type').notEmpty(),
