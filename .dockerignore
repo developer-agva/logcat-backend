@@ -2,3 +2,4 @@ dummy.txt
 *.txt
 node_modules
 info.log
+.env
