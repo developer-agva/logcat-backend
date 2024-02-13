@@ -416,6 +416,7 @@ const loginUser = async (req, res) => {
     }
 
     const isUserExist = await Users.findOne({ email: email, accountStatus: "Active" }); 
+    const getAddr = await registeredHospitalModel.findOne({Hospital_Name:isUserExist.hospitalName})
     // const isUserExist = await Users.findOne({ email: email, accountStatus:"Approved" });   
     if (!isUserExist) {
       return res.status(404).json({
@@ -472,11 +473,12 @@ const loginUser = async (req, res) => {
         name: `${isUserExist.firstName ? isUserExist.firstName : ""} ${ isUserExist.lastName ? isUserExist.lastName : ""}`,
         email: isUserExist.email,
         hospitalName:isUserExist.hospitalName,
+        hospitalAddress:!!(getAddr) ? getAddr.Hospital_Address : "",
         image: isUserExist.image,
         userType:isUserExist.userType,
         isSuperAdmin: isUserExist.isSuperAdmin,
         userStatus:isUserExist.userStatus
-      },
+      }
     });
   } catch (err) {
     return res.status(500).json({

@@ -158,7 +158,7 @@ const getAllUhid = async (req, res) => {
     const loggedInUser = await User.findById({_id:verified.user});
     
     if (loggedInUser.userType == "Admin"||"Nurse"||"Super-Admin") {
-      const getList = await patientModel.find({patientName:{$ne:""}},{__v:0,createdAt:0,updatedAt:0,})
+      const getList = await patientModel.find({},{__v:0,createdAt:0,updatedAt:0,})
       .sort({ createdAt: -1 });
       
       if (!getList) {

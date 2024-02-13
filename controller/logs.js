@@ -1832,8 +1832,8 @@ const createAlertsNewV2 = async (req, res) => {
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'Product code does not exist',
-            msg: 'Product code does not exist',
+            errMsg: 'Product code must be 003',
+            msg: 'Product code must be 003',
             type: 'MongoDb Error',
           },
         },
@@ -1852,7 +1852,7 @@ const createAlertsNewV2 = async (req, res) => {
         type: type,
         priority: ac.priority,
         date: date
-      });
+      })
 
       return putDataIntoLoggerDb.save(putDataIntoLoggerDb);
     });
@@ -2018,8 +2018,8 @@ const createEventsV2 = async (req, res, next) => {
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'Product code does not exist',
-            msg: 'Product code does not exist',
+            errMsg: 'Product code must be 003',
+            msg: 'Product code must be 003',
             type: 'MongoDb Error',
           },
         },

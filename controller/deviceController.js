@@ -1217,7 +1217,13 @@ const saveStatusV2 = async (req, res) => {
         message: result.error.details[0].message,
       });
     }
-
+    if (req.params.productCode !== "003") {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation Error",
+        message: "productCode must be 003 or 004 format.",
+      });
+    }
     // const newStatus = new statusModel(req.body);
     const saveDoc = await statusModelV2.updateMany(
       {
