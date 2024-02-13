@@ -173,8 +173,7 @@ const { messaging } = require("firebase-admin");
 const io = new Server(server, {
   cors: {
     // origin: "http://192.168.2.37:3000",
-    origin: "http://medtap.in" || "http://3.26.129.121:3000",
-    
+    origin: "http://medtap.in",
     methods: ["GET", "POST"],
   },
 });
