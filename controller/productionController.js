@@ -209,7 +209,7 @@ const getProductionData = async (req, res) => {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue: "SUCCESS",
-                message: "production data get successfully!",
+                message: "All production data retrieved successfully!",
                 data: data,
                 totalDataCount: count,
                 totalPages: Math.ceil(count / limit),
@@ -308,7 +308,7 @@ const getProductionById = async (req, res) => {
         return res.status(200).json({
             statusCode: 200,
             statusValue: "SUCCESS",
-            message: "production data get successfully!",
+            message: "Single production data retrieved successfully!",
             data: data[0],
         });
     } catch (err) {
