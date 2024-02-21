@@ -94,7 +94,7 @@ router.get('/pending-users-list', isAuth, getAllPendingUsers);
 router.put('/user-account-status/:userId', isAuth, changeUserAcStatus);
 
 
-router.get('/service-eng-list', getServiceEngList);
+router.get('/service-eng-list', getServiceEngList);       
 router.put('/change-user-status', changeUserStatus);
 
 router.put('/change-userType/:userId', isAuth, isSuperAdmin, changeUserType);
@@ -105,7 +105,6 @@ router.post('/users/add-experience', isAuth, addUserExperience);
 router.put('/users/update-experience', isAuth, updateUserExperience);
 router.put('/users/end-association', isAuth, endAssociation);
 router.put('/users/update-primary-email', isAuth, updatePrimaryEmail);
-
 
 
 router.put("/users/changepassword", isAuth, userPasswordChange);

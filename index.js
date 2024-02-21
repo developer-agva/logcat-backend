@@ -12,7 +12,6 @@ const nodemailer = require("nodemailer");
 const http = require("http");
 var cookieParser = require('cookie-parser');
 const {deviceIdArr} = require('./middleware/msgResponse');
-
 // sendin blue
 const Sib = require("sib-api-v3-sdk");
 require("dotenv").config();
@@ -68,24 +67,24 @@ process.env.GOOGLE_APPLICATION_CREDENTIALS;
 app.use(function (req, res, next) {
   res.setHeader('Content-Type', 'application/json');
   next()
-});
+})
 
 
 initializeApp({
   credential: applicationDefault(),
-  projectId: 'logcat-1c5d0'
-});
+  projectId: 'agvaapp'
+})
 
 
 app.post("/send", function (req, res) {
   const receivedToken = req.body.fcmToken;
   const message = {
     notification: {
-      title:"Welcome msg",
-      body:"This is my first msg"
+      title:req.body.title,
+      body:req.body.description,
     },
-    token:"",
-  };
+    token:"eRjFexcuRvyokSZSWt8Hh4:APA91bE3eUr2r8iX6TahX6LCeurY5H9bFDvRk7juAf6eilQPERQW97L7TfPFIHc1FJpExPQ9_fPIDBMEBDlGX1upvT3JHUPRgKSpiqP21zpICE1BVZWJtaDExfYHIhDonuI1Pko5vBAZ",
+  }
 
   getMessaging()
   .send(message)
@@ -105,7 +104,6 @@ app.post("/send", function (req, res) {
 
 
 // end firebase service
-
 
 
 
@@ -174,7 +172,7 @@ const io = new Server(server, {
   cors: {
     // origin: "http://192.168.2.37:3000",
     origin: "http://medtap.in",
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT"],
   },
 });
 // console.log(process.env.ORIGIN)
@@ -244,22 +242,52 @@ io.on('connection', (socket) => {
 
 // send sms api
 
-// const accountSid = 'ACc0e61f942e6af0e1f53875f469830ef9';
-// const authToken = '515f24ec71a18ccd103dbe7e1c33c4f3';
-// const twilioPhone = '+12057496028';
-// const recipientPhone = '+917701971457';
+// fast2sms api code
+// Replace 'YOUR_API_KEY' with your Fast2SMS API Key
+// var unirest = require("unirest");
 
-// const twilio = require('twilio');
-// const clientt = new twilio(accountSid, authToken);
+// var req = unirest("POST", "https://www.fast2sms.com/dev/bulkV2");
 
-// clientt.messages
-//     .create({
-//         body: 'Hello, this is a test message from Twilio!',
-//         from: twilioPhone,
-//         to: recipientPhone
-//     })
-//     .then(message => console.log(`Message sent with SID: ${message.sid}`))
-//     .catch(error => console.error(`Error sending message: ${error.message}`));
+// req.headers({
+//   "authorization": "x7oYg4JhultTinv1rEXGmWyCDHMwQf8N6ebB3VqKUS9pkd20Z5Giu8FnrODy7eobVhCWzP3Utcs2JMqw"
+// });
+
+// req.form({
+//   "message": "This is a test message",
+//   "language": "english",
+//   "route": "q",
+//   "numbers": "9289734792,7007587700",
+// });
+
+// req.end(function (res) {
+//   if (res.error) throw new Error(res.error);
+
+//   console.log(res.body);
+// });
+
+// var unirest = require("unirest");
+
+// var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
+
+// req.query({
+//   "authorization": "x7oYg4JhultTinv1rEXGmWyCDHMwQf8N6ebB3VqKUS9pkd20Z5Giu8FnrODy7eobVhCWzP3Utcs2JMqw",
+//   "variables_values": `9999` ,
+//   "route": "otp",
+//   "numbers": "9289734792"
+// });
+
+// req.headers({
+//   "cache-control": "no-cache"
+// });
+
+
+// req.end(function (res) {
+//   if (res.error) throw new Error(res.error);
+
+//   console.log(res.body);
+// });
+
+// end fast2sms api code
 
 
 

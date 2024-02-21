@@ -186,12 +186,12 @@ router.post("/v2/events/:productCode",
 createEventsV2);
 
 
-  router.post("/trends/:project_code",
+router.post("/trends/:project_code",
   body('did').notEmpty(),
   body('type').notEmpty(),
   body('ack.*.code').notEmpty(),
   body('ack.*.timestamp').notEmpty(),
-  createTrends);
+createTrends);
 
 //Protected Route
 router.get("/:projectCode", isAuth, getFilteredLogs);

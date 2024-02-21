@@ -265,6 +265,49 @@ const updateAddtofocus = async (req, res) => {
 
 
 /**
+ * api      GET @/devices/get-addtofocus/:deviceId
+ * desc     @getSignleFocusDevice devices for logger access only
+ */
+const getSignleFocusDevice = async (req, res) => {
+  try {
+    const deviceId = req.params.deviceId
+    if (!deviceId) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "DeviceId is required!"
+      })
+    }
+
+    const getData = await statusModel.findOne({deviceId:deviceId},{addTofocus:1,message:1,deviceId:1})
+    if (!!getData) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data get successfully.",
+        data: getData
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "data not found."
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }  
+}
+
+
+/**
  * api      UPDATE @/devices/update/DeviceId
  * desc     @update devices for logger access only
  */
@@ -3206,5 +3249,6 @@ module.exports = {
   getReturnDeviceData,
   replaceDeviceId,
   updateAddtofocus,
-  saveStatusV2
+  saveStatusV2,
+  getSignleFocusDevice
 }

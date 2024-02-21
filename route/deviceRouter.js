@@ -20,6 +20,7 @@ router.get('/get-details/:DeviceId', deviceController.getDeviceById);
 router.delete('/delete-byid/:DeviceId', deviceController.deleteSingleDevice);
 router.get('/get-devices-by-hospital/:hospital_name', deviceController.getDevicesByHospital);
 router.put('/update-addtofocus/:deviceId', isAuth, deviceController.updateAddtofocus);    // tested and done
+router.get('/get-addtofocus/:deviceId', deviceController.getSignleFocusDevice)
 // router.get()
 router.get("/update/devices/new", deviceController.updateDevices)
 // router.post('/register', deviceController.registerNewDevice);

@@ -1755,6 +1755,11 @@ const createAlertsNew = async (req, res) => {
     //   });
     // }
     // { ack: [], did: 'd6edb19162a04c8b', type: '002' }
+    // check alert exist or not
+    const checkAlert = await modelReference.find({did:did})
+    if (!!checkAlert.length>0) {
+      await modelReference.deleteMany({did:did})
+    }
     let dbSavePromise = ack.map(async (ac) => {
       const putDataIntoLoggerDb = await new modelReference({
         did: did,
@@ -1840,7 +1845,15 @@ const createAlertsNewV2 = async (req, res) => {
       });
     }
   
-    const { did, type, ack, date } = req.body;
+    const { did, type, ack, date } = req.body
+
+    // check alert data
+    const checkAlert = await alert_ventilator_collectionV2.find({did:did})
+    if (!!checkAlert.length>0) {
+      await alert_ventilator_collectionV2.deleteMany({did:did})
+    }
+
+    // save alert data
     let dbSavePromise = ack.map(async (ac) => {
       const putDataIntoLoggerDb = await new alert_ventilator_collectionV2({
         did: did,

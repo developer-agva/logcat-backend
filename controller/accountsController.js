@@ -96,15 +96,15 @@ const saveAwaitingForShippedData = async (req, res) => {
         const schema = Joi.object({
             seriallNo: Joi.string().required(),
             // deviceId: Joi.string().required(),
-            invoiceNo: Joi.string().required(),
-            ewaybillNo: Joi.string().required(),
-            billedTo: Joi.string().required(),
+            invoiceNo: Joi.string().allow("").optional(),
+            ewaybillNo: Joi.string().allow("").optional(),
+            billedTo: Joi.string().allow("").optional(),
             consinee: Joi.string().allow("").optional(),
-            document_ref_no: Joi.string().required(),
+            document_ref_no: Joi.string().allow("").optional(),
             consigneeAddress:Joi.string().allow("").optional(),
-            irn: Joi.string().required(),
-            ackDate: Joi.string().required(),
-            ackNo: Joi.string().required(),
+            irn: Joi.string().allow("").optional(),
+            ackDate: Joi.string().allow("").optional(),
+            ackNo: Joi.string().allow("").optional(),
         })
         let result = schema.validate(req.body);
         if (result.error) {
@@ -145,15 +145,15 @@ const saveAwaitingForShippedData = async (req, res) => {
                 deviceId:!!(deviceData.deviceId) ? deviceData.deviceId : "NA",
                 batchNo:!!(deviceData.batch_no) ? deviceData.batch_no : "NA",
                 manufacturingDate:!!(deviceData.date_of_manufacture) ? deviceData.date_of_manufacture : "NA",
-                ewaybillNo:req.body.ewaybillNo,
-                invoiceNo:req.body.invoiceNo,
-                billedTo:req.body.billedTo,
+                ewaybillNo:!!(req.body.ewaybillNo) ? req.body.ewaybillNo : "NA",
+                invoiceNo:!!(req.body.invoiceNo) ? req.body.invoiceNo : "NA",
+                billedTo:!!(req.body.billedTo) ? req.body.billedTo : "NA",
                 consinee:!!(req.body.consinee) ? req.body.consinee : "NA", 
                 consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : "NA",
-                document_ref_no:req.body.document_ref_no,
-                irn:req.body.irn,
-                ackDate:req.body.ackDate,
-                ackNo:req.body.ackNo},
+                document_ref_no:!!(req.body.document_ref_no) ? req.body.document_ref_no : "NA",
+                irn:!!(req.body.irn) ? req.body.irn : "NA",
+                ackDate:!!(req.body.ackDate) ? req.body.ackDate : "NA",
+                ackNo:!!(req.body.ackNo) ? req.body.ackNo : "NA"},
                 {upsert:true}
         )
         // const saveDoc = accountsDoc.save();
@@ -328,6 +328,14 @@ const getDispatchReqData = async (req, res) => {
                   "dispatchData": {"$first": "$dispatchData"},
                 }
             },
+
+            // search operation
+            {
+                "$match":{"$or":[
+                    { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+                    { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
+                ]}
+            },
             // Extract the joined embeded fields into top level fields
             // {
             //     "$set": {"dispatchData": "$ewaybillData.location"},
@@ -390,6 +398,22 @@ const getDispatchReqData = async (req, res) => {
  */
 const getAccountsData = async (req, res) => {
     try {
+        
+        // Search
+        var search = "";
+        if (req.query.search && req.query.search !== "undefined") {
+        search = req.query.search;
+        }
+        // for pagination
+        let page = req.query.page
+        let limit = req.query.limit
+        if (!page || page === "undefined") {
+        page = 1;
+        }
+        if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+        limit = 999999;
+        }
+
         // aggregate logic
         var pipline = [
              // Match
@@ -432,6 +456,13 @@ const getAccountsData = async (req, res) => {
             {
                 "$set": {"invoicePdf": "$invoiceData.location", "ewaybillPdf": "$ewaybillData.location"},
             },
+            // search operation
+            {
+                "$match":{"$or":[
+                    { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+                    { serialNo: { $regex: ".*" + search + ".*", $options: "i" } },
+                ]}
+            },
             {
                 "$unset": [
                   "invoiceData",
@@ -439,6 +470,7 @@ const getAccountsData = async (req, res) => {
                   "__v",
                   "createdAt",
                   "updatedAt",
+                  "dispatchData.__v"
                   // "otp",
                   // "isVerified",
                 ]
@@ -447,12 +479,23 @@ const getAccountsData = async (req, res) => {
         ]
         // get data
         const resData = await accountsModel.aggregate(pipline);
+        // for pagination
+        const paginateArray =  (resData, page, limit) => {
+            const skip = resData.slice((page - 1) * limit, page * limit);
+            return skip;
+        }
+
+        let allData = paginateArray(resData, page, limit)
+
         if (!!resData.length>0) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue:"SUCCESS",
                 message:"Accounts data get successfully.",
-                data:resData
+                data:allData,
+                totalDataCount: resData.length,
+                totalPages: Math.ceil( (resData.length)/limit),
+                currentPage: page,
             })
         }
         return res.status(400).json({
@@ -503,7 +546,14 @@ const getProductionListV2 = async (req, res) => {
                     { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
                 ]}
             },
-            {$sort:{"updatedAt":-1}},
+            {
+                "$sort":{"updatedAt":-1}
+            },
+            {
+              "$unset":[
+                "__v"
+              ]
+            }
        ]
         // get data
         const resData = await productionModel.aggregate(pipline)
@@ -629,17 +679,17 @@ const getAwaitingForShippedData = async (req, res) => {
     try {
 
         // Search
-        var search = "";
+        var search = ""
         if (req.query.search && req.query.search !== "undefined") {
-            search = req.query.search;
+            search = req.query.search
         }
         // Pagination
-        let { page, limit } = req.query;
+        let { page, limit } = req.query
         if (!page || page === "undefined") {
-            page = 1;
+            page = 1
         }
         if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-            limit = 99999;
+            limit = 99999
         }
 
         // aggregate logic
