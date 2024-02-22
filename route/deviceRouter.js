@@ -25,6 +25,7 @@ router.get('/get-addtofocus/:deviceId', deviceController.getSignleFocusDevice)
 router.get("/update/devices/new", deviceController.updateDevices)
 // router.post('/register', deviceController.registerNewDevice);
 router.get('/registered_devices', isAuth, deviceController.getAllDevices);
+router.get('/get-device-count', deviceController.getDeviceCountData);
 
 // replace deviceId from all coll and insert new deviceId
 router.put('/replace-deviceId', deviceController.replaceDeviceId);

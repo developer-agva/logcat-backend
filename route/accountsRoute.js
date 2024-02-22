@@ -10,6 +10,7 @@ const productionModel = require('../model/productionModel.js');
 // const deviceController = require('../controller/deviceController.js');
 
 router.post('/accounts/save-data', isAuth, accountsController.saveAwaitingForShippedData);
+router.put('/accounts/update-data', isAuth, accountsController.updateAccountDataById);  
 router.get('/accounts/get-accounts-data', isAuth, accountsController.getAccountsData);
 router.get('/accounts/get-dispatch-req-data', isAuth, accountsController.getDispatchReqData);
 

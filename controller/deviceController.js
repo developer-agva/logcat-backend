@@ -18,7 +18,11 @@ const emailVerificationModel = require("../model/emailVerificationModel")
 // let redisClient = require("../config/redisInit");
 // const JWTR = require("jwt-redis").default;
 // const jwtr = new JWTR(redisClient);
+// const JWTR = require('jwt-redis').default;
+// let redisClient = require('../config/redisInit');
+// const jwtr = new JWTR(redisClient);
 require("dotenv").config({ path: "../.env" });
+var unirest = require("unirest");
 // console.log(11111,process.env.ORIGIN)
 
 /**
@@ -536,7 +540,39 @@ const getAllDevices = async (req, res) => {
       }
     });
   }
-};
+}
+
+const getDeviceCountData = async (req, res) => {
+  try {
+    const deviceCount = await aboutDeviceModel.aggregate([
+      {
+        $group: {
+          _id: "$purpose",
+          count: { $sum: 1 },
+        }
+      }
+    ]) 
+    if (!!deviceCount) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Device data count get successfully.",
+        data: deviceCount
+      })
+    }
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
 
 /**
  * api      POST @/api/logger/logs/services/:project_code
@@ -565,19 +601,14 @@ const addDeviceService = async (req, res) => {
       })
     }
     const project_code = req.query.project_code
-    var otp = Math.floor(1000 + Math.random() * 9000);
+   
     // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
-    const twilio = require('twilio');
-
-    const accountSid = process.env.ACCOUNTSID
-
-    const authToken = process.env.AUTHTOKEN
-    
-    const twilioPhone = process.env.TWILIOPHONE
     
     const contactNo = `+91${req.body.contactNo}`;
-    const client = new twilio(accountSid, authToken);
+    const number = req.body.contactNo;
+    var otpValue = Math.floor(1000 + Math.random() * 9000);
+    
 
     // define tag name
     let tag1 = "General Service";
@@ -624,7 +655,7 @@ const addDeviceService = async (req, res) => {
       deviceId: req.body.deviceId,
       message: req.body.message,
       date: req.body.date,
-      serialNo: otp,
+      serialNo: otpValue,
       name: req.body.name,
       contactNo: req.body.contactNo,
       hospitalName: req.body.hospitalName,
@@ -648,22 +679,29 @@ const addDeviceService = async (req, res) => {
           otp: getLastData[0].serialNo,
           isVerified: false,
         },
-      );
-      const sendSms = client.messages
-        .create({
-          body: `Your AgVa Healthcare registration verification OTP is : ${otp}`,
-          from: twilioPhone,
-          to: contactNo
-        })
-        .then(message => console.log(`Message sent with SID: ${message.sid}`))
-        .catch(error => console.error(`Error sending message: ${error.message}`));
+      )
+
+      var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
+      const sendSms = req.query({
+        "authorization": process.env.Fast2SMS_AUTHORIZATION,
+        "variables_values": `${otpValue}`,
+        "route": "otp",
+        "numbers": `${number}`
+      })
+      req.headers({
+        "cache-control": "no-cache"
+      })
+      req.end(function (res) {
+      if (res.error) throw new Error(res.error);
+      console.log(res.body);
+      });
       if (sendSms) {
         // findlast inserted data
         return res.status(201).json({
           statusCode: 201,
           statusValue: "SUCCESS",
           message: "Data added successfully.",
-          otp: otp
+          otp: otpValue
         })
       }
       return res.status(400).json({
@@ -691,6 +729,156 @@ const addDeviceService = async (req, res) => {
     })
   }
 }
+
+// const addDeviceService2 = async (req, res) => {
+//   try {
+//     const schema = Joi.object({
+//       deviceId: Joi.string().required(),
+//       message: Joi.string().required(),
+//       date: Joi.string().required(),
+//       serialNo: Joi.string().allow("").optional(),
+//       name: Joi.string().required(),
+//       contactNo: Joi.string().required(),
+//       hospitalName: Joi.string().required(),
+//       wardNo: Joi.string().required(),
+//       email: Joi.string().required(),
+//       department: Joi.string().required(),
+//     })
+//     let result = schema.validate(req.body);
+//     if (result.error) {
+//       return res.status(400).json({
+//         statusCode: 400,
+//         statusValue: "Validation Error",
+//         message: result.error.details[0].message,
+//       })
+//     }
+//     const project_code = req.query.project_code
+//     var otp = Math.floor(1000 + Math.random() * 9000);
+//     // var serialNo = Math.floor(1000 + Math.random() * 9000);
+//     // for otp sms on mobile
+//     const twilio = require('twilio');
+
+//     const accountSid = process.env.ACCOUNTSID
+
+//     const authToken = process.env.AUTHTOKEN
+    
+//     const twilioPhone = process.env.TWILIOPHONE
+    
+//     const contactNo = `+91${req.body.contactNo}`;
+//     const client = new twilio(accountSid, authToken);
+
+//     // define tag name
+//     let tag1 = "General Service";
+//     let tag2 = "Operating Support";
+//     let tag3 = "Request for Consumables";
+//     let tag4 = "Physical Damage";
+//     let tag5 = "Issue in Ventilation";
+//     let tag6 = "Performance Issues";
+//     let tag7 = "Apply for CMC/AMC";
+
+//     const msg = req.body.message;
+
+//     const tags = {
+//       tag1: !!(msg && msg.includes("General Service")) ? tag1 : "",
+//       tag2: !!(msg && msg.includes("Operating Support")) ? tag2 : "",
+//       tag3: !!(msg && msg.includes("Request for Consumables")) ? tag3 : "",
+//       tag4: !!(msg && msg.includes("Physical Damage")) ? tag4 : "",
+//       tag5: !!(msg && msg.includes("Issue in Ventilation")) ? tag5 : "",
+//       tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",
+//       tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
+//     };
+
+//     // check already exixts service request oe not
+//     const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }] });
+//     // console.log(11,checkData);
+//     // console.log(12,req.body); 
+//     if (!!checkData) {
+//       return res.status(400).json({
+//         statusCode: 400,
+//         statusValue: "FAIL",
+//         message: "Service request already raised.",
+//       })
+//     }
+
+//     // console.log(11,tags)
+//     // Set priority
+//     let priority;
+//     if (msg.includes("General Service") == true || msg.includes("Apply for CMC/AMC") == true) {
+//       priority = "Medium";
+//     }
+//     priority = "High";
+
+//     const newServices = new servicesModel({
+//       deviceId: req.body.deviceId,
+//       message: req.body.message,
+//       date: req.body.date,
+//       serialNo: otp,
+//       name: req.body.name,
+//       contactNo: req.body.contactNo,
+//       hospitalName: req.body.hospitalName,
+//       wardNo: req.body.wardNo,
+//       email: req.body.email,
+//       department: req.body.department,
+//       ticketStatus: "Open",
+//       remark: "",
+//       issues: tags,
+//       priority: priority,
+//     });
+//     // console.log(req.body)
+//     const savedServices = await newServices.save();
+
+//     const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 });
+//     // console.log(11, getLastData) 
+//     if (!!savedServices) {
+//       await servicesModel.findOneAndUpdate(
+//         { serialNo: getLastData[0].serialNo },
+//         {
+//           otp: getLastData[0].serialNo,
+//           isVerified: false,
+//         },
+//       );
+//       const sendSms = client.messages
+//         .create({
+//           body: `Your AgVa Healthcare registration verification OTP is : ${otp}`,
+//           from: twilioPhone,
+//           to: contactNo
+//         })
+//         .then(message => console.log(`Message sent with SID: ${message.sid}`))
+//         .catch(error => console.error(`Error sending message: ${error.message}`));
+//       if (sendSms) {
+//         // findlast inserted data
+//         return res.status(201).json({
+//           statusCode: 201,
+//           statusValue: "SUCCESS",
+//           message: "Data added successfully.",
+//           otp: otp
+//         })
+//       }
+//       return res.status(400).json({
+//         statusCode: 400,
+//         statusValue: "FAIL",
+//         message: "otp was not sended.",
+//         data: savedServices
+//       });
+//     }
+//     return res.status(400).json({
+//       statusCode: 400,
+//       statusValue: "FAIL",
+//       message: "Error! Data not added.",
+//       data: savedServices
+//     })
+//   } catch (err) {
+//     res.status(500).json({
+//       statusCode: 500,
+//       statusValue: "FAIL",
+//       message: "Internal server error",
+//       data: {
+//         generatedTime: new Date(),
+//         errMsg: err.stack,
+//       }
+//     })
+//   }
+// }
 
 const verifyOtpSms = async (req, res) => {
   try {
@@ -792,21 +980,14 @@ const updateTicketStatus = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
+
     // console.log(12, req.body);
-    var otp = Math.floor(1000 + Math.random() * 9000);
-    // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
-    const twilio = require('twilio');
-  
-    const accountSid = process.env.ACCOUNTSID
-
-    const authToken = process.env.AUTHTOKEN
-    
-    const twilioPhone = process.env.TWILIOPHONE
-    
     const contactNo = `+91${req.body.contactNo}`;
-    const client = new twilio(accountSid, authToken);
-
+    const number = req.body.contactNo;
+    var otpValue = Math.floor(1000 + Math.random() * 9000);
+    
+    // check ticket 
     const checkTicket = await servicesModel.findById({ _id: mongoose.Types.ObjectId(req.body._id)});
     
     if (!!checkTicket) {
@@ -814,26 +995,32 @@ const updateTicketStatus = async (req, res) => {
       await servicesModel.findOneAndUpdate(
         { _id: mongoose.Types.ObjectId(req.body._id) },
         {
-          otp: otp,
+          otp: otpValue,
           UID: req.body.UId,
           serviceEngName: req.body.serviceEngName,
         }, { upsert: true },
       );
-      const sendSms = client.messages
-        .create({
-          body: `Your AgVa Healthcare service request verification OTP is : ${otp}`,
-          from: twilioPhone,
-          to: contactNo
-        })
-        .then(message => console.log(`Message sent with SID: ${message.sid}`))
-        .catch(error => console.error(`Error sending message: ${error.message}`));
+      var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
+      const sendSms = req.query({
+        "authorization": process.env.Fast2SMS_AUTHORIZATION,
+        "variables_values": `${otpValue}`,
+        "route": "otp",
+        "numbers": `${number}`
+      })
+      req.headers({
+        "cache-control": "no-cache"
+      })
+      req.end(function (res) {
+      if (res.error) throw new Error(res.error);
+      console.log(res.body);
+      });
       if (sendSms) {
         // findlast inserted data
         return res.status(201).json({
           statusCode: 201,
           statusValue: "SUCCESS",
           message: "OTP has been send successfully.",
-          otp: otp
+          otp: otpValue
         })
       }
       return res.status(400).json({
@@ -2415,7 +2602,7 @@ const getAssignedDeviceById = async (req, res) => {
   try {
     const userId = req.params.userId;
     const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.jwtr_SECRET);
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user }, { firstName: 1, lastName: 1, email: 1, hospitalName: 1, designation: 1, speciality: 1 });
     var pipline = [
       // Match
@@ -3250,5 +3437,6 @@ module.exports = {
   replaceDeviceId,
   updateAddtofocus,
   saveStatusV2,
-  getSignleFocusDevice
+  getSignleFocusDevice,
+  getDeviceCountData
 }

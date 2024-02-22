@@ -83,7 +83,7 @@ app.post("/send", function (req, res) {
       title:req.body.title,
       body:req.body.description,
     },
-    token:"eRjFexcuRvyokSZSWt8Hh4:APA91bE3eUr2r8iX6TahX6LCeurY5H9bFDvRk7juAf6eilQPERQW97L7TfPFIHc1FJpExPQ9_fPIDBMEBDlGX1upvT3JHUPRgKSpiqP21zpICE1BVZWJtaDExfYHIhDonuI1Pko5vBAZ",
+    token:receivedToken,
   }
 
   getMessaging()
@@ -264,6 +264,7 @@ io.on('connection', (socket) => {
 
 //   console.log(res.body);
 // });
+
 
 // var unirest = require("unirest");
 

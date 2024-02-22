@@ -1512,6 +1512,7 @@ const getAllDeviceId = async (req, res) => {
     },
   ]);
    
+  
   const inactiveDevices = await statusModel.aggregate([
     {
       $match: {

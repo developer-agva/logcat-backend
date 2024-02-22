@@ -26,6 +26,7 @@ const aboutDeviceModel = require('../model/aboutDeviceModel');
 const sendDeviceReqModel = require('../model/sendDeviceReqModel.js');
 const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel.js');
 require("dotenv").config({ path: "../.env" });
+var unirest = require("unirest");
 /**
  * api      POST @/api/logger/register
  * desc     @register for logger access only
@@ -211,23 +212,13 @@ const registerUserForSuperAdmin = async (req, res) => {
 */
 const sendOtpSms = async (req, res) => {
   try {
-    const twilio = require('twilio');
-
-    const accountSid = process.env.ACCOUNTSID
-    
-    const authToken = process.env.AUTHTOKEN
-
-    const twilioPhone = process.env.TWILIOPHONE
-
-    const contactNumber = `+91${req.params.contactNumber}`;
-    const client = new twilio(accountSid, authToken); 
-
-    var otp = Math.floor(1000 + Math.random() * 9000);
-    // check verified or not
+    const contactNumber = `+91${req.params.contactNumber}`; 
+    const number = req.params.contactNumber;
+    var otpValue = Math.floor(1000 + Math.random() * 9000);
     const checkOtp = await otpVerificationModel.findOne({ contactNumber: contactNumber });
     const errors = validationResult(req);
-    
-    // console.log(11,checkOtp)
+    //  console.log(11,checkOtp)
+
     if (!!checkOtp && checkOtp.isVerified == true) {
       return res.status(400).json({
         statusCode: 400,
@@ -249,37 +240,119 @@ const sendOtpSms = async (req, res) => {
       });
       // console.log()
     }
-    if(!!contactNumber) {
+    
+    if (!!contactNumber) {
       await otpVerificationModel.findOneAndUpdate(
         {contactNumber:contactNumber},
         {
           contactNumber:contactNumber,
-          otp:otp,
+          otp:otpValue,
           isVerified:false,
         },{upsert:true},
       );
-      const sendSms = client.messages
-            .create({
-                body: `Your AgVa Healthcare registration verification OTP is : ${otp}`,
-                from: twilioPhone,
-                to: contactNumber
-            })
-            .then(message => console.log(`Message sent with SID: ${message.sid}`))
-            .catch(error => console.error(`Error sending message: ${error.message}`));
+      var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
+      const sendSms = req.query({
+        "authorization": process.env.Fast2SMS_AUTHORIZATION,
+        "variables_values": `${otpValue}`,
+        "route": "otp",
+        "numbers": `${number}`
+      })
+      req.headers({
+        "cache-control": "no-cache"
+      })
+      req.end(function (res) {
+      if (res.error) throw new Error(res.error);
+      console.log(res.body);
+      });
+
       if (sendSms) {
-        return res.status(200).json({
-          statusCode:201,
-          statusValue:"SUCCESS",
-          message:"Otp Send Successfully.",
-          otp:otp
-        })
-      }  
-      return res.status(400).json({
-        statusCode:400,
-        statusValue:"FAIL",
-        message:"Otp not sened.",
-      })   
+          return res.status(200).json({
+            statusCode:201,
+            statusValue:"SUCCESS",
+            message:"Otp Sent Successfully.",
+            otp:otpValue
+          })
+        }  
+        return res.status(400).json({
+          statusCode:400,
+          statusValue:"FAIL",
+          message:"Otp not sent.",
+        })   
     }
+
+
+    
+
+
+    // const twilio = require('twilio');
+
+    // const accountSid = process.env.ACCOUNTSID
+    
+    // const authToken = process.env.AUTHTOKEN
+
+    // const twilioPhone = process.env.TWILIOPHONE
+
+    // const contactNumber = `+91${req.params.contactNumber}`;
+    // const client = new twilio(accountSid, authToken); 
+
+    // var otp = Math.floor(1000 + Math.random() * 9000);
+    // // check verified or not
+    // const checkOtp = await otpVerificationModel.findOne({ contactNumber: contactNumber });
+    // const errors = validationResult(req);
+    
+    // // console.log(11,checkOtp)
+    // if (!!checkOtp && checkOtp.isVerified == true) {
+    //   return res.status(400).json({
+    //     statusCode: 400,
+    //     statusValue:"FAIL",
+    //     message:"Contact Number already verified.",
+    //     data: {
+    //       err: {
+    //         generatedTime: new Date(),
+    //         errMsg: errors
+    //           .array()
+    //           .map((err) => {
+    //             return `${err.msg}: ${err.param}`;})
+    //             .join(' | '),
+    //         msg: 'Contact Number already verified.',
+    //         type: 'ValidationError',
+    //         statusCode:400,
+    //       },
+    //     },
+    //   });
+    //   // console.log()
+    // }
+    // if(!!contactNumber) {
+    //   await otpVerificationModel.findOneAndUpdate(
+    //     {contactNumber:contactNumber},
+    //     {
+    //       contactNumber:contactNumber,
+    //       otp:otp,
+    //       isVerified:false,
+    //     },{upsert:true},
+    //   );
+    //   const sendSms = client.messages
+    //         .create({
+    //             body: `Your AgVa Healthcare registration verification OTP is : ${otp}`,
+    //             from: twilioPhone,
+    //             to: contactNumber
+    //         })
+    //         .then(message => console.log(`Message sent with SID: ${message.sid}`))
+    //         .catch(error => console.error(`Error sending message: ${error.message}`));
+    //   if (sendSms) {
+    //     return res.status(200).json({
+    //       statusCode:201,
+    //       statusValue:"SUCCESS",
+    //       message:"Otp Send Successfully.",
+    //       otp:otp
+    //     })
+    //   }  
+    //   return res.status(400).json({
+    //     statusCode:400,
+    //     statusValue:"FAIL",
+    //     message:"Otp not sened.",
+    //   })   
+    // }
     
   } catch (err) {
     res.status(500).json({

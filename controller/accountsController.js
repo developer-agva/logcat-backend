@@ -185,6 +185,87 @@ const saveAwaitingForShippedData = async (req, res) => {
     }
 }
 
+
+// for saving shipping details
+const updateAccountDataById = async (req, res) => {
+    try {
+        const schema = Joi.object({
+            seriallNo: Joi.string().required(),
+            // deviceId: Joi.string().required(),
+            invoiceNo: Joi.string().allow("").optional(),
+            ewaybillNo: Joi.string().allow("").optional(),
+            billedTo: Joi.string().allow("").optional(),
+            consinee: Joi.string().allow("").optional(),
+            document_ref_no: Joi.string().allow("").optional(),
+            consigneeAddress:Joi.string().allow("").optional(),
+            irn: Joi.string().allow("").optional(),
+            ackDate: Joi.string().allow("").optional(),
+            ackNo: Joi.string().allow("").optional(),
+        })
+        let result = schema.validate(req.body);
+        if (result.error) {
+            // console.log(11,req.body);
+            return res.status(200).json({
+                status: 0,
+                statusCode: 400,
+                message: result.error.details[0].message,
+            })
+        }
+        // get device details by serialNo
+        const accountData = await accountsModel.findOne({serialNo:req.body.seriallNo});
+        if (!accountData) {
+            return res.status(400).json({
+                statusCode: 400,
+                statusValue: "FAIL",
+                message: "No data found with this serial number",
+            })
+        }
+        await productionModel.findOneAndUpdate({serialNumber:req.body.seriallNo},{shipmentMode:"awaiting_for_shipped"})
+        const accountsDoc = await accountsModel.findOneAndUpdate(
+            {serialNo:req.body.seriallNo},
+            {
+                ewaybillNo:!!(req.body.ewaybillNo) ? req.body.ewaybillNo : accountData.ewaybillNo,
+                invoiceNo:!!(req.body.invoiceNo) ? req.body.invoiceNo : accountData.invoiceNo,
+                billedTo:!!(req.body.billedTo) ? req.body.billedTo : accountData.billedTo,
+                consinee:!!(req.body.consinee) ? req.body.consinee : accountData.consinee, 
+                consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : accountData.consigneeAddress,
+                document_ref_no:!!(req.body.document_ref_no) ? req.body.document_ref_no : accountData.document_ref_no,
+                irn:!!(req.body.irn) ? req.body.irn : accountData.irn,
+                ackDate:!!(req.body.ackDate) ? req.body.ackDate : accountData.ackDate,
+                ackNo:!!(req.body.ackNo) ? req.body.ackNo : accountData.ackNo},
+                {upsert:true}
+        )
+        // const saveDoc = accountsDoc.save();
+        // console.log(req.body.serialNo)
+        if (!!accountsDoc) {
+            return res.status(200).json({
+                statusCode: 200,
+                statusValue: "SUCCESS",
+                message: "data updated successfully.",
+            }) 
+        }
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "data updated successfully.",
+        }) 
+    } catch (err) {
+        return res.status(500).json({
+            status: -1,
+            data: {
+                err: {
+                    generatedTime: new Date(),
+                    errMsg: err.stack,
+                    msg: err.message,
+                    type: err.name,
+                },
+            },
+        });
+    }
+}
+
+
+
 // /**
 //  * 
 //  * @param {*} req 
@@ -679,17 +760,18 @@ const getAwaitingForShippedData = async (req, res) => {
     try {
 
         // Search
-        var search = ""
+        var search = "";
         if (req.query.search && req.query.search !== "undefined") {
-            search = req.query.search
+        search = req.query.search;
         }
-        // Pagination
-        let { page, limit } = req.query
+        // for pagination
+        let page = req.query.page
+        let limit = req.query.limit
         if (!page || page === "undefined") {
-            page = 1
+        page = 1;
         }
         if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-            limit = 99999
+        limit = 999999;
         }
 
         // aggregate logic
@@ -737,11 +819,15 @@ const getAwaitingForShippedData = async (req, res) => {
            {
                "$set": {"ewayBillPdf": "$ewayBillData.location","invoiceBillPdf":"$invoiceBillData.location"},
            },
-        //    {
-        //         "$match": {
-        //             "prodData.shipmentMode": "awaiting_for_shipped"
-        //         }
-        //    },
+           // search operation
+           {
+                "$match": {
+                    "$or":[
+                        { deviceId: {$regex: ".*" + search + ".*", $options: "i"} },
+                        { serialNumber: {$regex: ".*" + search + ".*", $options: "i"} },
+                    ]
+                }
+           },
            {
                "$unset": [
                  "invoiceBillData",
@@ -762,7 +848,7 @@ const getAwaitingForShippedData = async (req, res) => {
         const paginateArray =  (resData, page, limit) => {
             const skip = resData.slice((page - 1) * limit, page * limit);
             return skip;
-        };
+        }
         let allData = paginateArray(resData, page, limit)
 
         if (!!resData.length>0) {
@@ -1121,5 +1207,6 @@ module.exports = {
     getAwaitingForShippedData,
     getDispatchedDeviceList,
     getProductionListV2,
-    getSignleDispatchedData
+    getSignleDispatchedData,
+    updateAccountDataById
 }
