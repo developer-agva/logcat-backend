@@ -105,8 +105,6 @@ app.post("/send", function (req, res) {
 
 // end firebase service
 
-
-
 // For session
 app.use(
   session({
@@ -289,8 +287,6 @@ io.on('connection', (socket) => {
 // });
 
 // end fast2sms api code
-
-
 
 // end sms
 

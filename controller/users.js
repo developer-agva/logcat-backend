@@ -45,6 +45,8 @@ const registerUser = async (req, res) => {
       // countryName:Joi.string().required(),
       // stateName: Joi.string().required(),
       speciality:Joi.string().required(),
+      userType: Joi.string().required(),
+      securityCode : Joi.string().allow("").optional(),
     });
     let result = schema.validate(req.body);
     if (result.error) {
@@ -54,6 +56,7 @@ const registerUser = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
+
     const checkEmail = await User.findOne({ email: req.body.email });
     if (checkEmail) {
       return res.status(400).json({
@@ -63,6 +66,7 @@ const registerUser = async (req, res) => {
           "The email is already in use. Please try to login using the email address or sign up with a different email address. ",
       });
     }
+
     // check hospital name
     const checkHospital = await registeredHospitalModel.findOne({Hospital_Name:req.body.hospitalName});
     if (!checkHospital) {
@@ -72,9 +76,59 @@ const registerUser = async (req, res) => {
         message: "Error! Wrong hospital name.",
       });
     }
+
+    // make password encrypted
     const salt = await bcrypt.genSalt();
     let mpwd = await bcrypt.hash(req.body.passwordHash, salt);
-  
+
+    // console.log(11,req.body)
+    if (req.body.userType === "Doctor") {
+      var securityCode = Math.floor(100000 + Math.random() * 900000);
+      const insertData = new User({
+        firstName:req.body.firstName,
+        lastName:req.body.lastName,
+        hospitalName:req.body.hospitalName,
+        designation:req.body.designation,
+        department:req.body.department,
+        contactNumber:req.body.contactNumber,
+        email:req.body.email,
+        passwordHash:mpwd,
+        userType:req.body.userType,
+        image:"",
+        isSuperAdmin:false,
+        accountStatus:"Initial",
+        requestedOn:new Date(),
+        speciality:req.body.speciality,
+        securityCode:securityCode
+        // countryName:req.body.countryName,
+        // stateName:req.body.stateName
+      });
+      const saveDoc2 = await insertData.save();
+      if (saveDoc2) {
+        return res.status(201).json({
+          statusCode:201,
+          statusValue:"SUCCESS",
+          message:"Congratulations! You have successfully signed up with us , Please wait for approval.",
+          data:saveDoc2
+        })
+      }
+      return res.status(400).json({
+        statusCode:400,
+        statusValue:"FAIL",
+        message:"Error ! Doctor registration failed.",
+      })
+    }
+    
+    // check securityCode
+    const checkCode = await User.findOne({securityCode:req.body.securityCode})
+    if (!checkCode) {
+      return res.status(400).json({
+        statusCode:400,
+        statusValue:"FAIL",
+        message:"Error ! Wrong security code.",
+      })
+    }
+    // console.log(12, req.body)
     const insertData = new User({
       firstName:req.body.firstName,
       lastName:req.body.lastName,
@@ -84,16 +138,19 @@ const registerUser = async (req, res) => {
       contactNumber:req.body.contactNumber,
       email:req.body.email,
       passwordHash:mpwd,
-      userType:"User",
+      userType:!!(req.body.userType) ? req.body.userType : "User",
       image:"",
       isSuperAdmin:false,
       accountStatus:"Initial",
       requestedOn:new Date(),
       speciality:req.body.speciality,
+      securityCode:""
       // countryName:req.body.countryName,
       // stateName:req.body.stateName
     });
     const saveDoc = await insertData.save();
+   
+    
     // Send the email
     // const emailSubject = "Welcome to our Logcat";
     // const emailText = "Please verify your email id";
@@ -261,10 +318,13 @@ const sendOtpSms = async (req, res) => {
         "cache-control": "no-cache"
       })
       req.end(function (res) {
-      if (res.error) throw new Error(res.error);
-      console.log(res.body);
+        // console.log(123,res.error.status)
+      if (res.error.status === 400) {
+          console.log(false)
+        } 
+        console.log("Otp sent successfully.")  
       });
-
+      
       if (sendSms) {
           return res.status(200).json({
             statusCode:201,
@@ -279,10 +339,6 @@ const sendOtpSms = async (req, res) => {
           message:"Otp not sent.",
         })   
     }
-
-
-    
-
 
     // const twilio = require('twilio');
 
@@ -488,8 +544,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    const isUserExist = await Users.findOne({ email: email, accountStatus: "Active" }); 
-    const getAddr = await registeredHospitalModel.findOne({Hospital_Name:isUserExist.hospitalName})
+    const isUserExist = await Users.findOne({ email: email});
     // const isUserExist = await Users.findOne({ email: email, accountStatus:"Approved" });   
     if (!isUserExist) {
       return res.status(404).json({
@@ -501,6 +556,20 @@ const loginUser = async (req, res) => {
             errMsg: 'User does not exist',
             msg: 'User does not exist',
             type: 'User does not exist',
+          },
+        },
+      });
+    }
+    if (isUserExist.accountStatus !== "Active") {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue:"FAIL",
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Your account is not active.',
+            msg: 'Your account is not active',
+            type: 'Your account is not active',
           },
         },
       });
@@ -524,6 +593,7 @@ const loginUser = async (req, res) => {
         },
       });
     }
+    const getAddr = await registeredHospitalModel.findOne({Hospital_Name:isUserExist.hospitalName})
     const id = { user: isUserExist._id };
     const token = await jwtr.sign(id, process.env.JWT_SECRET, {
       expiresIn: '15d',
@@ -550,7 +620,8 @@ const loginUser = async (req, res) => {
         image: isUserExist.image,
         userType:isUserExist.userType,
         isSuperAdmin: isUserExist.isSuperAdmin,
-        userStatus:isUserExist.userStatus
+        userStatus:isUserExist.userStatus,
+        securityCode:isUserExist.securityCode
       }
     });
   } catch (err) {
@@ -1801,8 +1872,8 @@ const getAllActiveUSers = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     // console.log(123, verified.user)
-    const checkUser = await User.findById({_id:verified.user})
-  
+    const checkUser = await User.findById({ _id: verified.user })
+
     // Pagination
     let { page, limit } = req.query;
     if (!page || page === "undefined") {
@@ -1812,26 +1883,74 @@ const getAllActiveUSers = async (req, res) => {
       limit = 1000;
     }
     const skip = page > 0 ? (page - 1) * limit : 0
-    
-    // get data by user role
 
-    const getUsers = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:"Active"}]})
-      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
-      .sort({createdAt:-1})
-      .skip(skip)
-      .limit(limit);
+    // Initialize variables
+    let getUsers
+    let count
 
-    // Count 
-    const count = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:"Active"}]})
-    .sort({createdAt:-1})
-    .countDocuments();
+    // Get users on the basis of role
+    if (checkUser.userType == "Doctor") {
+      getUsers = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },
+          {
+            $or: [
+              { userType: "User" },
+              { userType: "Assistant" }
+            ]
+          },
+          { accountStatus: "Active" }
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
-    if (getUsers.length>0) {
+      // count users
+      count = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },{ $or: [{ userType: "User" },{ userType: "Assistant" }] },{ accountStatus: "Active" }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
+
+    } else if (checkUser.userType == "Hospital-Admin") {
+      getUsers = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },
+          {
+            $or: [
+              { userType: "User" },
+              { userType: "Assistant" },
+              { userType: "Doctor" }
+            ]
+          },
+          { accountStatus: "Active" }
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // count users
+      count = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName }, { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },{ accountStatus: "Active" }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
+    }
+
+    if (getUsers.length > 0) {
       return res.status(200).json({
-        statusCode:200,
-        statusValue:"SUCCESS",
-        message:"Users list get successfully.",
-        data:getUsers,
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Users list get successfully.",
+        data: getUsers,
         totalDataCount: count,
         totalPages: Math.ceil(count / limit),
         currentPage: page
@@ -1855,6 +1974,122 @@ const getAllActiveUSers = async (req, res) => {
     })
   }
 }
+
+/**
+ * @desc - get all active users
+ * @api - /api/logger/active-users-list
+ * @returns json data
+ */
+const getAllInactiveUsers = async (req, res) => {
+  try {
+    // for checking user roles
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // console.log(123, verified.user)
+    const checkUser = await User.findById({ _id: verified.user })
+
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 1000;
+    }
+    const skip = page > 0 ? (page - 1) * limit : 0
+
+    // Initialize variables
+    let getUsers
+    let count
+
+    // Get users on the basis of role
+    if (checkUser.userType == "Doctor") {
+      getUsers = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },
+          {
+            $or: [
+              { userType: "User" },
+              { userType: "Assistant" }
+            ]
+          },
+          { accountStatus: "Inactive" }
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // count users
+      count = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },{ $or: [{ userType: "User" },{ userType: "Assistant" }] },{ accountStatus: "Inactive" }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
+
+    } else if (checkUser.userType == "Hospital-Admin") {
+      getUsers = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },
+          {
+            $or: [
+              { userType: "User" },
+              { userType: "Assistant" },
+              { userType: "Doctor" }
+            ]
+          },
+          { accountStatus: "Inactive" }
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // count users
+      count = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName }, { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },{ accountStatus: "Inactive" }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
+    }
+
+    if (getUsers.length > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Users list get successfully.",
+        data: getUsers,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not found.",
+      data: []
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
 
 // get admin list
 const getAllActiveAdmin = async (req, res) => {
@@ -1930,8 +2165,8 @@ const getAllPendingUsers = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     // console.log(123, verified.user)
-    const checkUser = await User.findById({_id:verified.user})
-  
+    const checkUser = await User.findById({ _id: verified.user })
+
     // Pagination
     let { page, limit } = req.query;
     if (!page || page === "undefined") {
@@ -1941,26 +2176,72 @@ const getAllPendingUsers = async (req, res) => {
       limit = 1000;
     }
     const skip = page > 0 ? (page - 1) * limit : 0
-    
+
     // get data by user role
+    let getUsers
+    let count
 
-    const getUsers = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:"Initial"}]})
-      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
-      .sort({createdAt:-1})
-      .skip(skip)
-      .limit(limit);
+    if (checkUser.userType == "Doctor") {
+      getUsers = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },
+          {
+            $or: [
+              { userType: "User" },
+              { userType: "Assistant" }
+            ]
+          },
+          { accountStatus: "Initial" }
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
-    // Count 
-    const count = await User.find({$and:[{hospitalName:checkUser.hospitalName},{userType:"User"},{accountStatus:"Initial"}]})
-    .sort({createdAt:-1})
-    .countDocuments();
+      // count users
+      count = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },{ $or: [{ userType: "User" },{ userType: "Assistant" }] },{ accountStatus: "Initial" }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
 
-    if (getUsers.length>0) {
+    } else if (checkUser.userType == "Hospital-Admin") {
+      getUsers = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },
+          {
+            $or: [
+              { userType: "User" },
+              { userType: "Assistant" },
+              { userType: "Doctor" }
+            ]
+          },
+          { accountStatus: "Initial" }
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // count users
+      count = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },{ $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },{ accountStatus: "Initial" }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
+    }
+    if (getUsers.length > 0) {
       return res.status(200).json({
-        statusCode:200,
-        statusValue:"SUCCESS",
-        message:"Users list get successfully.",
-        data:getUsers,
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Pending users get successfully.",
+        data: getUsers,
         totalDataCount: count,
         totalPages: Math.ceil(count / limit),
         currentPage: page
@@ -2142,7 +2423,7 @@ const changeUserAcStatus = async (req, res) => {
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
-      message: "User approved successfully.",
+      message: "User account status updated successfully.",
       data: updateDoc
     })
   } catch (err) {
@@ -2506,5 +2787,6 @@ module.exports = {
   getUserProfileByExpId,
   endAssociation,
   updatePrimaryEmail,
-  getAllEmployeeList
+  getAllEmployeeList,
+  getAllInactiveUsers
 };

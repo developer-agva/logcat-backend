@@ -29,6 +29,7 @@ const jwtr = new JWTR(redisClient);
 const {deviceIdArr} = require('../middleware/msgResponse');
 const alert_ventilator_collectionV2 = require('../model/alert_ventilator_collection_v2');
 const event_ventilator_collection_v2 = require('../model/event_ventilator_collection_v2');
+const { default: mongoose } = require('mongoose');
 
 
 
@@ -450,7 +451,7 @@ const getTrendsById = async (req, res) => {
     }
 
     const { did } = req.params;
-    const findDeviceById = await trends_ventilator_collection.find({ did: did }).sort({_id:-1});
+    const findDeviceById = await trends_ventilator_collection.find({ did: did }).sort({_id:-1}).limit(100);
     if (!findDeviceById) {
       return res.status(404).json({
         status: 0,
@@ -503,9 +504,7 @@ const getTrendsById = async (req, res) => {
 
     let finalData = paginateArray(findDeviceById, page, limit)
     // for count
-    const count = await trends_ventilator_collection.find({ did: did })
-    .sort({_id:-1})
-    .countDocuments()
+    const count = findDeviceById.length
     // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
     // console.log(collectionName,'collectionName');
     if (finalData.length > 0) {
@@ -1004,6 +1003,32 @@ const getAllDevicesForUsers = async (req, res) => {
         {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
       ]}
     }
+  } else if (!!loggedInUser && loggedInUser.userType === "Nurse") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        // {"deviceReqData.userId":loggedInUser._id},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  } 
+  else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        // {"deviceReqData.userId":loggedInUser._id},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  }
+  else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        // {"deviceReqData.userId":loggedInUser._id},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
   } else {
     filterObj = {
       $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
@@ -1169,19 +1194,20 @@ const getAllDevicesForUsers = async (req, res) => {
   // remove duplicate records
   var key = "deviceId";
   let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
-
-  // let resArr1 = [];
-  // let resArr2 = [];
+   
   // filter data on the basis of userType
- 
-  // console.log(loggedInUser)
-  // get data by user role
-  // console.log(333, resultArr)
-  // For pagination
+  if (loggedInUser.userType == "User" || loggedInUser.userType == "Nurse") {
+    const assignedDeviceIds = await assignDeviceTouserModel.find({userId:mongoose.Types.ObjectId(loggedInUser._id)})
+    const deviceIds = assignedDeviceIds.map(item => item.deviceId)
+    filteredData = arrayUniqueByKey.filter(item => deviceIds.includes(item.deviceId)) 
+    arrayUniqueByKey = filteredData
+  }
+  
+  // For pagination\
   const paginateArray =  (arrayUniqueByKey, page, limit) => {
-  const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
-  return skip;
-  };
+    const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
+    return skip;
+  }
 
   var allDevices = paginateArray(arrayUniqueByKey, page, limit)
   if (arrayUniqueByKey.length > 0) {
@@ -1191,7 +1217,7 @@ const getAllDevicesForUsers = async (req, res) => {
       message: "Event lists has been retrieved successfully.",
       data: { data: allDevices, },
       totalDataCount: arrayUniqueByKey.length,
-      totalPages: Math.ceil( (arrayUniqueByKey.length)/ limit),
+      totalPages: Math.ceil( (arrayUniqueByKey.length)/limit),
       currentPage: page,
       // tempData: allDevices,
     })
@@ -1470,6 +1496,22 @@ const getAllDeviceId = async (req, res) => {
       $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
     } 
   } else if (!!loggedInUser && loggedInUser.userType === "User") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  } 
+  else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  }
+  else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
     filterObj = {
       $match: {$and:[
         {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},

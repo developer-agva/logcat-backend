@@ -42,14 +42,18 @@ const saveMarkasShippedData = async (req, res) => {
         const checkAlreadyMarked = await markAsShippedModel.findOne({serialNo:req.body.seriallNo})
         // console.log(checkAlreadyMarked)
         const checkDevice = await productionModel.findOne({serialNumber:req.body.seriallNo})
-        if (!!checkAlreadyMarked) {
-            return res.status(400).json({
-                statusCode: 400,
-                statusValue: "FAIL",
-                message: "Data already exists with this serial number.",
-            })
-        }
-        const accountsDoc = new markAsShippedModel({
+        // if (!!checkAlreadyMarked) {
+        //     return res.status(400).json({
+        //         statusCode: 400,
+        //         statusValue: "FAIL",
+        //         message: "Data already exists with this serial number.",
+        //     })
+        // }
+        const accountsDoc = await markAsShippedModel.findOneAndUpdate(
+        {
+            serialNo:req.body.seriallNo
+        },
+        {
             serialNo:req.body.seriallNo,
             deviceId:!!(checkDevice.deviceId) ? checkDevice.deviceId : "NA",
             shippedThrough:req.body.shippedThrough,
@@ -60,20 +64,20 @@ const saveMarkasShippedData = async (req, res) => {
             shipperContact:req.body.shipperContact,
             comments:req.body.comments, 
             // document_ref_no:req.body.document_ref_no
-        })
-        const saveDoc = accountsDoc.save();
-        await productionModel.findOneAndUpdate({serialNumber:req.body.seriallNo},{shipmentMode:"shipped"})
-        if (!!saveDoc) {
+        }, {upsert:true})
+        if (!!accountsDoc) {
+            await productionModel.findOneAndUpdate({serialNumber:req.body.seriallNo},{shipmentMode:"shipped"})
             return res.status(200).json({
                 statusCode: 200,
                 statusValue: "SUCCESS",
                 message: "data added successfully.",
-            }) 
+            })
         }
-        return res.status(400).json({
-            statusCode: 400,
-            statusValue: "FAIL",
-            message: "Error !! data not added.",
+        await productionModel.findOneAndUpdate({serialNumber:req.body.seriallNo},{shipmentMode:"shipped"})
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "data added successfully.",
         })
     } catch (err) {
         return res.status(500).json({
@@ -153,8 +157,8 @@ const saveAwaitingForShippedData = async (req, res) => {
                 document_ref_no:!!(req.body.document_ref_no) ? req.body.document_ref_no : "NA",
                 irn:!!(req.body.irn) ? req.body.irn : "NA",
                 ackDate:!!(req.body.ackDate) ? req.body.ackDate : "NA",
-                ackNo:!!(req.body.ackNo) ? req.body.ackNo : "NA"},
-                {upsert:true}
+                ackNo:!!(req.body.ackNo) ? req.body.ackNo : "NA"
+            },{upsert:true}
         )
         // const saveDoc = accountsDoc.save();
         // console.log(req.body.serialNo)
@@ -224,19 +228,18 @@ const updateAccountDataById = async (req, res) => {
         const accountsDoc = await accountsModel.findOneAndUpdate(
             {serialNo:req.body.seriallNo},
             {
-                ewaybillNo:!!(req.body.ewaybillNo) ? req.body.ewaybillNo : accountData.ewaybillNo,
-                invoiceNo:!!(req.body.invoiceNo) ? req.body.invoiceNo : accountData.invoiceNo,
-                billedTo:!!(req.body.billedTo) ? req.body.billedTo : accountData.billedTo,
-                consinee:!!(req.body.consinee) ? req.body.consinee : accountData.consinee, 
-                consigneeAddress:!!(req.body.consigneeAddress) ? req.body.consigneeAddress : accountData.consigneeAddress,
-                document_ref_no:!!(req.body.document_ref_no) ? req.body.document_ref_no : accountData.document_ref_no,
-                irn:!!(req.body.irn) ? req.body.irn : accountData.irn,
-                ackDate:!!(req.body.ackDate) ? req.body.ackDate : accountData.ackDate,
-                ackNo:!!(req.body.ackNo) ? req.body.ackNo : accountData.ackNo},
+                ewaybillNo:req.body.ewaybillNo,
+                invoiceNo:req.body.invoiceNo,
+                billedTo:req.body.billedTo,
+                consinee:req.body.consinee, 
+                consigneeAddress:req.body.consigneeAddress,
+                document_ref_no:req.body.document_ref_no,
+                irn:req.body.irn,
+                ackDate:req.body.ackDate,
+                ackNo:req.body.ackNo},
                 {upsert:true}
         )
-        // const saveDoc = accountsDoc.save();
-        // console.log(req.body.serialNo)
+       
         if (!!accountsDoc) {
             return res.status(200).json({
                 statusCode: 200,
@@ -244,10 +247,10 @@ const updateAccountDataById = async (req, res) => {
                 message: "data updated successfully.",
             }) 
         }
-        return res.status(200).json({
-            statusCode: 200,
-            statusValue: "SUCCESS",
-            message: "data updated successfully.",
+        return res.status(400).json({
+            statusCode: 400,
+            statusValue: "FAIL",
+            message: "data not updated successfully.",
         }) 
     } catch (err) {
         return res.status(500).json({

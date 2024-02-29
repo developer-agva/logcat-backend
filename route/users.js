@@ -37,7 +37,8 @@ const {
     getUserProfileByExpId,
     endAssociation,
     updatePrimaryEmail,
-    getAllEmployeeList
+    getAllEmployeeList,
+    getAllInactiveUsers
 } = require('../controller/users.js')
 
 const {
@@ -84,13 +85,14 @@ router.get('/users/get-user-experience/:id', isAuth, getUserProfileByExpId);
 
 router.get('/user-status/:email', getUserStatus);
 
-router.get('/users-list', isAuth, getAllUsers);
+router.get('/users-list', isAuth, getAllUsers);  
 router.get('/employee-list', isAuth, getAllEmployeeList);
 
 router.get('/active-users-list', isAuth, getAllActiveUSers);
+router.get('/inactive-users-list', isAuth, getAllInactiveUsers);
 router.get('/active-admin-list', isAuth, getAllActiveAdmin);
 
-router.get('/pending-users-list', isAuth, getAllPendingUsers);
+router.get('/pending-users-list', isAuth, getAllPendingUsers);  // done
 router.put('/user-account-status/:userId', isAuth, changeUserAcStatus);
 
 

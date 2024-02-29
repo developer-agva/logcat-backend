@@ -15,12 +15,10 @@ const User = require('../model/users');
 // const { registerDevice } = require('./RegisterDevice');
 const { validationResult } = require('express-validator');
 const emailVerificationModel = require("../model/emailVerificationModel")
-// let redisClient = require("../config/redisInit");
-// const JWTR = require("jwt-redis").default;
-// const jwtr = new JWTR(redisClient);
-// const JWTR = require('jwt-redis').default;
-// let redisClient = require('../config/redisInit');
-// const jwtr = new JWTR(redisClient);
+let redisClient = require("../config/redisInit");
+const JWTR = require("jwt-redis").default;
+const jwtr = new JWTR(redisClient);
+
 require("dotenv").config({ path: "../.env" });
 var unirest = require("unirest");
 // console.log(11111,process.env.ORIGIN)
@@ -692,9 +690,13 @@ const addDeviceService = async (req, res) => {
         "cache-control": "no-cache"
       })
       req.end(function (res) {
-      if (res.error) throw new Error(res.error);
-      console.log(res.body);
+        // console.log(123,res.error.status)
+      if (res.error.status === 400) {
+          console.log(false)
+        } 
+        console.log("Otp sent successfully.")  
       });
+
       if (sendSms) {
         // findlast inserted data
         return res.status(201).json({
@@ -1011,9 +1013,13 @@ const updateTicketStatus = async (req, res) => {
         "cache-control": "no-cache"
       })
       req.end(function (res) {
-      if (res.error) throw new Error(res.error);
-      console.log(res.body);
+        // console.log(123,res.error.status)
+      if (res.error.status === 400) {
+          console.log(false)
+        } 
+        console.log("Otp sent successfully.")  
       });
+
       if (sendSms) {
         // findlast inserted data
         return res.status(201).json({
@@ -2056,6 +2062,8 @@ const updateAboutData = async (req, res) => {
       });
     }
     const project_code = req.query.project_code;
+
+
     const getData = await aboutDeviceModel.find({ $or: [{ deviceId: req.body.deviceId }, { serial_no: req.body.serial_no }] }).sort({ createdAt: -1 });
     if (getData.length < 1) {
       return res.status(400).json({
@@ -2064,10 +2072,20 @@ const updateAboutData = async (req, res) => {
         message: "Error!! Data not updated."
       });
     }
-    // console.log(req.body)
-    // const saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
-
-    // )
+    // add dispatch data location wise
+    await dispatchActivityLogModel.findOneAndUpdate(
+      {
+        serial_no:"AGVA2345684322"
+      },
+      {
+        deviceId:getData[0].deviceId,address:getData[0].address,serial_no:getData[0].serial_no,hospital_name:getData[0].hospital_name,concerned_person:getData[0].concerned_person,
+        address:getData[0].address,billed_to:getData[0].billed_to,buyerAddress:getData[0].buyerAddress,buyerName:getData[0].buyerName,city:getData[0].city,concerned_person_email:getData[0].concerned_person_email,
+        consigneeAddress:getData[0].consigneeAddress,consinee:getData[0].consinee,date_of_dispatch:getData[0].date_of_dispatch,date_of_manufacturing:getData[0].date_of_manufacturing,
+        distributor_contact:getData[0].distributor_contact,distributor_name:getData[0].distributor_name,distributor_gst:getData[0].distributor_gst,district:getData[0].district,
+        document_no:getData[0].document_no,marketing_lead:getData[0].marketing_lead,phone_number:getData[0].phone_number,pincode:getData[0].pincode,product_type:getData[0].product_type,
+        purpose:getData[0].purpose,sim_no:getData[0].sim_no,state:getData[0].state,country:getData[0].country
+      }, {upsert:true})
+    
     const saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
       { $or: [{ deviceId: req.body.deviceId }, { serial_no: req.body.serial_no }] },
       req.body,
@@ -2081,13 +2099,7 @@ const updateAboutData = async (req, res) => {
         message: "Error!! Data not updated."
       });
     }
-    // for user logs activity 
-    const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.jwtr_SECRET);
-    const loggedInUser = await User.findById({ _id: verified.user });
-    var bodyData = { ...req.body, email: loggedInUser.email }
-    await dispatchActivityLogModel.findOneAndUpdate(bodyData, bodyData, { upsert: true })
-
+  
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -2232,8 +2244,10 @@ const getDispatchData = async (req, res) => {
 // get dispatched device location
 const trackDeviceLocation = async (req, res) => {
   try {
-    const getData = await aboutDeviceModel.find({ deviceId: req.params.deviceId });
-    if (getData.length < 1) {
+    const getData1 = await dispatchActivityLogModel.find({ deviceId: req.params.deviceId });
+    const getData2 = await aboutDeviceModel.find({ deviceId: req.params.deviceId });
+    const finalArrData = [...getData1, ...getData2]
+    if (finalArrData.length < 1) {
       return res.status(404).json({
         statusCode: 400,
         statusValue: "FAIL",
@@ -2244,7 +2258,7 @@ const trackDeviceLocation = async (req, res) => {
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Product dispatch details get successfully!",
-      data: getData,
+      data: finalArrData,
     })
   } catch (err) {
     res.status(500).json({
@@ -2318,7 +2332,7 @@ const getDispatchDataById = async (req, res) => {
 }
 
 
-let redisClient = require("../config/redisInit");
+
 const activityModel = require('../model/activityModel');
 const productionModel = require('../model/productionModel');
 const registeredHospitalModel = require('../model/registeredHospitalModel');
@@ -2597,6 +2611,7 @@ const getAssignedDeviceById1 = async (req, res) => {
     })
   }
 }
+
 
 const getAssignedDeviceById = async (req, res) => {
   try {

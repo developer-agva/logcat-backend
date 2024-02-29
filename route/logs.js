@@ -211,8 +211,8 @@ router.get("/deviceTrends/:did", getTrendsById);
 router.get("/deviceAlerts/:did", getAlertsById);
 router.get("/deviceEvents/:did", getEventsById);
 router.get("/deviceLogs/:device", getLogsById);
-router.get("/Allevents/Events",isAuth, getAllDeviceId);
-router.get("/Allevents/get-devices-for-users", getAllDevicesForUsers)
+router.get("/Allevents/Events", isAuth, getAllDeviceId);
+router.get("/Allevents/get-devices-for-users", isAuth, getAllDevicesForUsers)
 router.get("/Allevents/get-focused-devices", getAllFocusedDevicesForUsers)
 
 // router.get("/example", async (req,res)=>{

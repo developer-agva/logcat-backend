@@ -44,7 +44,7 @@ const userSchema = mongoose.Schema({
     userType:{
         type: String,
         required:true,
-        enum:["User", "Admin", "Super-Admin", "Dispatch", "Production", "Support", "Service-Engineer","Nurse","Hospital-Admin","Accounts"],
+        enum:["User", "Admin", "Super-Admin", "Dispatch", "Production", "Support", "Service-Engineer","Doctor","Hospital-Admin","Accounts","Assistant"],
     },
     isSuperAdmin:{
         type:Boolean,
@@ -103,6 +103,11 @@ const userSchema = mongoose.Schema({
         type : String,
         default: "",
     },
+    securityCode:{
+        type: String,
+        default:"",
+    },
+    // access:[]
 }, {timestamps: true})
 
 const User = mongoose.model('User',userSchema)
