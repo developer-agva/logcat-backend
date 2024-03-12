@@ -542,20 +542,43 @@ const getAllDevices = async (req, res) => {
 
 const getDeviceCountData = async (req, res) => {
   try {
-    const deviceCount = await aboutDeviceModel.aggregate([
+    const soldCount = await aboutDeviceModel.aggregate([
+      {
+        $match: {
+          purpose:"Sold"
+        }
+      },
       {
         $group: {
           _id: "$purpose",
           count: { $sum: 1 },
         }
       }
-    ]) 
-    if (!!deviceCount) {
+    ])
+    
+    const demoCount = await aboutDeviceModel.aggregate([
+      {
+        $match: {
+          purpose:"Demo"
+        }
+      },
+      {
+        $group: {
+          _id: "$purpose",
+          count: { $sum: 1 },
+        }
+      }
+    ])
+
+    // merge both data
+    let totalCount = [...soldCount, ...demoCount]
+
+    if (!!totalCount) {
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Device data count get successfully.",
-        data: deviceCount
+        data: totalCount
       })
     }
   } catch (err) {
@@ -2091,6 +2114,7 @@ const updateAboutData = async (req, res) => {
       req.body,
       { upsert: true }
     )
+    await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{purpose:req.body.purpose})
     // const saveDoc = await saveDispatchData.save();
     if (!saveDispatchData) {
       return res.status(400).json({

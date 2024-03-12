@@ -4,10 +4,11 @@ const s3PatientFileModel = require('../model/s3PatientFileModel');
 let redisClient = require("../config/redisInit");
 const User = require('../model/users');
 const RegisterDevice = require('../model/RegisterDevice');
+const statusModel = require('../model/statusModel');
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 // const jwt = require('jsonwebtoken')
-
+const mongoose = require('mongoose')
 
 /**
  * api      POST @/patient/save-uhid-details
@@ -30,7 +31,7 @@ const saveUhid = async (req, res) => {
       },
       { upsert: true, new: true }
     )
-    console.log(11,req.body)
+    
     // if (!patientData) {
     //   return res.status(200).json({
     //     statusCode: 200,
@@ -112,7 +113,7 @@ const saveDiagnose = async (req, res) => {
 const updatePatientById = async (req, res) => {
   try {
     const patientData = await patientModel.findOneAndUpdate(
-      {UHID:req.params.UHID},
+      {_id:mongoose.Types.ObjectId(req.params.id)},
       req.body,
       { upsert: true }
     );
@@ -150,17 +151,73 @@ const updatePatientById = async (req, res) => {
  */
 const getAllUhid = async (req, res) => {
   try {
-    // check userType
+    // Search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 99999;
+    }
+
+    // Check userType
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);  
     
-    // for logger user activity
+    // For logger user activity
     const loggedInUser = await User.findById({_id:verified.user});
-    
-    if (loggedInUser.userType == "Admin"||"Nurse"||"Super-Admin") {
-      const getList = await patientModel.find({},{__v:0,createdAt:0,updatedAt:0,})
+    // console.log(loggedInUser)
+    // Declare blank object
+    // let filterObj = {};
+    // if (loggedInUser.userType == "Admin"||"Nurse"||"Super-Admin"||"Assistant"||"Hospital-Admin"||"Doctor") {
+      // get device list on the basis of user hospital name
+      const deviceData = await statusModel.aggregate([
+        {
+          $lookup:
+          {
+            from: "registerdevices",
+            localField: "deviceId",
+            foreignField: "DeviceId",
+            as: "deviceInfo"
+          }
+        },
+        {
+          $match:{"deviceInfo.Hospital_Name":loggedInUser.hospitalName}
+        },
+        {
+          $project:{
+            "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+            "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+          }
+        },
+        {
+          $sort: { updatedAt:-1 },
+        },
+      ])
+
+      // get deviceIds
+      let deviceIds = deviceData.map((item) => item.deviceId)
+      deviceIds = [...new Set(deviceIds)]
+      
+      // Get patient list
+      const getList = await patientModel.find({deviceId:{$in:deviceIds}},{__v:0,createdAt:0,updatedAt:0,})
       .sort({ createdAt: -1 });
       
+      // Paginate data array
+      const paginateArray =  (getList, page, limit) => {
+        const skip = getList.slice((page - 1) * limit, page * limit);
+        return skip;
+      };
+      
+      var allDevices = paginateArray(getList, page, limit)
+      
+      // Check data length
       if (!getList) {
         return res.status(400).json({
           statusCode: 400,
@@ -173,14 +230,11 @@ const getAllUhid = async (req, res) => {
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Patient list get successfully.",
-        data: getList
+        data: allDevices,
+        totalDataCount: getList.length,
+        totalPages: Math.ceil( (getList.length)/ limit),
+        currentPage: page,
       })
-    }
-    return res.status(400).json({
-      statusCode: 400,
-      statusValue: "FAIL",
-      message: "You don't have permission",
-    })
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -193,6 +247,67 @@ const getAllUhid = async (req, res) => {
     })
   }
 }
+
+/**
+ * api      GET @/patient/get-allUhid/:deviceId
+ * desc     @getAllUhid for logger access only
+ */
+const getAllUhidBydeviceId = async (req, res) => {
+  try {
+    // for pagination
+      let page = req.query.page
+      let limit = req.query.limit
+      if (!page || page === "undefined") {
+      page = 1;
+      }
+      if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 999999;
+      } 
+
+      // get data
+      const getList = await patientModel.find({deviceId:req.params.deviceId},{__v:0,createdAt:0,updatedAt:0})
+      .sort({ createdAt: -1 });
+      
+      // for pagination
+      const paginateArray =  (getList, page, limit) => {
+        const skip = getList.slice((page - 1) * limit, page * limit);
+        return skip;
+      }
+      
+      let allData = paginateArray(getList, page, limit)
+
+      if (!!allData.length>0) {
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Patient list get successfully.",
+          data: allData,
+          currentData: [allData[0]],
+          totalDataCount: getList.length,
+          totalPages: Math.ceil( (getList.length)/limit),
+          currentPage: page,
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
+      })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
 
 /**
  * api      GET @/patient/get-allUhid
@@ -234,10 +349,9 @@ const getAllUhids = async (req, res) => {
  * api      GET @/patient/get-patient-details/:UHID
  * desc     @getDataByUhid for logger access only
  */
-const getDataByUhid = async (req, res) => {
+const getDataById = async (req, res) => {
   try {
-    const UHID = req.params.UHID;
-    const getData = await patientModel.findOne({UHID:UHID},{__v:0,});
+    const getData = await patientModel.findOne({_id:mongoose.Types.ObjectId(req.params.id)},{__v:0,});
     
     // check UHID data
     if (!getData) {
@@ -350,9 +464,10 @@ module.exports = {
   saveUhid,
   getAllUhid,
   getAllUhids,
-  getDataByUhid,
+  getDataById,
   saveDiagnose,
   updatePatientById,
   deletePatientById,
-  getDiagnoseByUhid
+  getDiagnoseByUhid,
+  getAllUhidBydeviceId
 }

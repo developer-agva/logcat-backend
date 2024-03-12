@@ -15,6 +15,7 @@
   "author": "DnD Technologies",
   "license": "MIT",
   "dependencies": {
+    "@apollo/server": "^4.10.1",
     "@aws-sdk/abort-controller": "^3.374.0",
     "@aws-sdk/client-s3": "^3.427.0",
     "api": "^6.1.1",
@@ -33,6 +34,7 @@
     "express-validator": "^6.14.2",
     "firebase": "^10.8.0",
     "firebase-admin": "^12.0.0",
+    "graphql": "^16.8.1",
     "html-to-text": "^8.2.0",
     "india-pincode-search": "^1.0.2",
     "joi": "^17.9.2",

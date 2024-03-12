@@ -219,6 +219,7 @@ io.on('connection', (socket) => {
     console.log("run react stop android" , data)
     socket.broadcast.emit('AndroidReceiveStop',data);
   })
+  
   // android stop auto
   socket.on('AndroidStopAuto',(data)=>{
     console.log("run auto stop android")

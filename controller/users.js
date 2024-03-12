@@ -621,7 +621,10 @@ const loginUser = async (req, res) => {
         userType:isUserExist.userType,
         isSuperAdmin: isUserExist.isSuperAdmin,
         userStatus:isUserExist.userStatus,
-        securityCode:isUserExist.securityCode
+        securityCode:isUserExist.securityCode,
+        designation:!!(isUserExist.designation) ? isUserExist.designation : "",
+        contactNumber:!!(isUserExist.contactNumber) ? isUserExist.contactNumber : "",
+        speciality:!!(isUserExist.speciality) ? isUserExist.speciality : "", 
       }
     });
   } catch (err) {

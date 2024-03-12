@@ -891,6 +891,7 @@ const getAwaitingForShippedData = async (req, res) => {
  */
 const getSignleDispatchedData = async (req, res) => {
     try {
+
         // aggregate logic
         var pipline = [
             // Match
@@ -1006,14 +1007,15 @@ const getSignleDispatchedData = async (req, res) => {
            },
         ]
         // get data
-        const resData = await productionModel.aggregate(pipline)
-
+        let resData = await productionModel.aggregate(pipline)
+        const dispatchData = await aboutDeviceModel.findOne({serial_no:req.params.serialNo})
+        
         if (resData.length>0) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue:"SUCCESS",
                 message:"shipped data get successfully.",
-                data: resData[0]
+                data: {...resData[0], hospitalName:dispatchData.hospital_name,address:dispatchData.address}
             })
         }
         return res.status(400).json({
@@ -1034,7 +1036,6 @@ const getSignleDispatchedData = async (req, res) => {
         })
     }
 }
-
 
 
 /**
