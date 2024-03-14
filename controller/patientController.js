@@ -10,7 +10,8 @@ let redisClient = require("../config/redisInit");
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 require("dotenv").config({ path: "../.env" });
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
+const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel');
 
 /**
  * api      POST @/patient/save-uhid-details
@@ -192,36 +193,42 @@ const getAllUhid = async (req, res) => {
     // console.log(loggedInUser)
     // Declare blank object
     // let filterObj = {};
-    // if (!!loggedInUser && loggedInUser.userType == "Doctor"|| loggedInUser.userType == "Assistant") {
-        
-    // }
+    let assignDeviceData = []
+    if (!!loggedInUser && loggedInUser.userType == "Doctor") {
+      assignDeviceData = await assignDeviceTouserModel.find({userId:loggedInUser._id})
+      // console.log(assignDeviceData)
+    } else if (loggedInUser.userType == "Assistant") {
+      assignDeviceData = await assignDeviceTouserModel.find({assistantId:loggedInUser._id})
+      // console.log(22)
+    }
+    // console.log(11,assignDeviceData)
       // get device list on the basis of user hospital name
-      const deviceData = await statusModel.aggregate([
-        {
-          $lookup:
-          {
-            from: "registerdevices",
-            localField: "deviceId",
-            foreignField: "DeviceId",
-            as: "deviceInfo"
-          }
-        },
-        {
-          $match:{"deviceInfo.Hospital_Name":loggedInUser.hospitalName}
-        },
-        {
-          $project:{
-            "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
-            "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
-          }
-        },
-        {
-          $sort: { updatedAt:-1 },
-        },
-      ])
+      // const deviceData = await statusModel.aggregate([
+      //   {
+      //     $lookup:
+      //     {
+      //       from: "registerdevices",
+      //       localField: "deviceId",
+      //       foreignField: "DeviceId",
+      //       as: "deviceInfo"
+      //     }
+      //   },
+      //   {
+      //     $match:{"deviceInfo.Hospital_Name":loggedInUser.hospitalName}
+      //   },
+      //   {
+      //     $project:{
+      //       "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+      //       "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+      //     }
+      //   },
+      //   {
+      //     $sort: { updatedAt:-1 },
+      //   },
+      // ])
 
       // get deviceIds
-      let deviceIds = deviceData.map((item) => item.deviceId)
+      let deviceIds = assignDeviceData.map((item) => item.deviceId)
       deviceIds = [...new Set(deviceIds)]
       
       // Get patient list

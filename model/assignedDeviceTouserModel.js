@@ -29,6 +29,10 @@ const assignDeviceSchema = mongoose.Schema({
         required: true,
         default: "",
     },
+    assistantId: {
+        type: String,
+        default: "",
+    },
     
 
 }, { timestamps: true })

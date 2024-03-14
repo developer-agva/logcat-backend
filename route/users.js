@@ -38,7 +38,8 @@ const {
     endAssociation,
     updatePrimaryEmail,
     getAllEmployeeList,
-    getAllInactiveUsers
+    getAllInactiveUsers,
+    assignDeviceToAssistant
 } = require('../controller/users.js')
 
 const {
@@ -58,7 +59,8 @@ router.post('/verify-sms-otp', verifyOtpSms);
 
 router.post('/send-device-req', sendReqForDevice);    // for doctor role
 router.get('/get-user-device-req', getUserDeviceReq); // get device req list for hodpital-admin
-router.post('/accept-or-reject-device-req', acceptOrRejectdeviceReq);
+router.post('/accept-or-reject-device-req', acceptOrRejectdeviceReq);   // hospital admin can accept or reject device req
+router.post('/assign-device-to-assistant', assignDeviceToAssistant); // done
 
 
 // router.post("/auth/forget", body('email').notEmpty().isEmail(), userForgetPassword);

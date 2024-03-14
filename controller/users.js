@@ -2663,6 +2663,72 @@ const acceptOrRejectdeviceReq = async (req, res) => {
 }
 
 // User send req for device access
+const assignDeviceToAssistant = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      deviceId: Joi.string().required(),
+      assistantId: Joi.string().required(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+
+    // check already exists
+    const checkData = await assignDeviceTouserModel.findOne({ $and:[{deviceId:req.body.deviceId}, {assistantId:req.body.assistantId}]});
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "already exists."
+      })
+    }
+    // for loggedin user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user}); 
+
+    const assignData = await assignDeviceTouserModel.findOneAndUpdate({
+      $and:[{userId:loggedInUser._id},{deviceId:req.body.deviceId}]
+    },
+    {
+      assistantId:req.body.assistantId
+    },{upsert:true})
+    console.log(11,req.body)
+    if (!!assignData) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data added successfully.",
+        data: assignData
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Error ! while adding data",
+    })
+    
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+// User send req for device access
 const sendReqForDevice = async (req, res) => {
   try {
     const schema = Joi.object({
@@ -2801,5 +2867,6 @@ module.exports = {
   endAssociation,
   updatePrimaryEmail,
   getAllEmployeeList,
-  getAllInactiveUsers
+  getAllInactiveUsers,
+  assignDeviceToAssistant
 };

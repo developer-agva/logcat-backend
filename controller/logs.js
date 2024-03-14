@@ -1581,70 +1581,113 @@ const getAllDeviceId = async (req, res) => {
       $sort: { updatedAt:-1 },
     },
   ]);
-  var finalArr = [...activeDevices, ...inactiveDevices];
-  // remove duplicate records
-  var key = "deviceId";
-  let updatedArray = []
-  let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
+
+    var finalArr = [...activeDevices, ...inactiveDevices];
+    // remove duplicate records
+    var key = "deviceId";
+    let updatedArray = []
+    let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
 
 
-  // show isAssigned key for doctor role or assistant role
-  if (!!loggedInUser && (loggedInUser.userType === "Doctor" || loggedInUser.userType === "Assistant")) {
-    const assignDeviceData = await assignDeviceTouserModel.find({userId:loggedInUser._id})
-    
-    // map data for isAssigned key 
-    function updateIsAssigned(arrayUniqueByKey, assignDeviceData) {
-      // Map deviceId to assignDeviceData for faster lookup
-      const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
+    // show isAssigned key for doctor role or assistant role
+    if (!!loggedInUser && (loggedInUser.userType === "Doctor")) {
+      const assignDeviceData = await assignDeviceTouserModel.find({ userId: loggedInUser._id })
+
+      // map data for isAssigned key 
+      function updateIsAssigned(arrayUniqueByKey, assignDeviceData) {
+        // Map deviceId to assignDeviceData for faster lookup
+        const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
           map[assign.deviceId] = assign;
           return map;
-      }, {});
-  
-      // Update isAssigned based on matching deviceId
-      return arrayUniqueByKey.map(item => {
+        }, {});
+
+        // Update isAssigned based on matching deviceId
+        return arrayUniqueByKey.map(item => {
           const assignInfo = assignDeviceMap[item.deviceId];
           if (assignInfo && assignInfo.isAssigned === 'Accepted') {
-              item.isAssigned = true;
+            item.isAssigned = true;
           } else {
-              item.isAssigned = false;
+            item.isAssigned = false;
           }
           return item;
-      });
-  }
-  
-  updatedArray = updateIsAssigned(arrayUniqueByKey, assignDeviceData);
-  // console.log(123, updatedArray);
-    
-  } 
+        });
+      }
 
+      updatedArray = updateIsAssigned(arrayUniqueByKey, assignDeviceData);
+      // console.log(123, updatedArray);
 
-  updatedArray = arrayUniqueByKey
+    } else if (!!loggedInUser && (loggedInUser.userType === "Assistant")) {
+      const assignDeviceData = await assignDeviceTouserModel.find({ assistantId: loggedInUser._id })
+      // start
+      function updateAndFilterArray(arrayUniqueByKey, assignDeviceData) {
+        // Map deviceId to isAssigned for faster lookup
+        const isAssignedMap = assignDeviceData.reduce((map, assign) => {
+          map[assign.deviceId] = assign.isAssigned === 'Accepted';
+          return map;
+        }, {});
 
-  // For pagination
-  const paginateArray =  (updatedArray, page, limit) => {
-  const skip = updatedArray.slice((page - 1) * limit, page * limit);
-  return skip;
-  };
+        // Filter and update arrayUniqueByKey
+        const filteredArray = arrayUniqueByKey.filter(item => {
+          const isAssigned = isAssignedMap[item.deviceId];
+          if (isAssigned !== undefined) {
+            item.addTofocus = isAssigned;
+            return true;
+          }
+          return false;
+        });
 
-  var allDevices = paginateArray(updatedArray, page, limit)
-  if (updatedArray.length > 0) {
-    return res.status(200).json({
-      status: 200,
-      statusValue: "SUCCESS",
-      message: "Event lists has been retrieved successfully.",
-      data: { data: allDevices, },
-      totalDataCount: updatedArray.length,
-      totalPages: Math.ceil( (updatedArray.length)/ limit),
-      currentPage: page,
-      // tempData: allDevices,
-    })
-  }
-  return res.status(400).json({
-    status: 400,
-    statusValue: "FAIL",
-    message: 'Data not found.',
-    data: {}
-  });
+        return filteredArray;
+      }
+
+      const filteredArray = updateAndFilterArray(arrayUniqueByKey, assignDeviceData);
+      // console.log(123,filteredArray);
+      const paginateArray = (filteredArray, page, limit) => {
+        const skip = filteredArray.slice((page - 1) * limit, page * limit);
+        return skip;
+      };
+
+      var allDevices = paginateArray(filteredArray, page, limit)
+
+      return res.status(200).json({
+        status: 200,
+        statusValue: "SUCCESS",
+        message: "Event lists has been retrieved successfully.",
+        data: { data: allDevices, },
+        totalDataCount: filteredArray.length,
+        totalPages: Math.ceil((filteredArray.length) / limit),
+        currentPage: page,
+        // tempData: allDevices,
+      })
+
+    }
+
+    updatedArray = arrayUniqueByKey
+
+    // For pagination
+    const paginateArray = (updatedArray, page, limit) => {
+      const skip = updatedArray.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    var allDevices = paginateArray(updatedArray, page, limit)
+    if (updatedArray.length > 0) {
+      return res.status(200).json({
+        status: 200,
+        statusValue: "SUCCESS",
+        message: "Event lists has been retrieved successfully.",
+        data: { data: allDevices, },
+        totalDataCount: updatedArray.length,
+        totalPages: Math.ceil((updatedArray.length) / limit),
+        currentPage: page,
+        // tempData: allDevices,
+      })
+    }
+    return res.status(400).json({
+      status: 400,
+      statusValue: "FAIL",
+      message: 'Data not found.',
+      data: {}
+    });
   } catch (err) {
     return res.status(500).json({
       status: -1,
@@ -1659,6 +1702,7 @@ const getAllDeviceId = async (req, res) => {
     });
   }
 };
+
 
 /**
  * desc     Alert
