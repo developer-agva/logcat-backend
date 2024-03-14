@@ -56,8 +56,8 @@ router.post('/auth/register-for-dashboard', registerUserForSuperAdmin);
 router.get('/send-otp-sms/:contactNumber', sendOtpSms);
 router.post('/verify-sms-otp', verifyOtpSms);
 
-router.post('/send-device-req', sendReqForDevice);
-router.get('/get-user-device-req', getUserDeviceReq);
+router.post('/send-device-req', sendReqForDevice);    // for doctor role
+router.get('/get-user-device-req', getUserDeviceReq); // get device req list for hodpital-admin
 router.post('/accept-or-reject-device-req', acceptOrRejectdeviceReq);
 
 

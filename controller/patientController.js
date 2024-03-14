@@ -1,13 +1,15 @@
 const Joi = require('joi');
 const patientModel = require('../model/patientModel');
 const s3PatientFileModel = require('../model/s3PatientFileModel');
-let redisClient = require("../config/redisInit");
+// let redisClient = require("../config/redisInit");
 const User = require('../model/users');
 const RegisterDevice = require('../model/RegisterDevice');
 const statusModel = require('../model/statusModel');
+const { validationResult } = require('express-validator');
+let redisClient = require("../config/redisInit");
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
-// const jwt = require('jsonwebtoken')
+require("dotenv").config({ path: "../.env" });
 const mongoose = require('mongoose')
 
 /**
@@ -112,12 +114,27 @@ const saveDiagnose = async (req, res) => {
  */
 const updatePatientById = async (req, res) => {
   try {
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // console.log(verified)
+    const loggedInUser = await User.findById({_id:verified.user});
+
     const patientData = await patientModel.findOneAndUpdate(
       {_id:mongoose.Types.ObjectId(req.params.id)},
-      req.body,
+      {
+        UHID:!!(req.body.UHID) ? req.body.UHID : "",
+        age:!!(req.body.age) ? req.body.age : "",
+        deviceId:!!(req.body.deviceId) ? req.body.deviceId : "",
+        weight:!!(req.body.weight) ? req.body.weight : "",
+        height:!!(req.body.height) ? req.body.height : "",
+        patientName:!!(req.body.patientName) ? req.body.patientName : "",
+        hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "",
+        dosageProvided:!!(req.body.dosageProvided) ? req.body.dosageProvided : "",
+        ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
+        doctor_name:!!(req.body.doctor_name) ? req.body.doctor_name : "",
+      },
       { upsert: true }
     );
-  
     if (!patientData) {
       return res.status(400).json({
         statusCode: 400,
@@ -131,7 +148,7 @@ const updatePatientById = async (req, res) => {
       message: "Data added successfully.",
       // data: patientData
     });
-  } catch (error) {
+  } catch (err) {
     return res.status(500).json({
       statusCode: 500,
       statusValue: "FAIL",
@@ -175,7 +192,9 @@ const getAllUhid = async (req, res) => {
     // console.log(loggedInUser)
     // Declare blank object
     // let filterObj = {};
-    // if (loggedInUser.userType == "Admin"||"Nurse"||"Super-Admin"||"Assistant"||"Hospital-Admin"||"Doctor") {
+    // if (!!loggedInUser && loggedInUser.userType == "Doctor"|| loggedInUser.userType == "Assistant") {
+        
+    // }
       // get device list on the basis of user hospital name
       const deviceData = await statusModel.aggregate([
         {

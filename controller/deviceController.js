@@ -2464,7 +2464,7 @@ const assignedDeviceToUser = async (req, res) => {
       })
     }
     const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.jwtr_SECRET);
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
 
     // console.log('resp2',verified.user)
 

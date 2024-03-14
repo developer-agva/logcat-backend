@@ -1545,7 +1545,7 @@ const getAllDeviceId = async (req, res) => {
     filterObj,
     {
       $project:{
-        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
         "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
       }
     },
@@ -1573,7 +1573,7 @@ const getAllDeviceId = async (req, res) => {
     filterObj,
     {
       $project:{
-        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
         "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
       }
     },
@@ -1584,30 +1584,57 @@ const getAllDeviceId = async (req, res) => {
   var finalArr = [...activeDevices, ...inactiveDevices];
   // remove duplicate records
   var key = "deviceId";
+  let updatedArray = []
   let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
 
-  // let resArr1 = [];
-  // let resArr2 = [];
-  // filter data on the basis of userType
- 
-  // console.log(loggedInUser)
-  // get data by user role
-  // console.log(333, resultArr)
+
+  // show isAssigned key for doctor role or assistant role
+  if (!!loggedInUser && (loggedInUser.userType === "Doctor" || loggedInUser.userType === "Assistant")) {
+    const assignDeviceData = await assignDeviceTouserModel.find({userId:loggedInUser._id})
+    
+    // map data for isAssigned key 
+    function updateIsAssigned(arrayUniqueByKey, assignDeviceData) {
+      // Map deviceId to assignDeviceData for faster lookup
+      const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
+          map[assign.deviceId] = assign;
+          return map;
+      }, {});
+  
+      // Update isAssigned based on matching deviceId
+      return arrayUniqueByKey.map(item => {
+          const assignInfo = assignDeviceMap[item.deviceId];
+          if (assignInfo && assignInfo.isAssigned === 'Accepted') {
+              item.isAssigned = true;
+          } else {
+              item.isAssigned = false;
+          }
+          return item;
+      });
+  }
+  
+  updatedArray = updateIsAssigned(arrayUniqueByKey, assignDeviceData);
+  // console.log(123, updatedArray);
+    
+  } 
+
+
+  updatedArray = arrayUniqueByKey
+
   // For pagination
-  const paginateArray =  (arrayUniqueByKey, page, limit) => {
-  const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
+  const paginateArray =  (updatedArray, page, limit) => {
+  const skip = updatedArray.slice((page - 1) * limit, page * limit);
   return skip;
   };
 
-  var allDevices = paginateArray(arrayUniqueByKey, page, limit)
-  if (arrayUniqueByKey.length > 0) {
+  var allDevices = paginateArray(updatedArray, page, limit)
+  if (updatedArray.length > 0) {
     return res.status(200).json({
       status: 200,
       statusValue: "SUCCESS",
       message: "Event lists has been retrieved successfully.",
       data: { data: allDevices, },
-      totalDataCount: arrayUniqueByKey.length,
-      totalPages: Math.ceil( (arrayUniqueByKey.length)/ limit),
+      totalDataCount: updatedArray.length,
+      totalPages: Math.ceil( (updatedArray.length)/ limit),
       currentPage: page,
       // tempData: allDevices,
     })

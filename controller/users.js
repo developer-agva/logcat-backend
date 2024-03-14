@@ -66,7 +66,7 @@ const registerUser = async (req, res) => {
           "The email is already in use. Please try to login using the email address or sign up with a different email address. ",
       });
     }
-
+    
     // check hospital name
     const checkHospital = await registeredHospitalModel.findOne({Hospital_Name:req.body.hospitalName});
     if (!checkHospital) {
@@ -1941,7 +1941,9 @@ const getAllActiveUSers = async (req, res) => {
       // count users
       count = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName }, { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },{ accountStatus: "Active" }
+          { hospitalName: checkUser.hospitalName }, 
+          { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },
+          { accountStatus: "Active" }
         ]
       })
         .sort({ createdAt: -1 })
@@ -2205,7 +2207,9 @@ const getAllPendingUsers = async (req, res) => {
       // count users
       count = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },{ $or: [{ userType: "User" },{ userType: "Assistant" }] },{ accountStatus: "Initial" }
+          { hospitalName: checkUser.hospitalName },
+          { $or: [{ userType: "User" },{ userType: "Assistant" }] },
+          { accountStatus: "Initial" }
         ]
       })
         .sort({ createdAt: -1 })
@@ -2233,7 +2237,9 @@ const getAllPendingUsers = async (req, res) => {
       // count users
       count = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },{ $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },{ accountStatus: "Initial" }
+          { hospitalName: checkUser.hospitalName },
+          { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },
+          { accountStatus: "Initial" }
         ]
       })
         .sort({ createdAt: -1 })
@@ -2268,6 +2274,7 @@ const getAllPendingUsers = async (req, res) => {
     })
   }
 }
+
 
 /**
  * @desc - get all user
@@ -2586,6 +2593,7 @@ const deleteSingleUser = async (req, res) => {
   }
 }
 
+
 // User send req for device access
 const acceptOrRejectdeviceReq = async (req, res) => {
   try {
@@ -2669,6 +2677,7 @@ const sendReqForDevice = async (req, res) => {
       })
     }
     
+
     // for loggedin user details
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
@@ -2719,16 +2728,17 @@ const sendReqForDevice = async (req, res) => {
   }
 }
 
+
+// get device req list for hospital-admin role
 const getUserDeviceReq = async (req, res) => {
   try {
-    // const token = req.headers["authorization"].split(' ')[1];
-    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-    // const loggedInUser = await User.findById({_id:verified.user});
-    const loggedInUser = "";    
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});    
     const getReqData = await sendDeviceReqModel.find({
       hospitalName:!!(loggedInUser.hospitalName)?loggedInUser.hospitalName:"KGMU Lucknow"
     })
-
+    
     if (getReqData.length<1) {
       return res.status(400).json({
         statusCode: 400,

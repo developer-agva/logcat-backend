@@ -961,7 +961,7 @@ const getSignleDispatchedData = async (req, res) => {
            {
                "$set": {
                  "ewayBillData": {"$first": "$ewayBillData"},
-                 "invoiceBillData": {"$first": "$invoiceBillData"},
+                 "invoiceBillData": {"$last": "$invoiceBillData"},
                  "accountsData": {"$first": "$accountsData"},
                  "prodData": {"$first": "$prodData"},
                  "poFileData": {"$first":"$poFileData"},
@@ -1065,8 +1065,8 @@ const getMArkAsShipped = async (req, res) => {
                }
            },
 
-        //    For this data model, will always be 1 record in right-side
-        //    of join, so take 1st joined array element
+           //    For this data model, will always be 1 record in right-side
+           //    of join, so take 1st joined array element
            {
                "$set": {
                  "shippingInvoiceData": {"$first": "$shippingInvoiceData"},
@@ -1089,7 +1089,7 @@ const getMArkAsShipped = async (req, res) => {
                  // "isVerified",
                ]
            },
-       ]
+        ]
         // get data
         const resData = await productionModel.aggregate(pipline);
         if (resData.length>0) {
