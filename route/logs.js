@@ -109,9 +109,10 @@ router.get('/getAssignedDeviceByUserId/:userId', isAuth, deviceController.getAss
 router.get('/get-device-access-list/:deviceId', isAuth, deviceController.getDeviceAccessUsersByDeviceId);
 router.get('/get-device-access-users', isAuth, deviceController.getDeviceAccessUsers);
 
+router.get('/get-device-access-ast-list', isAuth, deviceController.getDeviceAccessAstList);
 
 router.delete('/delete-access-from-assistant/:_id', isAuth, deviceController.deleteDeviceAccessFromAst);
-router.delete('/delete-access-from-doctor/:_id', isAuth, deviceController.deleteDeviceAccessFromAst);
+router.delete('/delete-access-from-doctor/:_id', isAuth, deviceController.deleteDeviceAccessFromDoctor);
 
 router.get('/adminDashboardDataCount', deviceController.getAdminDashboardDataCount);
 router.get('/getTotalDevicesCount/:filterType', deviceController.getTotalDevicesDataCount);

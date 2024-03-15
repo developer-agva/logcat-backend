@@ -2793,6 +2793,82 @@ const getDeviceAccessUsersByDeviceId = async (req, res) => {
   }
 }
 
+
+const getDeviceAccessAstList = async (req, res) => {
+  try {
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({ _id: verified.user });
+    // console.log(11,loggedInUser)
+    var pipline = [
+      // Match
+      {
+        "$match": { $and:[{userId:loggedInUser._id},{assistantId:{$ne:""}}] },
+      },
+      {
+        "$lookup": {
+          "from": "registerdevices",
+          "localField": "deviceId",
+          "foreignField": "DeviceId",
+          "as": "deviceDetails",
+        },
+      },
+      {
+        "$lookup": {
+          "from": "users",
+          "localField": "assistantId",
+          "foreignField": "_id",
+          "as": "userDetails",
+        },
+      },
+      {
+        "$unset": [
+          // "users",
+          "__v",
+          "createdAt",
+          "updatedAt",
+          "otp",
+          // "deviceDetails",
+          "status",
+          "assignedBy"
+        ]
+      },
+      {
+        "$sort": { "updatedAt": -1 }
+      },
+    ]
+    const assignData = await assignDeviceTouserModel.aggregate(pipline)
+    // console.log(assignData)
+    if (!assignData.length) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "assigned device get successfully!",
+      data: assignData
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+
 const getDeviceAccessUsers = async (req, res) => {
   try {
     const token = req.headers["authorization"].split(' ')[1];
@@ -2881,7 +2957,7 @@ const getDeviceAccessUsers = async (req, res) => {
   }
 }
 
-const deleteDeviceAccessFromDoctor = async (req, res) => {
+const deleteDeviceAccessFromAst = async (req, res) => {
   try {
     // for logger activity
     // const token = req.headers["authorization"].split(' ')[1];
@@ -2917,9 +2993,7 @@ const deleteDeviceAccessFromDoctor = async (req, res) => {
 }
 
 
-
-
-const deleteDeviceAccessFromAst = async (req, res) => {
+const deleteDeviceAccessFromDoctor = async (req, res) => {
   try {
     // for logger activity
     // const token = req.headers["authorization"].split(' ')[1];
@@ -3514,5 +3588,6 @@ module.exports = {
   saveStatusV2,
   getSignleFocusDevice,
   getDeviceCountData,
-  deleteDeviceAccessFromDoctor
+  deleteDeviceAccessFromDoctor,
+  getDeviceAccessAstList
 }

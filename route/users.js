@@ -95,6 +95,7 @@ router.get('/active-users-list', isAuth, getAllActiveUSers);
 
 router.get('/get-assistant-list', isAuth, getAssistantList);
 
+
 router.get('/inactive-users-list', isAuth, getAllInactiveUsers);
 router.get('/active-admin-list', isAuth, getAllActiveAdmin);
 

@@ -31,10 +31,9 @@ const assignDeviceSchema = mongoose.Schema({
     },
     assistantId: {
         type: String,
-        default: "",
+        default:""
     },
     
-
 }, { timestamps: true })
 
 const assignDeviceTouserModel = mongoose.model('assigned_devices_tousers', assignDeviceSchema);

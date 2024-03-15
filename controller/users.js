@@ -1896,8 +1896,12 @@ const getAssistantList = async (req, res) => {
       .sort({ createdAt: -1 })
 
     const assignedAstList = await assignDeviceTouserModel.find({$and:[{userId:checkUser._id},{assistantId:{$ne:""}}]})
-    console.log(12, assignedAstList)
-    const filteredArray = getUsers.filter(obj1 => assignedAstList.some(obj2 => obj1._id != obj2.assistantId))
+    // console.log(12, assignedAstList)
+    let filteredArray = []
+    if(!!assignedAstList) {
+      filteredArray = getUsers.filter(obj1 => assignedAstList.some(obj2 => (obj1._id != obj2.assistantId ||obj2 == undefined)))
+    }
+    filteredArray = getUsers
     // console.log(13,filteredArray)
 
 
