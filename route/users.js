@@ -39,7 +39,8 @@ const {
     updatePrimaryEmail,
     getAllEmployeeList,
     getAllInactiveUsers,
-    assignDeviceToAssistant
+    assignDeviceToAssistant,
+    getAssistantList
 } = require('../controller/users.js')
 
 const {
@@ -91,6 +92,9 @@ router.get('/users-list', isAuth, getAllUsers);
 router.get('/employee-list', isAuth, getAllEmployeeList);
 
 router.get('/active-users-list', isAuth, getAllActiveUSers);
+
+router.get('/get-assistant-list', isAuth, getAssistantList);
+
 router.get('/inactive-users-list', isAuth, getAllInactiveUsers);
 router.get('/active-admin-list', isAuth, getAllActiveAdmin);
 

@@ -1863,6 +1863,71 @@ const getAllEmployeeList = async (req, res) => {
   }
 }
 
+/**
+ * @desc - get all active users
+ * @api - /api/logger/active-users-list
+ * @returns json data
+ */
+const getAssistantList = async (req, res) => {
+  try {
+
+    // for checking user roles
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // console.log(123, verified.user)
+    const checkUser = await User.findById({ _id: verified.user })
+
+    // Initialize variable
+  
+
+    // Get users on the basis of role
+    let getUsers = await User.find({
+        $and: [
+          { hospitalName: checkUser.hospitalName },
+          {
+            $or: [
+              { userType: "Assistant" }
+            ]
+          },
+          { accountStatus: "Active" }
+        ]
+      })
+      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+      .sort({ createdAt: -1 })
+
+    const assignedAstList = await assignDeviceTouserModel.find({$and:[{userId:checkUser._id},{assistantId:{$ne:""}}]})
+    console.log(12, assignedAstList)
+    const filteredArray = getUsers.filter(obj1 => assignedAstList.some(obj2 => obj1._id != obj2.assistantId))
+    // console.log(13,filteredArray)
+
+
+    if (filteredArray.length > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Assistant list get successfully.",
+        data: filteredArray,
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not found.",
+      data: []
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 
 /**
  * @desc - get all active users
@@ -2612,7 +2677,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
     }
 
     // check already exists
-    const checkData = await assignDeviceTouserModel.findOne({ deviceId:req.body.deviceId, userId:mongoose.Types.ObjectId(req.body.userId)});
+    const checkData = await assignDeviceTouserModel.findOne({ $and:[{deviceId:req.body.deviceId}, {userId:mongoose.Types.ObjectId(req.body.userId)}]});
     if (!!checkData) {
       return res.status(400).json({
         statusCode: 400,
@@ -2749,8 +2814,8 @@ const sendReqForDevice = async (req, res) => {
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user}); 
     // check data
-    const checkData = await sendDeviceReqModel.findOne({userId:loggedInUser._id,
-      deviceId:req.body.deviceId});
+    const checkData = await sendDeviceReqModel.findOne({$and:[{userId:loggedInUser._id},
+      {deviceId:req.body.deviceId}]});
     if (!!checkData) {
       return res.status(400).json({
         statusCode: 400,
@@ -2868,5 +2933,6 @@ module.exports = {
   updatePrimaryEmail,
   getAllEmployeeList,
   getAllInactiveUsers,
-  assignDeviceToAssistant
+  assignDeviceToAssistant,
+  getAssistantList
 };

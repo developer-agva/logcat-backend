@@ -1604,6 +1604,7 @@ const getAllDeviceId = async (req, res) => {
         // Update isAssigned based on matching deviceId
         return arrayUniqueByKey.map(item => {
           const assignInfo = assignDeviceMap[item.deviceId];
+          // console.log(11,assignInfo)
           if (assignInfo && assignInfo.isAssigned === 'Accepted') {
             item.isAssigned = true;
           } else {
@@ -1647,12 +1648,12 @@ const getAllDeviceId = async (req, res) => {
       };
 
       var allDevices = paginateArray(filteredArray, page, limit)
-
+      
       return res.status(200).json({
         status: 200,
         statusValue: "SUCCESS",
         message: "Event lists has been retrieved successfully.",
-        data: { data: allDevices, },
+        data: !!allDevices ? { data: allDevices } : {},
         totalDataCount: filteredArray.length,
         totalPages: Math.ceil((filteredArray.length) / limit),
         currentPage: page,

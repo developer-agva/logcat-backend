@@ -2889,8 +2889,9 @@ const deleteDeviceAccessUser = async (req, res) => {
     // const token = req.headers["authorization"].split(' ')[1];
     // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
-    const removeData = await assignDeviceTouserModel.findByIdAndDelete(
+    const removeData = await assignDeviceTouserModel.findByIdAndUpdate(
       { _id: mongoose.Types.ObjectId(req.params._id) },
+      {assistantId:""}
     )
     if (!removeData) {
       return res.status(400).json({
