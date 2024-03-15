@@ -2881,9 +2881,7 @@ const getDeviceAccessUsers = async (req, res) => {
   }
 }
 
-
-
-const deleteDeviceAccessUser = async (req, res) => {
+const deleteDeviceAccessFromDoctor = async (req, res) => {
   try {
     // for logger activity
     // const token = req.headers["authorization"].split(' ')[1];
@@ -2892,6 +2890,43 @@ const deleteDeviceAccessUser = async (req, res) => {
     const removeData = await assignDeviceTouserModel.findByIdAndUpdate(
       { _id: mongoose.Types.ObjectId(req.params._id) },
       {assistantId:""}
+    )
+    if (!removeData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not deleted.",
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data deleted successfully.",
+    });
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+
+const deleteDeviceAccessFromAst = async (req, res) => {
+  try {
+    // for logger activity
+    // const token = req.headers["authorization"].split(' ')[1];
+    // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
+    // const loggedInUser = await User.findById({_id:verified.user});
+    const removeData = await assignDeviceTouserModel.findByIdAndDelete(
+      { _id: mongoose.Types.ObjectId(req.params._id) }
     )
     if (!removeData) {
       return res.status(400).json({
@@ -3455,7 +3490,7 @@ module.exports = {
   sendAndReceiveData,
   assignedDeviceToUser,
   getAssignedDeviceById,
-  deleteDeviceAccessUser,
+  deleteDeviceAccessFromAst,
   getAdminDashboardDataCount,
   getTotalDevicesDataCount,
   getTotalDevicesDataCount1,
@@ -3478,5 +3513,6 @@ module.exports = {
   updateAddtofocus,
   saveStatusV2,
   getSignleFocusDevice,
-  getDeviceCountData
+  getDeviceCountData,
+  deleteDeviceAccessFromDoctor
 }
