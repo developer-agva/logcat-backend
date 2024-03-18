@@ -1512,9 +1512,10 @@ const getAllDeviceId = async (req, res) => {
     }
   }
   else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
+    // console.log(loggedInUser.accessHospital)
     filterObj = {
       $match: {$and:[
-        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
         {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
       ]}
     }
@@ -1618,7 +1619,7 @@ const getAllDeviceId = async (req, res) => {
       // console.log(123, updatedArray);
 
     } else if (!!loggedInUser && (loggedInUser.userType === "Assistant")) {
-      const assignDeviceData = await assignDeviceTouserModel.find({ assistantId: loggedInUser._id })
+      const assignDeviceData = await assignDeviceTouserModel.find({ securityCode: loggedInUser.securityCode })
       // start
       function updateAndFilterArray(arrayUniqueByKey, assignDeviceData) {
         // Map deviceId to isAssigned for faster lookup

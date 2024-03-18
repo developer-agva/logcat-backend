@@ -33,6 +33,10 @@ const assignDeviceSchema = mongoose.Schema({
         type: String,
         default:""
     },
+    securityCode: {
+        type:String,
+        default:""
+    },
     
 }, { timestamps: true })
 

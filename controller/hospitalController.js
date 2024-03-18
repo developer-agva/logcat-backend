@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const Joi = require('joi');
 const registeredHospitalModel = require('../model/registeredHospitalModel');
 const { Country, State, City } = require('country-state-city');
-
+let redisClient = require("../config/redisInit");
+const User = require('../model/users');
+const JWTR = require("jwt-redis").default;
+const jwtr = new JWTR(redisClient);
 /*
  * @param {*} req 
  * @param {*} res 
@@ -220,6 +223,48 @@ const getHospitalList = async (req, res) => {
     }
 }
 
+
+/** 
+ * api      GET @/hospital/get-byid/:id
+ * desc     @getSingleHospital for logger access only
+*/
+const getAccesshospitals = async (req, res) => {
+    try {
+        // get loggedin user details
+        const token = req.headers["authorization"].split(' ')[1];
+        const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+        const loggedInUser = await User.findById({_id:verified.user});
+
+        const dataList = await registeredHospitalModel.find({Hospital_Name:{$in:loggedInUser.accessHospital}});
+        if (dataList.length<1) {
+            return res.status(404).json({
+                statusCode: 404,
+                statusValue: "FAIL",
+                message: "Data not found."
+            })
+        } 
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "Hospital data get successfully.",
+            data: dataList
+        })
+        
+    } catch (err) {
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message: "Internal server error",
+            data: {
+                generatedTime: new Date(),
+                errMsg: err.stack,
+            }
+        })
+    }
+}
+
+
+
 const getHospitals = async (req, res) => {
     try {
         const data = await registeredHospitalModel.find({$or:[{Pincode:req.params.Pincode},{Hospital_Name:req.params.Hospital_Name}]}, { __v: 0, createdAt: 0, updatedAt: 0 });
@@ -371,4 +416,5 @@ module.exports = {
     updateHospital,
     deleteHospital,
     getHospitals,
+    getAccesshospitals
 }

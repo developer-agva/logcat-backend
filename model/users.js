@@ -107,6 +107,8 @@ const userSchema = mongoose.Schema({
         type: String,
         default:"",
     },
+    accessHospital: [String],
+
     // access:[]
 }, {timestamps: true})
 

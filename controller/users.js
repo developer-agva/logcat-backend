@@ -144,7 +144,7 @@ const registerUser = async (req, res) => {
       accountStatus:"Initial",
       requestedOn:new Date(),
       speciality:req.body.speciality,
-      securityCode:""
+      securityCode:req.body.securityCode,
       // countryName:req.body.countryName,
       // stateName:req.body.stateName
     });
@@ -625,6 +625,7 @@ const loginUser = async (req, res) => {
         designation:!!(isUserExist.designation) ? isUserExist.designation : "",
         contactNumber:!!(isUserExist.contactNumber) ? isUserExist.contactNumber : "",
         speciality:!!(isUserExist.speciality) ? isUserExist.speciality : "", 
+        accessHospital:!!(isUserExist.accessHospital) ? isUserExist.accessHospital : ""
       }
     });
   } catch (err) {
@@ -669,6 +670,7 @@ const addUserExperience = async (req, res) => {
       })
     }
     const checkUser = await Users.findOne({_id:mongoose.Types.ObjectId(req.body.userId)})
+    // console.log(11,checkUser.profile)
     if (!checkUser) {
       return res.status(400).json({
         statusCode: 400,
@@ -723,6 +725,7 @@ const addUserExperience = async (req, res) => {
         message:"Error! while adding work experience."
       });
     }
+    await Users.findByIdAndUpdate({_id:mongoose.Types.ObjectId(req.body.userId)},{$push:{accessHospital:req.body.associationName}},{upsert:true})
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -953,6 +956,9 @@ const updateUserExperience = async (req, res) => {
         statusValue:"FAIL",
         message:"Error! while updating work experience."
       });
+    }
+    if (!!(req.body.associationName)) {
+      await Users.findByIdAndUpdate({_id:mongoose.Types.ObjectId(req.body.userId)},{$push:{accessHospital:req.body.associationName}},{upsert:true})
     }
     return res.status(200).json({
       statusCode: 200,
@@ -1863,6 +1869,9 @@ const getAllEmployeeList = async (req, res) => {
   }
 }
 
+
+
+
 /**
  * @desc - get all active users
  * @api - /api/logger/active-users-list
@@ -1881,9 +1890,9 @@ const getAssistantList = async (req, res) => {
   
 
     // Get users on the basis of role
-    let getUsers = await User.find({
+    let getAssistantList = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },
+          { securityCode: checkUser.securityCode },
           {
             $or: [
               { userType: "Assistant" }
@@ -1894,23 +1903,24 @@ const getAssistantList = async (req, res) => {
       })
       .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
       .sort({ createdAt: -1 })
+      .limit(1)
 
-    const assignedAstList = await assignDeviceTouserModel.find({$and:[{userId:checkUser._id},{assistantId:{$ne:""}}]})
-    // console.log(12, assignedAstList)
-    let filteredArray = []
-    if(!!assignedAstList) {
-      filteredArray = getUsers.filter(obj1 => assignedAstList.some(obj2 => (obj1._id != obj2.assistantId ||obj2 == undefined)))
-    }
-    filteredArray = getUsers
+    // const assignedAstList = await assignDeviceTouserModel.find({$and:[{userId:checkUser._id},{assistantId:{$ne:""}}]})
+    // // console.log(12, assignedAstList)
+    // let filteredArray = []
+    // if(!!assignedAstList) {
+    //   filteredArray = getUsers.filter(obj1 => assignedAstList.some(obj2 => (obj1._id != obj2.assistantId ||obj2 == undefined)))
+    // }
+    // filteredArray = getUsers
     // console.log(13,filteredArray)
 
 
-    if (filteredArray.length > 0) {
+    if (getAssistantList.length > 0) {
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Assistant list get successfully.",
-        data: filteredArray,
+        data: getAssistantList,
       })
     }
     return res.status(400).json({
@@ -2686,7 +2696,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "already exists."
+        message: "DeviceId already assigned to user"
       })
     }
     // for loggedin user details
@@ -2694,6 +2704,16 @@ const acceptOrRejectdeviceReq = async (req, res) => {
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user}); 
 
+    // find securityCode
+    const findCode = await User.findById({_id:mongoose.Types.ObjectId(req.body.userId)})
+    // console.log(findCode)
+    if (!findCode) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Doctor security code does not exists."
+      })
+    }
     const reqData = new assignDeviceTouserModel({
       deviceId:req.body.deviceId,
       userId:mongoose.Types.ObjectId(req.body.userId),
@@ -2702,6 +2722,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
       deviceType:"Ventilator",
       status:true,
       isAssigned:req.body.isAssigned,
+      securityCode:findCode.securityCode,  
     })
     const saveDoc = await reqData.save();
     await sendDeviceReqModel.findOneAndRemove({deviceId:req.body.deviceId,userId:mongoose.Types.ObjectId(req.body.userId)})
@@ -2715,7 +2736,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
-      message: "Request sended successfully.",
+      message: "Request approved successfully.",
       data: saveDoc
     })
   } catch (err) {
@@ -2732,10 +2753,10 @@ const acceptOrRejectdeviceReq = async (req, res) => {
 }
 
 // User send req for device access
-const assignDeviceToAssistant = async (req, res) => {
+const assignHospitalToAssistant = async (req, res) => {
   try {
     const schema = Joi.object({
-      deviceId: Joi.string().required(),
+      hospitalName: Joi.string().required(),
       assistantId: Joi.string().required(),
     })
     let result = schema.validate(req.body);
@@ -2746,27 +2767,28 @@ const assignDeviceToAssistant = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-
-    // check already exists
-    const checkData = await assignDeviceTouserModel.findOne({ $and:[{deviceId:req.body.deviceId}, {assistantId:req.body.assistantId}]});
-    if (!!checkData) {
-      return res.status(400).json({
-        statusCode: 400,
-        statusValue: "FAIL",
-        message: "already exists."
-      })
-    }
+    
     // for loggedin user details
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user}); 
 
-    const assignData = await assignDeviceTouserModel.findOneAndUpdate({
-      $and:[{userId:loggedInUser._id},{deviceId:req.body.deviceId}]
-    },
+    // check already exists
+    const checkData = await assignDeviceTouserModel.findOne({ $and:[{securityCode:loggedInUser.securityCode},{assistantId:req.body.assistantId}]});
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "You have already assigned."
+      })
+    }
+   
+    const assignData = await assignDeviceTouserModel.updateMany(
+    {$and:[{userId:loggedInUser._id},{hospitalName:req.body.hospitalName}]},
     {
-      assistantId:req.body.assistantId
-    },{upsert:true})
+      assistantId:req.body.assistantId,
+      securityCode:loggedInUser.securityCode
+    })
     console.log(11,req.body)
     if (!!assignData) {
       return res.status(200).json({
@@ -2937,6 +2959,6 @@ module.exports = {
   updatePrimaryEmail,
   getAllEmployeeList,
   getAllInactiveUsers,
-  assignDeviceToAssistant,
+  assignHospitalToAssistant,
   getAssistantList
 };

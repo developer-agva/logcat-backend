@@ -14,6 +14,8 @@ router.get('/get-byhospital/:Hospital_Name', hospitalController.getHospitals);
 
 
 router.get('/hospital-list', hospitalController.getHospitalList);
+router.get('/get-access-hospital-list', isAuth, hospitalController.getAccesshospitals);
+
 router.get('/get-byid/:id', hospitalController.getSingleHospital);
 router.put('/update-hospital', isAuth, hospitalController.updateHospital);
 router.delete('/delete-byid/:id', isAuth, hospitalController.deleteHospital);

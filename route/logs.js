@@ -110,6 +110,8 @@ router.get('/get-device-access-list/:deviceId', isAuth, deviceController.getDevi
 router.get('/get-device-access-users', isAuth, deviceController.getDeviceAccessUsers);
 
 router.get('/get-device-access-ast-list', isAuth, deviceController.getDeviceAccessAstList);
+router.get('/get-device-access-doct-list', isAuth, deviceController.getDeviceAccessDoctList);
+
 
 router.delete('/delete-access-from-assistant/:_id', isAuth, deviceController.deleteDeviceAccessFromAst);
 router.delete('/delete-access-from-doctor/:_id', isAuth, deviceController.deleteDeviceAccessFromDoctor);
