@@ -2767,12 +2767,12 @@ const assignHospitalToAssistant = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-    
+    // console.log(req.body)
     // for loggedin user details
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user}); 
-
+    
     // check already exists
     const checkData = await assignDeviceTouserModel.findOne({ $and:[{securityCode:loggedInUser.securityCode},{assistantId:req.body.assistantId}]});
     if (!!checkData) {
@@ -2789,7 +2789,7 @@ const assignHospitalToAssistant = async (req, res) => {
       assistantId:req.body.assistantId,
       securityCode:loggedInUser.securityCode
     })
-    console.log(11,req.body)
+    // console.log(11,req.body)
     if (!!assignData) {
       return res.status(200).json({
         statusCode: 200,
@@ -2817,7 +2817,176 @@ const assignHospitalToAssistant = async (req, res) => {
   }
 }
 
+// remove access from assistant
+const removeHospitalAccessFromAst = async (req, res) => {
+  try {
+    // // for loggedin user details
+    // const token = req.headers["authorization"].split(' ')[1];
+    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // const loggedInUser = await User.findById({_id:verified.user});
+    
+    // const totalDeviceData = 
+    // [
+    // {
+    //     "deviceId": '3a77a7d5197dbb6a',
+    //     "addTofocus": true,
+    //     "deviceInfo": [
+    //                     {
+    //                         "_id": "652179593cf0fea97f09b8b9",
+    //                         "DeviceId": "3a77a7d5197dbb6a",
+    //                         "Hospital_Name": "KGMU Lucknow",
+    //                         "isAssigned": true,
+    //                         "addTofocus": false
+    //                     }
+    //                 ]
+    //   },
+    //   {
+    //     "deviceId": '746ec924d3845797',
+    //     "addTofocus": false,
+    //     "deviceInfo": [
+    //                     {
+    //                         "_id": "65eff595b5bccf2599bb5bad",
+    //                         "DeviceId": "746ec924d3845797",
+    //                         "Hospital_Name": "AIIMS DELHI",
+    //                         "addTofocus": false,
+    //                         "isAssigned": false
+    //                     }
+    //                 ]
+    //   }
+    // ]
 
+    // let assignDeviceData = 
+    // [
+    //   {
+    //     "userId": "65f03f9bc176567af5200042",
+    //     "assignedBy": 'kgmu-admin@gmail.com',
+    //     "deviceId": '3a77a7d5197dbb6a',
+    //     "status": true,
+    //     "isAssigned": 'Accepted',
+    //     "hospitalName": 'KGMU Lucknow'
+    //   },
+    //   {
+    //     "userId": "65f03f9bc176567af5200042",
+    //     "assignedBy": 'kgmu-admin@gmail.com',
+    //     "deviceId": '3a77a7d5197dbb64',
+    //     "status": true,
+    //     "isAssigned": 'Accepted',
+    //     "hospitalName": 'KGMU Lucknow'
+    //   },
+    //   {
+    //     "userId": "65f03f9bc176567af5200042",
+    //     "assignedBy": 'kgmu-admin@gmail.com',
+    //     "deviceId": '3a77a7d5197dbb64',
+    //     "status": true,
+    //     "isAssigned": 'Accepted',
+    //     "hospitalName": 'KGMU Lucknow'
+    //   }
+    // ]
+    
+    // // Map data for isAssigned key
+    // function updateisAssigned(totalDeviceData, assignDeviceData) {
+    //   // Map deviceId to assignDeviceData for faster lookup
+    //   const assignDeviceMap = assignDeviceData.reduce((acc, cur) =>{
+    //     acc[cur.deviceId] = cur
+    //     return acc
+    //   }, {})
+    //   console.log(12,assignDeviceMap)
+    //   // Update isAssigned based on matching deviceId
+    //   return totalDeviceData.map(item => {
+    //     // assignDeviceMap this is single {} with deviceId value key
+    //     const assignInfo = assignDeviceMap[item.deviceId];
+    //     console.log(14,assignInfo)
+    //     if (assignInfo && assignInfo.isAssigned === 'Accepted') {
+    //       item.isAssigned = true;
+    //     }  else {
+    //       item.isAssigned = false;
+    //     }
+    //     return item; 
+    //   })
+    // }
+
+    // updatedArray = updateisAssigned(totalDeviceData, assignDeviceData);
+    // console.log(13,updatedArray)
+
+    // let prodData = await aboutDeviceModel.find({},{deviceId:1, address:1})
+
+    // Create an object to store unique records based on deviceId
+    // let uniqueRecords = {}
+
+    // // Filter the array to keep only unique records based on deviceId
+    // assignDeviceData.forEach(item => {
+    //   uniqueRecords[item.deviceId] = item
+    // })
+    // console.log(12,uniqueRecords)
+    // let uniqueArray = Object.values(uniqueRecords);
+    // // console.log()
+    
+    // return res.status(200).json({
+    //   statusCode: 200,
+    //   statusValue: "SUCCESS",
+    //   message: "Data added successfully.",
+    //   data: uniqueArray
+    // })
+
+    const schema = Joi.object({
+      hospitalName: Joi.string().required(),
+      assistantId: Joi.string().required(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      })
+    }
+    
+    // for loggedin user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user}); 
+
+    // check already exists
+    const checkData = await assignDeviceTouserModel.find({ $and:[{hospitalName:req.body.hospitalName},{assistantId:req.body.assistantId}]});
+    if (checkData.length == 0) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found."
+      })
+    }
+   
+    const assignData = await assignDeviceTouserModel.updateMany(
+    {$and:[{hospitalName:req.body.hospitalName},{assistantId:req.body.assistantId}]},
+    {
+      assistantId:"",
+    })
+    // console.log(11,req.body)
+    if (!!assignData) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Assistant remove successfully.",
+        data: assignData
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Error ! while removing data",
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
 
 // User send req for device access
 const sendReqForDevice = async (req, res) => {
@@ -2960,5 +3129,6 @@ module.exports = {
   getAllEmployeeList,
   getAllInactiveUsers,
   assignHospitalToAssistant,
-  getAssistantList
+  getAssistantList,
+  removeHospitalAccessFromAst
 };

@@ -1339,10 +1339,10 @@ const getServicesById = async (req, res) => {
         ]
       },
       {
-        "$sort": { "createdAt": -1 }
+        "$sort": { "updatedAt": -1 }
       },
     ]
-
+    
     // get data
     let resData = await servicesModel.aggregate(pipline)
     // Sort the array based on date property

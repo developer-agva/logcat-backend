@@ -40,7 +40,8 @@ const {
     getAllEmployeeList,
     getAllInactiveUsers,
     assignHospitalToAssistant,
-    getAssistantList
+    getAssistantList,
+    removeHospitalAccessFromAst
 } = require('../controller/users.js')
 
 const {
@@ -62,6 +63,7 @@ router.post('/send-device-req', sendReqForDevice);    // for doctor role
 router.get('/get-user-device-req', getUserDeviceReq); // get device req list for hodpital-admin
 router.post('/accept-or-reject-device-req', isAuth, acceptOrRejectdeviceReq);   // hospital admin can accept or reject device req
 router.post('/assign-hospital-to-assistant', isAuth, assignHospitalToAssistant); // done
+router.post('/remove-hospital-access-from-assistant', isAuth, removeHospitalAccessFromAst) // remove hospital access from assistant
 
 
 

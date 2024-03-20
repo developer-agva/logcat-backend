@@ -5,6 +5,7 @@ const registeredHospitalModel = require('../model/registeredHospitalModel');
 const { Country, State, City } = require('country-state-city');
 let redisClient = require("../config/redisInit");
 const User = require('../model/users');
+const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel');
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 /*
@@ -235,7 +236,20 @@ const getAccesshospitals = async (req, res) => {
         const verified = await jwtr.verify(token, process.env.JWT_SECRET);
         const loggedInUser = await User.findById({_id:verified.user});
 
-        const dataList = await registeredHospitalModel.find({Hospital_Name:{$in:loggedInUser.accessHospital}});
+        const data1 = loggedInUser.accessHospital
+        // console.log(11, accessHospitalsList)
+        const data2 = await assignDeviceTouserModel.find({userId:loggedInUser._id});
+        // console.log(12, assignHsopitalList)
+
+        // Extract hospital names from data2
+        const data2HospitalNames = data2.map(item => item.hospitalName)
+        // console.log(11,data2HospitalNames)
+        const commonHospitalNames = data1.filter(hospitalName => data2HospitalNames.includes(hospitalName))
+        // console.log(22,commonHospitalNames)
+
+        // final hospital list
+        const dataList = await registeredHospitalModel.find({Hospital_Name:{$in:commonHospitalNames}},{__v:0});
+
         if (dataList.length<1) {
             return res.status(404).json({
                 statusCode: 404,
@@ -249,7 +263,7 @@ const getAccesshospitals = async (req, res) => {
             message: "Hospital data get successfully.",
             data: dataList
         })
-        
+
     } catch (err) {
         return res.status(500).json({
             statusCode: 500,

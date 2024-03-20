@@ -1008,14 +1008,21 @@ const getSignleDispatchedData = async (req, res) => {
         ]
         // get data
         let resData = await productionModel.aggregate(pipline)
+        // console.log(11,resData)
         const dispatchData = await aboutDeviceModel.findOne({serial_no:req.params.serialNo})
-        
+        // Complete obj data
+        let finalObj = {
+            ...resData[0], 
+            hospitalName:!!dispatchData ? dispatchData.hospital_name : "",
+            address:!!dispatchData ? dispatchData.address : ""
+        }
+
         if (resData.length>0) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue:"SUCCESS",
                 message:"shipped data get successfully.",
-                data: {...resData[0], hospitalName:dispatchData.hospital_name,address:dispatchData.address}
+                data: finalObj
             })
         }
         return res.status(400).json({
