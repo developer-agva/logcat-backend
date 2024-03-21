@@ -1464,8 +1464,8 @@ const saveStatusV2 = async (req, res) => {
       deviceId: Joi.string().required(),
       message: Joi.string().required(),
       health: Joi.string().required(),
-      last_hours: Joi.string().required(),
-      total_hours: Joi.string().required(),
+      last_hours: Joi.string().allow("").optional(),
+      total_hours: Joi.string().allow("").optional(),
       address: Joi.string().required()
     });
     const result = schema.validate(req.body);
@@ -1492,8 +1492,8 @@ const saveStatusV2 = async (req, res) => {
         deviceId: req.body.deviceId,
         message: req.body.message,
         health: req.body.health,
-        last_hours: req.body.last_hours,
-        total_hours: req.body.total_hours,
+        last_hours: !!(req.body.last_hours) ? req.body.last_hours : "",
+        total_hours: !!(req.body.total_hours) ? req.body.total_hours : "",
         address: req.body.address,
         type:req.params.productCode
       },

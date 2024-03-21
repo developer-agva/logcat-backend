@@ -30,7 +30,7 @@ const {deviceIdArr} = require('../middleware/msgResponse');
 const alert_ventilator_collectionV2 = require('../model/alert_ventilator_collection_v2');
 const event_ventilator_collection_v2 = require('../model/event_ventilator_collection_v2');
 const { default: mongoose } = require('mongoose');
-
+const trends_ventilator_collectionV2_model = require('../model/trends_ventilator_collection_v2')
 
 
 
@@ -2171,14 +2171,14 @@ const createEventsV2 = async (req, res, next) => {
         },
       });
     }
-
-    const events = await new event_ventilator_collection_v2({
+    // const dd = await event_ventilator_collection_v2.find()
+    const events = new event_ventilator_collection_v2({
       did: did,
       message: message,
       type: type,
       date: date,
     });
-
+    console.log(req.body)
     console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
 
     const SaveEvents = await events.save(events);
@@ -2300,6 +2300,132 @@ const createTrends = async (req, res, next) => {
        averageLeak:averageLeak,
        sPo2:sPo2,
        pr:pr
+    });
+    const SaveTrends = await trends.save(trends);
+    // console.log(11,SaveTrends)
+    // console.log(22,req.body)
+
+    if(deviceIdArr.includes(SaveTrends.did)) {
+      console.log(true)
+      
+    }else{
+      deviceIdArr.push(SaveTrends.did)
+      
+    }
+    if (SaveTrends) {
+      return res.status(201).json({
+        status: 1,
+        data: { eventCounts: SaveTrends.length },
+        message: 'Trends add!',
+      });
+    }
+
+    else {
+      res.status(500).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Some error happened during registration',
+            msg: 'Some error happened during registration',
+            type: 'MongodbError',
+          },
+        },
+      }); I
+    }
+  }
+  catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
+
+const createTrendsV2 = async (req, res) => {
+  try {
+
+    const { project_code } = req.params;
+    const findProjectWithCode = req.params.project_code;
+    // if (req.params.) {
+
+    // }
+    //console.log(findProjectWithCode,'findProjectWithProjectCode----')
+
+    // const errors = validationResult(req);
+    // if (!errors.isEmpty()) {
+    //   return res.status(400).json({
+    //     status: 0,
+    //     data: {
+    //       err: {
+    //         generatedTime: new Date(),
+    //         errMsg: errors
+    //           .array()
+    //           .map((err) => {
+    //             return `${err.msg}: ${err.param}`;
+    //           })
+    //           .join(' | '),
+    //         msg: 'Invalid data entered.',
+    //         type: 'ValidationError',
+    //       },
+    //     },
+    //   });
+    // }
+    if (!findProjectWithCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project does not exist',
+            msg: 'Project does not exist',
+            type: 'MongoDb Error',
+          },
+        },
+      });
+    }
+    
+    const { did, time, spo2, pr, hr, ecgRR, iBP_S, iBP_D, cgm, etCo2, rr, nibp_S, nibp_D, temp1, temp2, iBP2_S, iBP2_D} = req.body;
+    // if (!!did || !!time || !!spo2 || !!pr || !!hr || !!ecgRR || !!iBP_S || !!iBP_D || !!cgm || !!etCo2 || !!rr || !!nibp_S || !!nibp_D || !!temp1 || !!temp2 || !!iBP2_S || !!iBP2_D) {
+    //   return res.status(400).json({
+    //     status: 0,
+    //     data: {
+    //       err: {
+    //         generatedTime: new Date(),
+    //         errMsg: 'Please fill all the details.',
+    //         msg: 'Please fill all the details.',
+    //         type: 'Client Error',
+    //       },
+    //     },
+    //   });
+    // }
+    const trends = await new trends_ventilator_collectionV2_model({
+      did:did, 
+      time:time, 
+      spo2:spo2, 
+      pr:pr, 
+      hr:hr, 
+      ecgRR:ecgRR, 
+      iBP_S:iBP_S, 
+      iBP_D:iBP_D, 
+      cgm:cgm, 
+      etCo2:etCo2, 
+      rr:rr, 
+      nibp_S:nibp_S, 
+      nibp_D:nibp_D, 
+      temp1:temp1, 
+      temp2:temp2, 
+      iBP2_S:iBP2_S, 
+      iBP2_D:iBP2_D,
+      type:findProjectWithCode,
     });
     const SaveTrends = await trends.save(trends);
     // console.log(11,SaveTrends)
@@ -4508,7 +4634,8 @@ module.exports = {
   dateWiseLogOccurrencesByLogMsgWithDeviceId,
   getAllFocusedDevicesForUsers,
   createAlertsNewV2,
-  createEventsV2
+  createEventsV2,
+  createTrendsV2
 };
 
 

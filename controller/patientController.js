@@ -12,6 +12,8 @@ const jwtr = new JWTR(redisClient);
 require("dotenv").config({ path: "../.env" });
 const mongoose = require('mongoose');
 const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel');
+const patientModelV2 = require('../model/patientModelV2');
+const patientDischargeModelV2 = require('../model/patientDischargeModelV2');
 
 /**
  * api      POST @/patient/save-uhid-details
@@ -61,6 +63,106 @@ const saveUhid = async (req, res) => {
     })
   }
 };
+
+
+/**
+ * api      POST @/patient/save-uhid-details/v2
+ * desc     @saveUhid for publickly access
+ */
+const saveUhidV2 = async (req, res) => {
+  try {
+    const deviceDetails = await RegisterDevice.findOne({DeviceId:req.body.deviceId});
+    const patientData = await patientModelV2.findOneAndUpdate(
+      { UHID:"Agva121" },
+      { 
+        UHID:!!(req.body.UHID) ? req.body.UHID : "",
+        deviceId:!!(req.body.deviceId) ? req.body.deviceId : "",
+        age:!!(req.body.age) ? req.body.age : "",
+        weight:!!(req.body.weight) ? req.body.weight : "",
+        height:!!(req.body.height) ? req.body.height : "",
+        ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
+        alias_name:!!(deviceDetails) ? deviceDetails.Alias_Name : "",
+        patientProfile:!!(req.body.patientProfile) ? req.body.patientProfile : "",
+      },
+      { upsert: true, new: true }
+    )
+    
+    // if (!patientData) {
+    //   return res.status(200).json({
+    //     statusCode: 200,
+    //     statusValue: "SUCCESS",
+    //     message: "Data added successfully.",
+    //     data: patientData
+    //   });
+    // }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data added successfully.",
+      data: patientData
+    });
+  } catch (error) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+};
+
+
+/**
+ * api      POST @/patient/save-patient-discharge/v2
+ * desc     @savePatientDischargeData for publickly access
+ */
+const savePatientDischargeData = async (req, res) => {
+  try {
+    // const deviceDetails = await RegisterDevice.findOne({DeviceId:req.body.deviceId});
+    const patientData = await patientDischargeModelV2.findOneAndUpdate(
+      { UHID:"Agva121121" },
+      { 
+        patient_profile:!!(req.body.patient_profile) ? req.body.patient_profile : "",
+        weight:!!(req.body.weight) ? req.body.weight : "",
+        height:!!(req.body.height) ? req.body.height : "",
+        age:!!(req.body.age) ? req.body.age : "",
+        gender:!!(req.body.gender) ? req.body.gender : "",
+        UHID:!!(req.body.UHID) ? req.body.UHID : "",
+        deviceId:!!(req.body.deviceId) ? req.body.deviceId : "",
+      },
+      { upsert: true, new: true }
+    )
+    
+    // if (!patientData) {
+    //   return res.status(200).json({
+    //     statusCode: 200,
+    //     statusValue: "SUCCESS",
+    //     message: "Data added successfully.",
+    //     data: patientData
+    //   });
+    // }
+    return res.status(201).json({
+      statusCode: 201,
+      statusValue: "SUCCESS",
+      message: "Data added successfully.",
+      data: patientData
+    });
+  } catch (error) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+};
+
 
 
 /**
@@ -495,5 +597,7 @@ module.exports = {
   updatePatientById,
   deletePatientById,
   getDiagnoseByUhid,
-  getAllUhidBydeviceId
+  getAllUhidBydeviceId,
+  saveUhidV2,
+  savePatientDischargeData
 }

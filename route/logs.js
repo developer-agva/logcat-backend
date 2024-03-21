@@ -46,7 +46,8 @@ const {
   getTrendsById,
   getAllFocusedDevicesForUsers,
   createAlertsNewV2,
-  createEventsV2
+  createEventsV2,
+  createTrendsV2
 } = require("../controller/logs");
 // New controller
 const logController = require('../controller/logController.js');
@@ -197,6 +198,9 @@ router.post("/trends/:project_code",
   body('ack.*.code').notEmpty(),
   body('ack.*.timestamp').notEmpty(),
 createTrends);
+
+router.post("/trends/v2/:project_code", createTrendsV2);
+
 
 //Protected Route
 router.get("/:projectCode", isAuth, getFilteredLogs);

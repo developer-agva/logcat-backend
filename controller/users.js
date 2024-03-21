@@ -1490,7 +1490,7 @@ const userPasswordChange = async (req, res) => {
 const getUserProfileById = async (req, res) => {
   try {
     let userData = {}
-    userData = await Users.findById({_id:mongoose.Types.ObjectId(req.params.userId)})
+    userData = await Users.findById({_id:req.params.userId})
     .select({createdAt:0, updatedAt:0, __v:0, otp:0});
 
     let profile = userData.profile
@@ -1519,6 +1519,7 @@ const getUserProfileById = async (req, res) => {
       statusCode: 200,
       statusValue:"SUCCESS",
       message:"Get user profile successfully!",
+      // data:userData
       data:{
         _id:userData._id,
         firstName:userData.firstName,
@@ -1888,7 +1889,6 @@ const getAssistantList = async (req, res) => {
 
     // Initialize variable
   
-
     // Get users on the basis of role
     let getAssistantList = await User.find({
         $and: [
@@ -1904,7 +1904,9 @@ const getAssistantList = async (req, res) => {
       .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
       .sort({ createdAt: -1 })
       .limit(1)
-
+    const astId = getAssistantList[0]
+    let assignedAstList = await assignDeviceTouserModel.findOne({assistantId:astId._id})
+    // console.log(11, assignedAstList)
     // const assignedAstList = await assignDeviceTouserModel.find({$and:[{userId:checkUser._id},{assistantId:{$ne:""}}]})
     // // console.log(12, assignedAstList)
     // let filteredArray = []
@@ -1921,6 +1923,7 @@ const getAssistantList = async (req, res) => {
         statusValue: "SUCCESS",
         message: "Assistant list get successfully.",
         data: getAssistantList,
+        data2: !!assignedAstList ? getAssistantList : []
       })
     }
     return res.status(400).json({

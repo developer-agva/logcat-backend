@@ -8,6 +8,10 @@ const uploadController = require('../controller/upload.controller');
 // Patient routes
 
 router.post('/save-uhid-details', patientController.saveUhid);
+router.post('/save-uhid-details/v2', patientController.saveUhidV2);
+router.post('/save-patient-discharge/v2', patientController.savePatientDischargeData);
+
+
 router.get('/get-allUhid', isAuth, patientController.getAllUhid);
 
 router.get('/get-patient-list/:deviceId', isAuth, patientController.getAllUhidBydeviceId);
