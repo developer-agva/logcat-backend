@@ -33,6 +33,7 @@ const saveUhid = async (req, res) => {
         ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
         alias_name:!!(deviceDetails) ? deviceDetails.Alias_Name : "",
         patientProfile:!!(req.body.patientProfile) ? req.body.patientProfile : "",
+        bed_no: !!(req.body.bed_no) ? req.body.bed_no : ""
       },
       { upsert: true, new: true }
     )
@@ -235,6 +236,7 @@ const updatePatientById = async (req, res) => {
         dosageProvided:!!(req.body.dosageProvided) ? req.body.dosageProvided : "",
         ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
         doctor_name:!!(req.body.doctor_name) ? req.body.doctor_name : "",
+        bed_no:!!(req.body.bed_no) ? req.body.bed_no : ""
       },
       { upsert: true }
     );
