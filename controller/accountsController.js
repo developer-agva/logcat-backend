@@ -139,7 +139,27 @@ const saveAwaitingForShippedData = async (req, res) => {
         // }
         const accountData = await accountsModel.findOne({serialNo:req.body.seriallNo})
         if (!!accountData) {
-            await accountsHistoryModel.findOneAndUpdate({serialNo:"AGVATESTING09990"},accountData,{upsert:true})
+            await accountsHistoryModel.findOneAndUpdate(
+                {serialNo:"AGVATESTING09990"},
+                {
+                    serialNo:!!(accountData.serialNo) ? accountData.serialNo : "NA",
+                    ackDate:!!(accountData.ackDate) ? accountData.ackDate : "NA",
+                    ackNo:!!(accountData.ackNo) ? accountData.ackNo : "NA",
+                    batchNo:!!(accountData.batchNo) ? accountData.batchNo : "NA",
+                    billedTo:!!(accountData.billedTo) ? accountData.billedTo : "NA",
+                    consigneeAddress:!!(accountData.consigneeAddress) ? accountData.consigneeAddress : "NA",
+                    consinee:!!(accountData.consinee) ? accountData.consinee : "NA",
+                    deviceId:!!(accountData.deviceId) ? accountData.deviceId : "NA",
+                    document_ref_no:!!(accountData.document_ref_no) ? accountData.document_ref_no : "NA",
+                    ewaybillNo:!!(accountData.ewaybillNo) ? accountData.ewaybillNo : "NA",
+                    ewaybillPdf:!!(accountData.ewaybillPdf) ? accountData.ewaybillPdf : "NA",
+                    invoiceNo:!!(accountData.invoiceNo) ? accountData.invoiceNo : "NA",
+                    invoicePdf:!!(accountData.invoicePdf) ? accountData.invoicePdf : "NA",
+                    irn:!!(accountData.irn) ? accountData.irn : "NA",
+                    manufacturingDate:!!(accountData.manufacturingDate) ? accountData.manufacturingDate : "NA",
+                },
+                {upsert:true}
+            )
         }
         await productionModel.findOneAndUpdate({serialNumber:req.body.seriallNo},{shipmentMode:"awaiting_for_shipped"})
         const accountsDoc = await accountsModel.findOneAndUpdate(
@@ -160,7 +180,7 @@ const saveAwaitingForShippedData = async (req, res) => {
                 ackNo:!!(req.body.ackNo) ? req.body.ackNo : "NA"
             },{upsert:true}
         )
-        // const saveDoc = accountsDoc.save();
+        const saveDoc = accountsDoc.save();
         // console.log(req.body.serialNo)
         if (!!accountsDoc) {
             return res.status(200).json({
