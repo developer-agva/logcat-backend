@@ -35,6 +35,7 @@ const trends_ventilator_collectionV2_model = require('../model/trends_ventilator
 // fcm services
 const {initializeApp, applicationDefault} = require("firebase-admin/app");
 const {getMessaging} = require('firebase-admin/messaging');
+const fcmTokenModel = require('../model/fcmTockenModel');
 
 
 
@@ -1912,21 +1913,24 @@ const createAlertsNew = async (req, res) => {
     if (!alertsErrArr.includes('rejected')) {
       // checl alarm level
       if (req.body.priority === "ALARM_HIGH_LEVEL") {
-        // start fcm services for notification
-        initializeApp({
-          credential: applicationDefault(),
-          projectId: 'agvaapp'
-        })
-        const receivedToken = "dZW3I-7PR5urOZkKbzhfgU:APA91bGn3mWcBIAj4q31IZufjGyGEAKXox7dfpImspXXw24JcR6zmvYCgggkK2qorIJwLWVQgyT5kdPVm_ckpDaF2x82QSXUGTng0kRS7DdfFgjWhtKl8Qxyf06BQBpz3scV9R_zzJU7";
-        const message = {
-          notification: {
-            title:"AgVa-Pro-Ventilator-Alert",
-            body:"TC-9 Ventilator patient disconnected.",
-          },
-          token:receivedToken,
-        }
-        getMessaging()
-        .send(message)
+        // check deviceId for particular fcm token
+        const checkDeviceId = await fcmTokenModel.findOne({deviceIds:{$in:req.body.did}})
+           // start fcm services for notification
+          initializeApp({
+            credential: applicationDefault(),
+            projectId: 'agvaapp'
+          })
+          
+          const receivedToken = checkDeviceId.fcmToken;
+          const message = {
+            notification: {
+              title:"AgVa-Pro-Ventilator-Alert",
+              body:"TC-9 Ventilator patient disconnected.",
+            },
+            token:receivedToken,
+          }
+          getMessaging()
+          .send(message)
       }
 
       // end fcm services

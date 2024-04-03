@@ -246,8 +246,10 @@ const updateAddtofocus = async (req, res) => {
       { upsert: true, new: true },
     )
     await statusModel.updateMany({deviceId:req.params.deviceId},{addTofocus:req.body.addTofocus},{upsert:true})
-    
     const getAddTofocusList = await Device.find({addTofocus:true})
+
+    // check userId in fcm_token model
+    await fcmTokenModel.findOneAndUpdate({userId:mongoose.Types.ObjectId(req.body.userId)},{$push:{deviceIds:req.params.deviceId}})
     // console.log(11,getAddTofocusList.length)
     return res.status(200).json({
       "statusCode": 200,
@@ -2377,6 +2379,7 @@ const s3PatientFileModel = require('../model/s3PatientFileModel');
 const s3poBucketModel = require('../model/s3BucketPoPdfModel');
 const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
 const statusModelV2 = require('../model/statusModelV2');
+const fcmTokenModel = require('../model/fcmTockenModel');
 
 // const jwtr = require("jwtr-redis").default;
 // const jwtr = new jwtrR(redisClient);
