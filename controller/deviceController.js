@@ -247,9 +247,13 @@ const updateAddtofocus = async (req, res) => {
     )
     await statusModel.updateMany({deviceId:req.params.deviceId},{addTofocus:req.body.addTofocus},{upsert:true})
     const getAddTofocusList = await Device.find({addTofocus:true})
-
+    
     // check userId in fcm_token model
-    await fcmTokenModel.findOneAndUpdate({userId:mongoose.Types.ObjectId(req.body.userId)},{$push:{deviceIds:req.params.deviceId}})
+    // const checkUserId = await fcmTokenModel.findOne({userId:mongoose.Types.ObjectId(req.body.userId)})
+    // if (!!checkUserId) {
+    //   await fcmTokenModel.upd
+    // }
+    await fcmTokenModel.updateMany({userId:req.body.userId},{$push:{deviceIds:req.params.deviceId}})
     // console.log(11,getAddTofocusList.length)
     return res.status(200).json({
       "statusCode": 200,

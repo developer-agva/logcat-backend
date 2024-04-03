@@ -131,16 +131,19 @@ const sendFcmToken = async (req, res) => {
               message: result.error.details[0].message,
           });
       };
-
+      // // check userId with different fcmToken
+      // const checkUserIdWithDiffFcm = await fcmTokenModel.findOne({userId:req.body.userId})
+      // if (!!checkUserIdWithDiffFcm) {
+        
+      // }
       // save fcmToken
-      const saveData = await fcmTokenModel.findOneAndUpdate({fcmToken:req.body.fcmToken},{fcmToken:req.body.fcmToken, userId:req.body.userId},{upsert:true})
+      const saveData = await fcmTokenModel.findOneAndUpdate({$or:[{fcmToken:req.body.fcmToken},{userId:req.body.userId}]},{fcmToken:req.body.fcmToken, userId:req.body.userId},{upsert:true})
       return res.status(200).json({
           statusCode: 200,
           statusValue: "SUCCESS",
           message: "Token has been saved successfully.",
           data:saveData
       });
-      
   } catch (err) {
       return res.status(500).json({
           statusCode: 500,

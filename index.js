@@ -105,31 +105,6 @@ app.use(cors());
 // end firebase service
 
 // for mongodb backup
-const { exec } = require('child_process');
-// Construct the path to your dump directory
-const dumpDirectory = path.join(__dirname, 'test');
-
-// Command to execute mongorestore
-const command = `mongorestore --uri="mongodb+srv://ddtech:agva1234@ddtech.orcda.mongodb.net/LogcatProduction?retryWrites=true&w=majority" ${dumpDirectory}`;
-
-// Execute the command
-exec(command, (error, stdout, stderr) => {
-  if (error) {
-    console.error(`Error: ${error.message}`);
-    return;
-  }
-  if (stderr) {
-    console.error(`stderr: ${stderr}`);
-    return;
-  }
-  console.log(`stdout: ${stdout}`);
-});
-
-
-
-
-
-
 
 
 

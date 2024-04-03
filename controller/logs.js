@@ -37,6 +37,11 @@ const {initializeApp, applicationDefault} = require("firebase-admin/app");
 const {getMessaging} = require('firebase-admin/messaging');
 const fcmTokenModel = require('../model/fcmTockenModel');
 
+initializeApp({
+  credential: applicationDefault(),
+  projectId: 'agvaapp'
+})
+// end fcm services
 
 
 const createLogsV2 = async (req, res) => {
@@ -1914,14 +1919,14 @@ const createAlertsNew = async (req, res) => {
       // checl alarm level
       if (req.body.priority === "ALARM_HIGH_LEVEL") {
         // check deviceId for particular fcm token
-        const checkDeviceId = await fcmTokenModel.findOne({deviceIds:{$in:req.body.did}})
-           // start fcm services for notification
-          initializeApp({
-            credential: applicationDefault(),
-            projectId: 'agvaapp'
-          })
+        const checkDeviceId = await fcmTokenModel.find({deviceIds:{$in:req.body.did}})
+        
+       
+        // console.log(11,checkDeviceId)
+        // start fcm services for notification
+        checkDeviceId.forEach(element => {
           
-          const receivedToken = checkDeviceId.fcmToken;
+          const receivedToken = element.fcmToken;
           const message = {
             notification: {
               title:"AgVa-Pro-Ventilator-Alert",
@@ -1930,7 +1935,8 @@ const createAlertsNew = async (req, res) => {
             token:receivedToken,
           }
           getMessaging()
-          .send(message)
+          .send(message) 
+        });
       }
 
       // end fcm services
@@ -2031,10 +2037,7 @@ const createAlertsNewV2 = async (req, res) => {
       // check alarm level
       if (req.body.priority === "ALARM_HIGH_LEVEL") {
         // start fcm services for notification
-        initializeApp({
-          credential: applicationDefault(),
-          projectId: 'agvaapp'
-        })
+       
         const receivedToken = "dZW3I-7PR5urOZkKbzhfgU:APA91bGn3mWcBIAj4q31IZufjGyGEAKXox7dfpImspXXw24JcR6zmvYCgggkK2qorIJwLWVQgyT5kdPVm_ckpDaF2x82QSXUGTng0kRS7DdfFgjWhtKl8Qxyf06BQBpz3scV9R_zzJU7";
         const message = {
             notification: {

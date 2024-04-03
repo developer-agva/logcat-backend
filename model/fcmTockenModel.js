@@ -3,8 +3,8 @@ const Schema = mongoose.Schema;
 
 const fcmTokenSchema = mongoose.Schema({
     userId: {
-        type: Schema.Types.ObjectId,
-        ref: "User" 
+        type: String,
+        default: "" 
     },
     fcmToken: {
         type: String,
