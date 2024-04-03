@@ -52,7 +52,8 @@ const patientSchema = mongoose.Schema({
             medicine: { type: String, default: "" },
             procedure: { type: String, default: "" },
             others: { type: String, default: "" },
-            date: { type: Date, default: Date.now }
+            time: { type: String, default: "" },
+            date: { type: String, default: "" },
         },
     ],
     location:{
@@ -71,6 +72,14 @@ const patientSchema = mongoose.Schema({
         type: String,
         default: ""
     },
+    hypertension: {
+        type: Boolean,
+        default: false,
+    },
+    diabetes: {
+        type: Boolean,
+        default: false,
+    }
 },
     { timestamps: true })
 

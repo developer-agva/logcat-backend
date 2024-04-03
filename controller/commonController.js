@@ -22,6 +22,7 @@ const aboutDeviceModel = require('../model/aboutDeviceModel.js');
 const productionModel = require('../model/productionModel.js');
 const prodActivityLogModel = require('../model/productionActivityLogModel.js');
 const dispatchActivityLogModel = require('../model/dispatchActivityLogModel.js');
+const fcmTokenModel = require('../model/fcmTockenModel.js');
 
 
 /**
@@ -109,6 +110,48 @@ const sendVerificationEmail = async (req, res) => {
             }
         });
     }
+}
+
+
+/**
+* api      POST @/api/common/send-verification-email
+* desc     @sendVerificationEmail for logger access only
+*/
+const sendFcmToken = async (req, res) => {
+  try {
+      const schema = Joi.object({
+        fcmToken: Joi.string().required(),
+        userId: Joi.string().required(),
+      })
+      let result = schema.validate(req.body);
+      if (result.error) {
+          return res.status(400).json({
+              statusCode: 400,
+              statusValue: "FAIL",
+              message: result.error.details[0].message,
+          });
+      };
+
+      // save fcmToken
+      const saveData = await fcmTokenModel.findOneAndUpdate({fcmToken:req.body.fcmToken},{fcmToken:req.body.fcmToken, userId:req.body.userId},{upsert:true})
+      return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Token has been saved successfully.",
+          data:saveData
+      });
+      
+  } catch (err) {
+      return res.status(500).json({
+          statusCode: 500,
+          statusValue: "FAIL",
+          message: "Internal server error.",
+          data: {
+              generatedTime: new Date(),
+              errMsg: err.stack,
+          }
+      });
+  }
 }
 
 
@@ -378,5 +421,6 @@ module.exports = {
     getCountryByPincode,
     getDeviceSerialNumber,
     getProdLogsData,
-    getDispatchLogsData
+    getDispatchLogsData,
+    sendFcmToken
 }

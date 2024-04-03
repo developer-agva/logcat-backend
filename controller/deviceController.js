@@ -230,6 +230,7 @@ const updateAddtofocus = async (req, res) => {
   try {
     const schema = Joi.object({
       addTofocus: Joi.boolean().required(),
+      userId: Joi.string().required(),
     })
     let result = schema.validate(req.body);
     if (result.error) {
@@ -245,6 +246,7 @@ const updateAddtofocus = async (req, res) => {
       { upsert: true, new: true },
     )
     await statusModel.updateMany({deviceId:req.params.deviceId},{addTofocus:req.body.addTofocus},{upsert:true})
+    
     const getAddTofocusList = await Device.find({addTofocus:true})
     // console.log(11,getAddTofocusList.length)
     return res.status(200).json({

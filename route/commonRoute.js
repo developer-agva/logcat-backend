@@ -11,6 +11,7 @@ router.get("/search-by-pincode/:pincode", commonController.getCountryByPincode);
 router.get("/get-serial-number-list", commonController.getDeviceSerialNumber);
 router.get("/production-logs-data/:serialNo", commonController.getProdLogsData);
 router.get("/dispatch-logs-data/:serialNo", commonController.getDispatchLogsData);
+router.post("/send-fcm-token", commonController.sendFcmToken);
 
 
 

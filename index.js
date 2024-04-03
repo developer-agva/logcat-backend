@@ -23,7 +23,6 @@ apiKey.apiKey = process.env.API_KEY;
 // end sendin blue
 
 
-
 // importing router
 const users = require("./route/users.js");
 const projects = require("./route/projects"); 
@@ -38,6 +37,7 @@ const supportRouter = require("./route/supportRoute.js");
 var indexRouter = require('./route/index');
 const commonRouter = require("./route/commonRoute.js");
 const accountsRouter = require("./route/accountsRoute.js");
+
 // var redis = require("redis")
 // redisClient = redis.createClient();
 
@@ -58,52 +58,83 @@ app.use(morgan("tiny"));
 app.use(cors());
 
 // firebase service start
-const {initializeApp, applicationDefault} = require("firebase-admin/app");
-const {getMessaging} = require('firebase-admin/messaging');
+// const {initializeApp, applicationDefault} = require("firebase-admin/app");
+// const {getMessaging} = require('firebase-admin/messaging');
 
 
-process.env.GOOGLE_APPLICATION_CREDENTIALS;
-// var serviceAccount = require("path/to/serviceAccountKey.json");
-app.use(function (req, res, next) {
-  res.setHeader('Content-Type', 'application/json');
-  next()
-})
+// process.env.GOOGLE_APPLICATION_CREDENTIALS;
+// // var serviceAccount = require("path/to/serviceAccountKey.json");
+// app.use(function (req, res, next) {
+//   res.setHeader('Content-Type', 'application/json');
+//   next()
+// })
 
 
-initializeApp({
-  credential: applicationDefault(),
-  projectId: 'agvaapp'
-})
+// initializeApp({
+//   credential: applicationDefault(),
+//   projectId: 'agvaappp'
+// })
 
+// app.post("/send", function (req, res) {
+//   const receivedToken = req.body.fcmToken;
+//   const message = {
+//     notification: {
+//       title:req.body.title,
+//       body:req.body.description,
+//     },
+//     token:receivedToken,
+//   }
 
-app.post("/send", function (req, res) {
-  const receivedToken = req.body.fcmToken;
-  const message = {
-    notification: {
-      title:req.body.title,
-      body:req.body.description,
-    },
-    token:receivedToken,
-  }
-
-  getMessaging()
-  .send(message)
-  .then((response) => {
-    res.status(200).json({
-      message: "Successfully sent message",
-      token:receivedToken,
-    });
-    console.log("Successfully sent message", response)
-  })
-  .catch((error) => {
-    res.status(400);
-    res.send(error);
-    console.log("Error sending message", error)
-  })
-});
+//   getMessaging()
+//   .send(message)
+//   .then((response) => {
+//     res.status(200).json({
+//       message: "Successfully sent message",
+//       token:receivedToken,
+//     });
+//     console.log("Successfully sent message", response)
+//   })
+//   .catch((error) => {
+//     res.status(400);
+//     res.send(error);
+//     console.log("Error sending message", error)
+//   })
+// });
 
 
 // end firebase service
+
+// for mongodb backup
+const { exec } = require('child_process');
+// Construct the path to your dump directory
+const dumpDirectory = path.join(__dirname, 'test');
+
+// Command to execute mongorestore
+const command = `mongorestore --uri="mongodb+srv://ddtech:agva1234@ddtech.orcda.mongodb.net/LogcatProduction?retryWrites=true&w=majority" ${dumpDirectory}`;
+
+// Execute the command
+exec(command, (error, stdout, stderr) => {
+  if (error) {
+    console.error(`Error: ${error.message}`);
+    return;
+  }
+  if (stderr) {
+    console.error(`stderr: ${stderr}`);
+    return;
+  }
+  console.log(`stdout: ${stdout}`);
+});
+
+
+
+
+
+
+
+
+
+
+// end mongodb backup
 
 // For session
 app.use(

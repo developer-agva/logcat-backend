@@ -1881,6 +1881,16 @@ const getAllEmployeeList = async (req, res) => {
 const getAssistantList = async (req, res) => {
   try {
 
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 1000;
+    }
+    const skip = page > 0 ? (page - 1) * limit : 0
+
     // for checking user roles
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
@@ -1888,9 +1898,54 @@ const getAssistantList = async (req, res) => {
     const checkUser = await User.findById({ _id: verified.user })
 
     // Initialize variable
-  
+    let getAssistantList;
+    if (checkUser.userType == "Super-Admin") {
+      getAssistantList = await User.find({
+        $and: [
+          // { securityCode: checkUser.securityCode },
+          {
+            $or: [
+              { userType: "Assistant" },
+              { userType: "Doctor" },
+              { userType: "Hospital-Admin" }
+            ]
+          },
+          { accountStatus: "Active" }
+        ]
+      })
+      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+       
+      const count = await User.find({$and: [{$or: [{ userType: "Assistant" },{ userType: "Doctor" },{ userType: "Hospital-Admin" }]},{ accountStatus: "Active" }]
+      })
+      .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+      .sort({ createdAt: -1 })
+      .countDocuments();
+
+      // listing the users
+      if (getAssistantList.length > 0) {
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Assistant list get successfully.",
+          data: getAssistantList,
+          // data2: !!assignedAstList ? getAssistantList : []
+          totalDataCount: count,
+          totalPages: Math.ceil(count / limit),
+          currentPage: page
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
+      })
+    }
     // Get users on the basis of role
-    let getAssistantList = await User.find({
+    getAssistantList = await User.find({
         $and: [
           { securityCode: checkUser.securityCode },
           {
@@ -1903,9 +1958,11 @@ const getAssistantList = async (req, res) => {
       })
       .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
       .sort({ createdAt: -1 })
-      .limit(1)
+      .limit(1);
+
     const astId = getAssistantList[0]
     let assignedAstList = await assignDeviceTouserModel.findOne({assistantId:astId._id})
+
     // console.log(11, assignedAstList)
     // const assignedAstList = await assignDeviceTouserModel.find({$and:[{userId:checkUser._id},{assistantId:{$ne:""}}]})
     // // console.log(12, assignedAstList)

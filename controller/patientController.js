@@ -174,7 +174,15 @@ const saveDiagnose = async (req, res) => {
   try {
     const diagnoseData = await patientModel.findOne({UHID:req.params.UHID});
     const arr1 = diagnoseData.medicalDiagnosis;
-    const arr2 = [req.body];
+    const {medicine, procedure, others, time, date} = req.body;
+    const arr2 = [{
+      medicine:medicine,
+      procedure:procedure,
+      others:others,
+      time:time,
+      date:date
+      // date:new Date()
+    }];
     const finalArr = [...arr1,...arr2];
     
     const patientData = await patientModel.findOneAndUpdate(
@@ -236,7 +244,9 @@ const updatePatientById = async (req, res) => {
         dosageProvided:!!(req.body.dosageProvided) ? req.body.dosageProvided : "",
         ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
         doctor_name:!!(req.body.doctor_name) ? req.body.doctor_name : "",
-        bed_no:!!(req.body.bed_no) ? req.body.bed_no : ""
+        bed_no:!!(req.body.bed_no) ? req.body.bed_no : "",
+        hypertension:!!(req.body.hypertension) ? req.body.hypertension : false,
+        diabetes:!!(req.body.diabetes) ? req.body.diabetes : false,
       },
       { upsert: true }
     );
@@ -384,7 +394,7 @@ const getAllUhid = async (req, res) => {
  */
 const getAllUhidBydeviceId = async (req, res) => {
   try {
-    // for pagination
+      // for pagination
       let page = req.query.page
       let limit = req.query.limit
       if (!page || page === "undefined") {
@@ -395,9 +405,12 @@ const getAllUhidBydeviceId = async (req, res) => {
       } 
 
       // get data
-      const getList = await patientModel.find({deviceId:req.params.deviceId},{__v:0,createdAt:0,updatedAt:0})
+      let getList = await patientModel.find({deviceId:req.params.deviceId},{__v:0,createdAt:0,updatedAt:0})
       .sort({ createdAt: -1 });
-      
+      const currentData = getList[0]
+      getList.shift()
+      // console.log(11,pastList)
+    
       // for pagination
       const paginateArray =  (getList, page, limit) => {
         const skip = getList.slice((page - 1) * limit, page * limit);
@@ -412,7 +425,7 @@ const getAllUhidBydeviceId = async (req, res) => {
           statusValue: "SUCCESS",
           message: "Patient list get successfully.",
           data: allData,
-          currentData: [allData[0]],
+          currentData: [currentData],
           totalDataCount: getList.length,
           totalPages: Math.ceil( (getList.length)/limit),
           currentPage: page,
@@ -436,7 +449,6 @@ const getAllUhidBydeviceId = async (req, res) => {
     })
   }
 }
-
 
 
 /**

@@ -32,6 +32,10 @@ const event_ventilator_collection_v2 = require('../model/event_ventilator_collec
 const { default: mongoose } = require('mongoose');
 const trends_ventilator_collectionV2_model = require('../model/trends_ventilator_collection_v2')
 
+// fcm services
+const {initializeApp, applicationDefault} = require("firebase-admin/app");
+const {getMessaging} = require('firebase-admin/messaging');
+
 
 
 const createLogsV2 = async (req, res) => {
@@ -1906,6 +1910,26 @@ const createAlertsNew = async (req, res) => {
     });
 
     if (!alertsErrArr.includes('rejected')) {
+      // checl alarm level
+      if (req.body.priority === "ALARM_HIGH_LEVEL") {
+        // start fcm services for notification
+        initializeApp({
+          credential: applicationDefault(),
+          projectId: 'agvaapp'
+        })
+        const receivedToken = "dZW3I-7PR5urOZkKbzhfgU:APA91bGn3mWcBIAj4q31IZufjGyGEAKXox7dfpImspXXw24JcR6zmvYCgggkK2qorIJwLWVQgyT5kdPVm_ckpDaF2x82QSXUGTng0kRS7DdfFgjWhtKl8Qxyf06BQBpz3scV9R_zzJU7";
+        const message = {
+          notification: {
+            title:"AgVa-Pro-Ventilator-Alert",
+            body:"TC-9 Ventilator patient disconnected.",
+          },
+          token:receivedToken,
+        }
+        getMessaging()
+        .send(message)
+      }
+
+      // end fcm services
       return res.status(201).json({
         status: 201,
         data: { alertCount: alerts.length },
@@ -2000,6 +2024,27 @@ const createAlertsNewV2 = async (req, res) => {
     });
 
     if (!alertsErrArr.includes('rejected')) {
+      // check alarm level
+      if (req.body.priority === "ALARM_HIGH_LEVEL") {
+        // start fcm services for notification
+        initializeApp({
+          credential: applicationDefault(),
+          projectId: 'agvaapp'
+        })
+        const receivedToken = "dZW3I-7PR5urOZkKbzhfgU:APA91bGn3mWcBIAj4q31IZufjGyGEAKXox7dfpImspXXw24JcR6zmvYCgggkK2qorIJwLWVQgyT5kdPVm_ckpDaF2x82QSXUGTng0kRS7DdfFgjWhtKl8Qxyf06BQBpz3scV9R_zzJU7";
+        const message = {
+            notification: {
+              title:"AgVa-Pro-Ventilator-Alert",
+              body:"TC-9 Ventilator patient disconnected.",
+            },
+            token:receivedToken,
+        }
+        getMessaging()
+        .send(message)
+      }
+      
+      // end fcm services
+
       return res.status(201).json({
         status: 201,
         data: { alertCount: alerts.length },
