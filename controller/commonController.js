@@ -137,7 +137,13 @@ const sendFcmToken = async (req, res) => {
         
       // }
       // save fcmToken
-      const saveData = await fcmTokenModel.findOneAndUpdate({$or:[{fcmToken:req.body.fcmToken},{userId:req.body.userId}]},{fcmToken:req.body.fcmToken, userId:req.body.userId},{upsert:true})
+      
+      const saveData = await fcmTokenModel.findOneAndUpdate({$and:[{fcmToken:req.body.fcmToken},{userId:req.body.userId}]},{fcmToken:req.body.fcmToken, userId:req.body.userId},{upsert:true})
+      const checkData = await fcmTokenModel.findOne({userId:req.body.userId})
+      let deviceIds = checkData.deviceIds
+      deviceIds = [...new Set(deviceIds)]
+      // console.log(11, deviceIds)
+      await fcmTokenModel.updateMany({userId:req.body.userId},{deviceIds:deviceIds})
       return res.status(200).json({
           statusCode: 200,
           statusValue: "SUCCESS",

@@ -32,15 +32,24 @@ const event_ventilator_collection_v2 = require('../model/event_ventilator_collec
 const { default: mongoose } = require('mongoose');
 const trends_ventilator_collectionV2_model = require('../model/trends_ventilator_collection_v2')
 
-// fcm services
-const {initializeApp, applicationDefault} = require("firebase-admin/app");
-const {getMessaging} = require('firebase-admin/messaging');
-const fcmTokenModel = require('../model/fcmTockenModel');
+///
+const admin = require("firebase-admin");
+// Initialize Firebase Admin SDK
+const serviceAccount = require("../agvaapp-firebase-adminsdk-u6pru-1e70064b68.json");
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
-initializeApp({
-  credential: applicationDefault(),
-  projectId: 'agvaapp'
-})
+// fcm services
+// const {initializeApp, applicationDefault} = require("firebase-admin/app");
+// const {getMessaging} = require('firebase-admin/messaging');
+const fcmTokenModel = require('../model/fcmTockenModel');
+const { registerDevice } = require('./RegisterDevice');
+
+// initializeApp({
+//   credential: applicationDefault(),
+//   projectId: 'agvaapp'
+// })
 // end fcm services
 
 
@@ -1915,27 +1924,50 @@ const createAlertsNew = async (req, res) => {
       }
     });
 
+    // find ward no
+    const deviceDetails = await RegisterDevice.findOne({DeviceId:req.body.did})
+    let Ward_No = !!(deviceDetails.Ward_No) ? deviceDetails.Ward_No : ""
     if (!alertsErrArr.includes('rejected')) {
-      // checl alarm level
-      if (req.body.priority === "ALARM_HIGH_LEVEL") {
-        // check deviceId for particular fcm token
+      // check alarm level
+      if (req.body.priority == "ALARM_CRITICAL_LEVEL") {
+        // // check deviceId for particular fcm token
         const checkDeviceId = await fcmTokenModel.find({deviceIds:{$in:req.body.did}})
-        
        
-        // console.log(11,checkDeviceId)
-        // start fcm services for notification
-        checkDeviceId.forEach(element => {
+        // // console.log(11,checkDeviceId)
+        // // start fcm services for notification
+        // checkDeviceId.forEach(element => {
           
-          const receivedToken = element.fcmToken;
+        //   const receivedToken = element.fcmToken;
+        //   const message = {
+        //     notification: {
+        //       title:"AgVa-Pro-Ventilator-Alert",
+        //       body:`ALARM_CRITICAL_LEVEL | Ward - ${Ward_No} | Patient Disconnected. | Date-Time : ${date}`,
+        //       // body:`` Ventilator patient disconnected.",
+        //     },
+        //     token:receivedToken,
+        //   }
+        //   getMessaging()
+        //   .send(message) 
+        // });
+
+        // Iterate through each fcmToken and send a notification
+        checkDeviceId.forEach(device => {
+          const receivedToken = device.fcmToken;
           const message = {
             notification: {
-              title:"AgVa-Pro-Ventilator-Alert",
-              body:"TC-9 Ventilator patient disconnected.",
+              title: "AgVa-Pro-Ventilator-Alert",
+              body:`ALARM_CRITICAL_LEVEL | Ward - ${Ward_No} | Patient Disconnected. | Date-Time : ${date}`,
             },
-            token:receivedToken,
-          }
-          getMessaging()
-          .send(message) 
+            token: receivedToken,
+          };
+
+          admin.messaging().send(message)
+            .then((response) => {
+              console.log("Notification sent successfully:", response);
+            })
+            .catch((error) => {
+              console.error("Error sending notification:", error);
+            });
         });
       }
 
@@ -2033,21 +2065,33 @@ const createAlertsNewV2 = async (req, res) => {
       }
     });
 
+    // find ward no
+    const deviceDetails = await RegisterDevice.findOne({DeviceId:req.body.did})
+    let Ward_No = !!(deviceDetails.Ward_No) ? deviceDetails.Ward_No : ""
+
     if (!alertsErrArr.includes('rejected')) {
       // check alarm level
-      if (req.body.priority === "ALARM_HIGH_LEVEL") {
-        // start fcm services for notification
-       
-        const receivedToken = "dZW3I-7PR5urOZkKbzhfgU:APA91bGn3mWcBIAj4q31IZufjGyGEAKXox7dfpImspXXw24JcR6zmvYCgggkK2qorIJwLWVQgyT5kdPVm_ckpDaF2x82QSXUGTng0kRS7DdfFgjWhtKl8Qxyf06BQBpz3scV9R_zzJU7";
-        const message = {
+      if (req.body.priority == "ALARM_CRITICAL_LEVEL") {
+        // check deviceId for particular fcm token
+        const checkDeviceId = await fcmTokenModel.find({deviceIds:{$in:req.body.did}})
+        checkDeviceId.forEach(device => {
+          const receivedToken = device.fcmToken;
+          const message = {
             notification: {
-              title:"AgVa-Pro-Ventilator-Alert",
-              body:"TC-9 Ventilator patient disconnected.",
+              title: "AgVa-Pro-Ventilator-Alert",
+              body:`ALARM_CRITICAL_LEVEL | Ward - ${Ward_No} | Patient Disconnected. | Date-Time : ${date}`,
             },
-            token:receivedToken,
-        }
-        getMessaging()
-        .send(message)
+            token: receivedToken,
+          };
+
+          admin.messaging().send(message)
+            .then((response) => {
+              console.log("Notification sent successfully:", response);
+            })
+            .catch((error) => {
+              console.error("Error sending notification:", error);
+            });
+        }); 
       }
       
       // end fcm services
