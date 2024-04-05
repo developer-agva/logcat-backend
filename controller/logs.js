@@ -2091,7 +2091,7 @@ const createAlertsNewV2 = async (req, res) => {
             .catch((error) => {
               console.error("Error sending notification:", error);
             });
-        }); 
+        });
       }
       
       // end fcm services

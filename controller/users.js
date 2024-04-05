@@ -2550,8 +2550,10 @@ const changeUserAcStatus = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-    const userId = req.params.userId;
-    const checkUser = await Users.findById({ _id: mongoose.Types.ObjectId(userId)})
+    // const userId = req.params.userId
+    // console.log(12, userId)
+    const checkUser = await Users.findById({_id:req.params.userId})
+    // console.log(11, checkUser)
     if (!checkUser) {
       return res.status(400).json({
         statusCode: 400,
@@ -2559,9 +2561,10 @@ const changeUserAcStatus = async (req, res) => {
         message: "User not found with this userId"
       })
     }
-    const updateDoc = await Users.findByIdAndUpdate({ _id: mongoose.Types.ObjectId(userId) }, {
+    
+    const updateDoc = await Users.findOneAndUpdate({_id:req.params.userId}, {
       accountStatus: req.body.accountStatus
-    }, { new: true });
+    },{upsert:true});
     if (!updateDoc) {
       return res.status(400).json({
         statusCode: 400,
