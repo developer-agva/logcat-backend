@@ -1958,6 +1958,9 @@ const createAlertsNew = async (req, res) => {
               title: "AgVa-Pro-Ventilator-Alert",
               body:`ALARM_CRITICAL_LEVEL | Ward - ${Ward_No} | Patient Disconnected. | Date-Time : ${date}`,
             },
+            data: {
+              screen: "/notification"
+            },
             token: receivedToken,
           };
 
@@ -2080,6 +2083,7 @@ const createAlertsNewV2 = async (req, res) => {
             notification: {
               title: "AgVa-Pro-Ventilator-Alert",
               body:`ALARM_CRITICAL_LEVEL | Ward - ${Ward_No} | Patient Disconnected. | Date-Time : ${date}`,
+              
             },
             token: receivedToken,
           };
