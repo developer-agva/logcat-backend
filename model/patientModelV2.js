@@ -66,7 +66,11 @@ const patientSchema = mongoose.Schema({
     patientProfile: {
         type: String,
         default: ""
-    }
+    },
+    projectCode:{
+        type: String,
+        default: ""
+    },
 },
     { timestamps: true })
 

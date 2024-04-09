@@ -47,7 +47,12 @@ const {
   getAllFocusedDevicesForUsers,
   createAlertsNewV2,
   createEventsV2,
-  createTrendsV2
+  createTrendsV2,
+  getAllDeviceIdV2,
+  getAlertsByIdV2,
+  getTrendsByIdV2,
+  getEventsByIdV2,
+  getLogsByIdV2
 } = require("../controller/logs");
 // New controller
 const logController = require('../controller/logController.js');
@@ -88,7 +93,7 @@ router.get('/services/get-all', deviceController.getAllServices);
 // Dispatch API
 router.post('/status/:project_code', deviceController.saveStatus);
 // new route for all upcomming products
-router.post('/v2/status/:productCode', deviceController.saveStatusV2);
+router.post('/v2/status/:productCode', deviceController.saveStatusV2); // v2-version
 
 router.get('/deviceOverview/:deviceId/:project_code', isAuth, deviceController.getDeviceOverviewById);
 router.post('/add-dispatch-details/:project_code', deviceController.addAboutDevice);
@@ -104,6 +109,9 @@ router.get('/get-dispatch-databyId/:deviceId', deviceController.getDispatchDataB
 
 // router.post('/add-shipment-details/:serialNo', deviceController);
 router.get('/about/:deviceId', isAuth, deviceController.getAboutByDeviceId);
+// router.get('/about/:deviceId', isAuth, deviceController.getAboutByDeviceId);
+
+
 router.get('/dynamicDeviceId/:deviceId', deviceController.sendAndReceiveData);
 router.put('/assignedDeviceToUser', isAuth, deviceController.assignedDeviceToUser);
 router.get('/getAssignedDeviceByUserId/:userId', isAuth, deviceController.getAssignedDeviceById);
@@ -199,7 +207,7 @@ router.post("/trends/:project_code",
   body('ack.*.timestamp').notEmpty(),
 createTrends);
 
-router.post("/trends/v2/:project_code", createTrendsV2);
+router.post("/trends/v2/:project_code", createTrendsV2);  // v2-version
 
 
 //Protected Route
@@ -216,11 +224,26 @@ router.get(
 router.get("/alerts/:projectCode", isAuth, getAlertsWithFilter);
 router.get("/events/:projectCode", isAuth, getEventsWithFilter);
 router.get("/trends/:projectCode", isAuth, getTrendsWithFilter);
+
 router.get("/deviceTrends/:did", getTrendsById);
+router.get("/v2/deviceTrends/:did", getTrendsByIdV2);  // v2-version
+
 router.get("/deviceAlerts/:did", getAlertsById);
+router.get("/v2/deviceAlerts/:did", getAlertsByIdV2);   // v2-version
+
 router.get("/deviceEvents/:did", getEventsById);
+router.get("/v2/deviceEvents/:did", getEventsByIdV2);    // v2-version
+
+
 router.get("/deviceLogs/:device", getLogsById);
+router.get("/v2/deviceLogs/:device", getLogsByIdV2);   // v2-version
+
+
 router.get("/Allevents/Events", isAuth, getAllDeviceId);
+router.get("/v2/Allevents/Events/:projectCode", isAuth, getAllDeviceIdV2);  // v2-version
+
+
+
 router.get("/Allevents/get-devices-for-users", isAuth, getAllDevicesForUsers)
 router.get("/Allevents/get-focused-devices", getAllFocusedDevicesForUsers)
 

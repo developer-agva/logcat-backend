@@ -84,6 +84,7 @@ const saveUhidV2 = async (req, res) => {
         ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
         alias_name:!!(deviceDetails) ? deviceDetails.Alias_Name : "",
         patientProfile:!!(req.body.patientProfile) ? req.body.patientProfile : "",
+        projectCode:!!(req.params.projectCode) ? req.params.projectCode : ""
       },
       { upsert: true, new: true }
     )
@@ -133,6 +134,7 @@ const savePatientDischargeData = async (req, res) => {
         gender:!!(req.body.gender) ? req.body.gender : "",
         UHID:!!(req.body.UHID) ? req.body.UHID : "",
         deviceId:!!(req.body.deviceId) ? req.body.deviceId : "",
+        projectCode:!!(req.params.projectCode) ? req.params.projectCode : ""
       },
       { upsert: true, new: true }
     )
@@ -388,6 +390,94 @@ const getAllUhid = async (req, res) => {
   }
 }
 
+
+/**
+ * api      GET @/patient/get-allUhid
+ * desc     @getAllUhid for logger access only
+ */
+const getAllUhidV2 = async (req, res) => {
+  try {
+    // Search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 99999;
+    }
+
+    // Check userType
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);  
+    
+    // For logger user activity
+    const loggedInUser = await User.findById({_id:verified.user});
+    // console.log(loggedInUser)
+    // Declare blank object
+    // let filterObj = {};
+    let assignDeviceData = []
+    if (!!loggedInUser && loggedInUser.userType == "Doctor") {
+      assignDeviceData = await assignDeviceTouserModel.find({userId:loggedInUser._id})
+      // console.log(assignDeviceData)
+    } else if (loggedInUser.userType == "Assistant") {
+      assignDeviceData = await assignDeviceTouserModel.find({assistantId:loggedInUser._id})
+      // console.log(22)
+    }
+    
+      // get deviceIds
+      let deviceIds = assignDeviceData.map((item) => item.deviceId)
+      deviceIds = [...new Set(deviceIds)]
+      
+      // Get patient list
+      const getList = await patientModelV2.find({deviceId:{$in:deviceIds}},{__v:0,createdAt:0,updatedAt:0,})
+      .sort({ createdAt: -1 });
+      
+      // Paginate data array
+      const paginateArray =  (getList, page, limit) => {
+        const skip = getList.slice((page - 1) * limit, page * limit);
+        return skip;
+      };
+      
+      var allDevices = paginateArray(getList, page, limit)
+      
+      // Check data length
+      if (!getList) {
+        return res.status(400).json({
+          statusCode: 400,
+          statusValue: "FAIL",
+          message: "Data not found.",
+          data: []
+        })
+      }
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Patient list get successfully.",
+        data: allDevices,
+        totalDataCount: getList.length,
+        totalPages: Math.ceil( (getList.length)/ limit),
+        currentPage: page,
+      })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
 /**
  * api      GET @/patient/get-allUhid/:deviceId
  * desc     @getAllUhid for logger access only
@@ -406,6 +496,69 @@ const getAllUhidBydeviceId = async (req, res) => {
 
       // get data
       let getList = await patientModel.find({deviceId:req.params.deviceId},{__v:0,createdAt:0,updatedAt:0})
+      .sort({ createdAt: -1 });
+      const currentData = getList[0]
+      getList.shift()
+      // console.log(11,pastList)
+    
+      // for pagination
+      const paginateArray =  (getList, page, limit) => {
+        const skip = getList.slice((page - 1) * limit, page * limit);
+        return skip;
+      }
+      
+      let allData = paginateArray(getList, page, limit)
+
+      if (!!allData.length>0) {
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Patient list get successfully.",
+          data: allData,
+          currentData: [currentData],
+          totalDataCount: getList.length,
+          totalPages: Math.ceil( (getList.length)/limit),
+          currentPage: page,
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
+      })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+/**
+ * api      GET @/patient/get-allUhid/:deviceId
+ * desc     @getAllUhid for logger access only
+ */
+const getAllUhidBydeviceIdV2 = async (req, res) => {
+  try {
+      // for pagination
+      let page = req.query.page
+      let limit = req.query.limit
+      if (!page || page === "undefined") {
+      page = 1;
+      }
+      if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 999999;
+      } 
+
+      // get data
+      let getList = await patientModelV2.find({deviceId:req.params.deviceId},{__v:0,createdAt:0,updatedAt:0})
       .sort({ createdAt: -1 });
       const currentData = getList[0]
       getList.shift()
@@ -488,12 +641,83 @@ const getAllUhids = async (req, res) => {
 
 
 /**
+ * api      GET @/patient/get-allUhid
+ * desc     @getAllUhid for logger access only
+ */
+const getAllUhidsV2 = async (req, res) => {
+  try {
+    const getList = await patientModelV2.find({},{UHID:1,_id:0})
+      .sort({ createdAt: -1 });
+    if (!getList) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "UHID list get successfully.",
+      data: getList
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+/**
+ * api      GET @/get-all-patient-discharge-data/v2/:projectCode
+ * desc     @getAllPatientDischargeData for logger access only
+ */
+const getAllPatientDischargeData = async (req, res) => {
+  try {
+    const getList = await patientDischargeModelV2.find({projectCode:req.params.projectCode},{__v:0})
+      .sort({ createdAt: -1 });
+    if (!getList) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Patient discharge data list get successfully.",
+      data: getList
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+/**
  * api      GET @/patient/get-patient-details/:UHID
  * desc     @getDataByUhid for logger access only
  */
 const getDataById = async (req, res) => {
   try {
-    const getData = await patientModel.findOne({_id:mongoose.Types.ObjectId(req.params.id)},{__v:0,});
+    const getData = await patientModel.findOne({_id:req.params.id},{__v:0,});
     
     // check UHID data
     if (!getData) {
@@ -523,6 +747,45 @@ const getDataById = async (req, res) => {
     })
   }
 }  
+
+
+/**
+ * api      GET @/patient/get-patient-details/:UHID
+ * desc     @getDataByUhid for logger access only
+ */
+const getDataByIdV2 = async (req, res) => {
+  try {
+    const getData = await patientModelV2.findOne({_id:req.params.id},{__v:0,});
+
+    // check UHID data
+    if (!getData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+      })
+    }
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data get successfully.",
+      data:getData,
+    })
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}  
+
 
 /**
  * api      GET @/patient/get-diagnose/:UHID
@@ -562,6 +825,46 @@ const getDiagnoseByUhid = async (req, res) => {
     })
   }
 }  
+
+
+/**
+ * api      GET @/patient/get-diagnose/:UHID
+ * desc     @getDataByUhid for logger access only
+ */
+const getDiagnoseByUhidV2 = async (req, res) => {
+  try {
+    const UHID = req.params.UHID;
+    const getData = await patientModelV2.findOne({UHID:UHID},{__v:0,});
+    
+    // check UHID data
+    if (!getData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data:[]
+      })
+    }
+    
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data get successfully.",
+      data:getData.medicalDiagnosis,
+    })
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
 
 
 /** 
@@ -613,5 +916,11 @@ module.exports = {
   getDiagnoseByUhid,
   getAllUhidBydeviceId,
   saveUhidV2,
-  savePatientDischargeData
+  savePatientDischargeData,
+  getAllPatientDischargeData,
+  getDataByIdV2,
+  getAllUhidBydeviceIdV2,
+  getAllUhidV2,
+  getDiagnoseByUhidV2,
+  getAllUhidsV2
 }

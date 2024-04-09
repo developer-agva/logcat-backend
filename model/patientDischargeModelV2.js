@@ -29,7 +29,11 @@ const patientDischargeSchema = mongoose.Schema({
     deviceId: {
         type: String,
         default:""
-    }
+    },
+    projectCode:{
+      type: String,
+      default: ""
+    },
 },
     { timestamps: true })
 

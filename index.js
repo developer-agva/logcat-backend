@@ -148,6 +148,7 @@ app.use("/api/logger", accountsRouter);
 // Logs Routing
 app.use("/api/logger/logs", logs);
 
+
 //RegisterDevice
 // app.use('/api/logger/device',RegisterDevice);
 // error handling for all routes which are not define

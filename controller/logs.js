@@ -45,6 +45,8 @@ admin.initializeApp({
 // const {getMessaging} = require('firebase-admin/messaging');
 const fcmTokenModel = require('../model/fcmTockenModel');
 const { registerDevice } = require('./RegisterDevice');
+const statusModelV2 = require('../model/statusModelV2');
+const logModelV2 = require('../model/logModelV2');
 
 // initializeApp({
 //   credential: applicationDefault(),
@@ -451,6 +453,88 @@ const getAlertsById = async (req, res) => {
   }
 }
 
+// get alarm data by did for new projects
+const getAlertsByIdV2 = async (req, res) => {
+  try {
+    const { did } = req.params;
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 9999;
+    }
+
+    const findDeviceById = await alert_ventilator_collectionV2.find({ did: did }).select({__v:0,createdAt:0,updatedAt:0}).sort({"ack.date":-1});
+
+    //console.log(findDeviceById, 'findDeviceById');
+    if (!findDeviceById) {
+      return res.status(404).json({
+        status: 0,
+        statusCode: 404,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'device not found',
+            msg: 'device not found',
+            type: 'Client Error',
+          },
+        },
+      });
+    }
+   
+    const paginateArray =  (findDeviceById, page, limit) => {
+      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+    let finalArrData = paginateArray(findDeviceById, page, limit);
+    var splitedArr = [];
+    let modifiedArr = finalArrData.map((item) => { 
+      let objItem = {
+        _id:item._id,
+        did:item.did,
+        type:item.type,
+        ack:{
+          msg:item.ack.msg,
+          code:item.ack.code,
+          date:item.ack.date.split('T')[0],
+          time:item.ack.date.split('T')[1],
+        },
+        priority:item.priority,
+      }
+      splitedArr.push(objItem)
+    })
+
+    return res.status(200).json({
+      status: 1,
+      statusCode: 200,
+      message: 'Data get successfully.',
+      data: {
+        findDeviceById: splitedArr
+      },
+      totalDataCount: findDeviceById.length,
+      totalPages: Math.ceil( (findDeviceById.length)/ limit),
+      currentPage: page
+    });
+
+  }
+  catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+}
+
+
 // get device trends by deviceId
 const getTrendsById = async (req, res) => {
   try {
@@ -566,6 +650,124 @@ const getTrendsById = async (req, res) => {
   }
 }
 
+
+// get device trends by deviceId
+const getTrendsByIdV2 = async (req, res) => {
+  try {
+    let { page, limit} = req.query;
+    // for search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+
+    // for pagination
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 999999;
+    }
+
+    const { did } = req.params;
+    const findDeviceById = await trends_ventilator_collectionV2_model.find({ did: did }).sort({_id:-1}).limit(100);
+    if (!findDeviceById) {
+      return res.status(404).json({
+        status: 0,
+        statusCode: 404,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'device not found',
+            msg: 'device not found',
+            type: 'Client Error',
+          },
+        },
+      });
+    }
+    if(!did){
+      return res.status(404).json({
+        status:0,
+        statusCode: 404,
+        data:{
+          err:{
+            generatedTime:new Date(),
+            errMsg:'deviceId not found',
+            msg:'deviceId not found',
+            type:'Client Error',
+          },
+        },
+      });
+    }
+
+    //console.log(findDeviceById, 'findDeviceById');
+    if (!findDeviceById) {
+      return res.status(404).json({
+        status: 0,
+        statusCode: 404,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'device not found',
+            msg: 'device not found',
+            type: 'Client Error',
+          },
+        },
+      });
+    }
+    // for pagination
+    const paginateArray = (findDeviceById, page, limit) => {
+      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    let finalData = paginateArray(findDeviceById, page, limit)
+    // for count
+    const count = findDeviceById.length
+    // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
+    // console.log(collectionName,'collectionName');
+    if (finalData.length > 0) {
+      return res.status(200).json({
+        status: 1,
+        statusCode: 200,
+        message: 'successfull',
+      //   data: {
+      //     findDeviceById: finalData
+      //   },
+      //   message: 'successfull'
+      // });
+        data: {
+          findDeviceById:finalData
+        },
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(400).json({
+      status:0,
+      statusCode:400,
+      message:"Data not found",
+      data:{}
+    })
+  }
+  catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+}
+
+
+
 const getLogsById = async (req, res) => {
   try {
     const { device } = req.params;
@@ -641,6 +843,82 @@ const getLogsById = async (req, res) => {
 }
 
 
+const getLogsByIdV2 = async (req, res) => {
+  try {
+    const { device } = req.params;
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 9999;
+    }
+
+    const findDeviceById = await logModelV2.find({ deviceId:device }).select({__v:0,createdAt:0,updatedAt:0}).sort({_id:-1});
+    if (!findDeviceById) {
+      return res.status(404).json({
+        status: 0,
+        statusCode: 404,
+        data: {
+          err: {
+            generatedTime: newDate(),
+            errMsg: 'device not found',
+            msg: 'device not found',
+            type: 'client Error',
+          },
+        },
+      });
+    }
+    const paginateArray =  (findDeviceById, page, limit) => {
+      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+    let finalArrData = paginateArray(findDeviceById, page, limit);
+
+    var splitedArr = [];
+    let modifiedArr = finalArrData.map((item) => { 
+      let objItem = {
+        _id:item._id,
+        deviceId:item.deviceId,
+        message:item.message,
+        version:item.version,
+        file:item.file,
+        date:item.date.split('T')[0],
+        time:item.date.split('T')[1],
+      }
+      splitedArr.push(objItem)
+    })
+
+    return res.status(200).json({
+      status: 1,
+      statusCode: 200,
+      message: 'Data get successfully.',
+      data: {
+        findDeviceById: splitedArr,
+      },
+      totalDataCount: findDeviceById.length,
+      totalPages: Math.ceil((findDeviceById.length)/limit),
+      currentPage: page
+    });
+  }
+  catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: newDate(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+}
+
+
+
 const getEventsById = async (req, res) => {
   try {
     
@@ -655,6 +933,108 @@ const getEventsById = async (req, res) => {
     }
 
     const findDeviceById = await event_ventilator_collection.find({ did: did }).select({createdAt:0, updatedAt:0, __v:0}).sort({_id:-1});
+
+    const maxDate = new Date(
+      Math.max(
+        ...findDeviceById.map(element => {
+          return new Date(element.date);
+        }),
+      ),
+    );
+    //console.log(maxDate);  
+    const dt1 = new Date(maxDate);
+    //console.log(dt1)
+    const dt2 = new Date();
+    // dt=new Date(maxDate);
+    //dt=new Date();
+    var diff = (dt2.getTime() - dt1.getTime()) / 1000;
+    diff = Math.trunc(Math.abs(diff / (60 * 60)));
+    //console.log(diff)
+    if (diff >= 24 || diff < 0) {
+      state = 'inactive';
+    }
+    else {
+      state = 'active';
+    }
+
+    //console.log(findDeviceById, 'findDeviceById');
+    if (!findDeviceById) {
+      return res.status(404).json({
+        status: 0,
+        statusCode: 404,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'device not found',
+            msg: 'device not found',
+            type: 'Client Error',
+          },
+        },
+      });
+    }
+    
+    const paginateArray =  (findDeviceById, page, limit) => {
+      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+    let finalArrData = paginateArray(findDeviceById, page, limit)
+    var splitedArr = [];
+    let modifiedArr = finalArrData.map((item) => { 
+      let objItem = {
+        _id:item._id,
+        did:item.did,
+        type:item.type,
+        message:item.message,
+        date:item.date.split('T')[0],
+        time:item.date.split('T')[1],
+      }
+      splitedArr.push(objItem)
+    })
+    // console.log(Arr)
+    // console.log(modifiedArr)
+    return res.status(200).json({
+      status: 1,
+      statusCode: 200,
+      data: {
+        findDeviceById: splitedArr,
+      },
+      message: 'successfull',
+      //state:findDeviceById.find().sort({date:-1}).limit(1)
+      state: state,
+      totalDataCount: findDeviceById.length,
+      totalPages: Math.ceil( (findDeviceById.length)/ limit),
+      currentPage: page
+    });
+  }
+  catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+}
+
+const getEventsByIdV2 = async (req, res) => {
+  try {
+    
+    const { did } = req.params;
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 9999;
+    }
+
+    const findDeviceById = await event_ventilator_collection_v2.find({ did: did }).select({createdAt:0, updatedAt:0, __v:0}).sort({_id:-1});
 
     const maxDate = new Date(
       Math.max(
@@ -1723,6 +2103,187 @@ const getAllDeviceId = async (req, res) => {
     });
   }
 };
+
+
+// get all devices by on the basis of userType
+const getAllDeviceIdV2 = async (req, res) => {
+  try {
+     // Search
+     var search = "";
+     if (req.query.search && req.query.search !== "undefined") {
+       search = req.query.search;
+    }
+     // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+       page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+       limit = 99999;
+    }
+
+    // get loggedin user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
+    // console.log(loggedInUser.hospitalName)
+    // Declare blank obj
+    let filterObj = {};
+    // check user
+    if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
+      filterObj = {
+        $match: {$and:[
+          {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
+      }
+    } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
+      filterObj = {
+        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      }
+    } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
+      filterObj = {
+        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+    } 
+  } else if (!!loggedInUser && loggedInUser.userType === "Production") {
+    filterObj = {
+      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+    } 
+  } else if (!!loggedInUser && loggedInUser.userType === "User") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  } 
+  else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  }
+  else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
+    // console.log(loggedInUser.accessHospital)
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  } else {
+    filterObj = {
+      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+    } 
+  }
+    
+    
+    // check user
+  
+  const activeDevices = await statusModelV2.aggregate([
+    {
+      $match: {
+          $and:[{ "message":"ACTIVE"},{"type":req.params.projectCode}]
+      }
+    },
+    {
+      $lookup:
+      {
+        from: "registerdevices",
+        localField: "deviceId",
+        foreignField: "DeviceId",
+        as: "deviceInfo"
+      }
+    },
+    filterObj,
+    {
+      $project:{
+        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+        "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+      }
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+   
+  
+  const inactiveDevices = await statusModelV2.aggregate([
+    {
+      $match: {
+        $and:[{ "message":"INACTIVE"},{"type":req.params.projectCode}]
+      }
+    },
+    {
+      $lookup:
+        {
+          from: "registerdevices",
+          localField: "deviceId",
+          foreignField: "DeviceId",
+          as: "deviceInfo"
+        }
+    },
+    filterObj,
+    {
+      $project:{
+        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+        "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
+      }
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+
+    var finalArr = [...activeDevices, ...inactiveDevices];
+    // console.log(111,finalArr)
+    // remove duplicate recordss
+    var key = "deviceId";
+    let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
+
+    // For pagination
+    const paginateArray = (arrayUniqueByKey, page, limit) => {
+      const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    var allDevices = paginateArray(arrayUniqueByKey, page, limit)
+    if (arrayUniqueByKey.length > 0) {
+      return res.status(200).json({
+        status: 200,
+        statusValue: "SUCCESS",
+        message: "Event lists has been retrieved successfully.",
+        data: { data: allDevices, },
+        totalDataCount: arrayUniqueByKey.length,
+        totalPages: Math.ceil((arrayUniqueByKey.length) / limit),
+        currentPage: page,
+        // tempData: allDevices,
+      })
+    }
+    return res.status(400).json({
+      status: 400,
+      statusValue: "FAIL",
+      message: 'Data not found.',
+      data: {}
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
+
 
 
 /**
@@ -4735,7 +5296,12 @@ module.exports = {
   getAllFocusedDevicesForUsers,
   createAlertsNewV2,
   createEventsV2,
-  createTrendsV2
+  createTrendsV2,
+  getAllDeviceIdV2,
+  getAlertsByIdV2,
+  getTrendsByIdV2,
+  getEventsByIdV2,
+  getLogsByIdV2
 };
 
 
