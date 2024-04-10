@@ -104,6 +104,8 @@ router.put('/update-dispatch-data/:project_code', isAuth, deviceController.updat
 router.get('/track-dispatched-device-location/:deviceId', deviceController.trackDeviceLocation);
 
 router.get('/get-dispatch-data/:project_code', deviceController.getDispatchData);
+router.get('/get-dispatch-data/v2/:productCode', deviceController.getDispatchDataV2);   // v2-version
+
 router.get('/get-dispatch-databyId/:deviceId', deviceController.getDispatchDataById);
 
 

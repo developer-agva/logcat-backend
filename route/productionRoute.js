@@ -9,7 +9,11 @@ const uploadController = require('../controller/upload.controller');
 // Production routes
 
 router.post('/add-new', isAuth, productionController.createProduction);
+
 router.get('/production-list', isAuth, productionController.getProductionData);
+router.get('/production-list/v2/:productCode', isAuth, productionController.getProductionDataV2);  // v2-version
+
+
 router.get('/get-byid/:deviceId', isAuth, productionController.getProductionById);
 router.get('/get-by-serialNumber/:serialNumber', isAuth, productionController.getProductionBySrNo);
 router.get('/get-production-devices', isAuth, productionController.getProductionDevices);

@@ -1876,29 +1876,7 @@ const addAboutDevice = async (req, res) => {
     const project_code = req.query.project_code;
     // check already serial number exixts or not
     const isSerialNo = await aboutDeviceModel.findOne({ serial_no: req.body.serial_no });
-    // const errors = validationResult(req);
-    // if(!!isSerialNo) {
-    //   return res.status(400).json({
-    //     statusCode: 400,
-    //     statusValue:"FAIL",
-    //     message:"This Serial No. already in used.",
-    //     data: {
-    //       err: {
-    //         generatedTime: new Date(),
-    //         errMsg: errors
-    //           .array()
-    //           .map((err) => {
-    //             return `${err.msg}: ${err.param}`;
-    //           })
-    //           .join(' | '),
-    //         msg: 'This Serial No. already in used.',
-    //         type: 'ValidationError',
-    //         statusCode:400,
-    //       },
-    //     },
-    //   });
-    // }
-
+    
     // set date of warranty
     function addOneYear(date) {
       date.setFullYear(date.getFullYear() + 1);
@@ -1917,6 +1895,10 @@ const addAboutDevice = async (req, res) => {
     const getHospital = await Device.findOne({ $or: [{ DeviceId: req.body.deviceId }] });
     // console.log(11,getHospital)
     // console.log(11,req.body)
+
+    // get productCode from statusModel
+    const getProductCode = await statusModelV2.findOne({ deviceId: req.body.deviceId });
+
 
     let saveDispatchData
     if (!!getProduction) {
@@ -1954,7 +1936,8 @@ const addAboutDevice = async (req, res) => {
           buyerName: !!(req.body.buyerName) ? req.body.buyerName : "NA",
           distributor_gst: !!(req.body.distributor_gst) ? req.body.distributor_gst : "NA",
           panNo: !!(req.body.panNo) ? req.body.panNo : "NA",
-          otherRef: !!(req.body.otherRef) ? req.body.otherRef : "NA"
+          otherRef: !!(req.body.otherRef) ? req.body.otherRef : "NA",
+          productCode: !!getProductCode ? getProductCode.type : "",
         },
         { upsert: true }
       )
@@ -1995,7 +1978,8 @@ const addAboutDevice = async (req, res) => {
         buyerName: !!(req.body.buyerName) ? req.body.buyerName : "NA",
         distributor_gst: !!(req.body.distributor_gst) ? req.body.distributor_gst : "NA",
         panNo: !!(req.body.panNo) ? req.body.panNo : "NA",
-        otherRef: !!(req.body.otherRef) ? req.body.otherRef : "NA"
+        otherRef: !!(req.body.otherRef) ? req.body.otherRef : "NA",
+        productCode: !!getProductCode ? getProductCode.type : "",
       },
       { upsert: true }
     );
@@ -2272,6 +2256,131 @@ const getDispatchData = async (req, res) => {
     })
   }
 }
+
+
+const getDispatchDataV2 = async (req, res) => {
+  try {
+    // Search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+    // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 99999;
+    }
+
+    const { project_code } = req.params;
+    let dispatchData = await aboutDeviceModel.aggregate(
+      [
+        { $match: {$and:[{ deviceId: { $ne: null }},{productCode:req.params.productCode}] }},
+        {
+          "$match": {
+            "$or": [
+              { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+              { serial_no: { $regex: ".*" + search + ".*", $options: "i" } },
+              { hospital_name: { $regex: ".*" + search + ".*", $options: "i" } },
+            ]
+          }
+        },
+        {
+          $group: {
+            _id: {
+              deviceId: '$deviceId',
+              // batch_no:'$batch_no',
+              // product_type:'$product_type',
+              // serial_no:'$serial_no',
+              // purpose:'$purpose',
+              // concerned_person:'$concerned_person',
+              // date_of_manufacturing:'$date_of_manufacturing',
+              // address:'$address',
+              // date_of_dispatch:'$date_of_dispatch',
+              // hospital_name:'$hospital_name',
+              // phone_number:'$phone_number',
+              // sim_no:'$sim_no',
+              // pincode:'$pincode',
+              // distributor_name:'$distributor_name',
+              // state:'$state',
+              // city:'$city',
+              // district:'$district',
+              // date_of_warranty:'$date_of_warranty',
+              // document_no:'$document_no',
+              // updatedAt:'$updatedAt',
+            }, uniqueDocs: { $first: '$$ROOT' }
+          }
+        },
+        { $replaceRoot: { newRoot: '$uniqueDocs' } },
+        { $sort: { createdAt: -1 } },
+        { $project: { __v: 0, createdAt: 0, updatedAt: 0 } }
+      ]
+    );
+    // const dispatchData = await aboutDeviceModel.find({ "product_type":{$ne:null} }, 
+    //   { "deviceId":1,
+    //   "batch_no":1,
+    //   "product_type":1,
+    //   "serial_no":1,
+    //   "purpose":1,
+    //   "concerned_person":1,
+    //   "date_of_manufacturing":1,
+    //   "address":1,
+    //   "date_of_dispatch":1,
+    //   "hospital_name":1,
+    //   "phone_number":1,
+    //   "sim_no":1,
+    //   "pincode":1,
+    //   "distributor_name":1,
+    //   "distributor_contact":1,
+    //   "state":1,
+    //   "city":1,
+    //   "district":1,
+    //   "date_of_warranty":1,
+    //   "document_no":1,
+    // }).sort({updatedAt:-1});
+
+    // for pagination purpose 
+
+    const paginateArray = (dispatchData, page, limit) => {
+      const skip = dispatchData.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    let allData = paginateArray(dispatchData, page, limit)
+    if (!dispatchData.length) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data:[]
+      });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Product dispatch details get successfully!",
+      data: allData,
+      totalDataCount: dispatchData.length,
+      totalPages: Math.ceil((dispatchData.length) / limit),
+      currentPage: page,
+      // data22:dispData
+    });
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
 
 // get dispatched device location
 const trackDeviceLocation = async (req, res) => {
@@ -3672,5 +3781,6 @@ module.exports = {
   getDeviceCountData,
   deleteDeviceAccessFromDoctor,
   getDeviceAccessAstList,
-  getDeviceAccessDoctList
+  getDeviceAccessDoctList,
+  getDispatchDataV2
 }

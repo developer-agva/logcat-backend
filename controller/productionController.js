@@ -12,6 +12,7 @@ const registeredHospitalModel = require('../model/registeredHospitalModel.js');
 const prodActivityLogModel = require('../model/productionActivityLogModel.js');
 const User = require('../model/users.js');
 let redisClient = require("../config/redisInit");
+const statusModelV2 = require('../model/statusModelV2.js');
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 // const jwt = require('jsonwebtoken')
@@ -65,6 +66,10 @@ const createProduction = async (req, res) => {
         // console.log(12,getAddress)
         // console.log(13,getWaranty)
         // console.log(11,req.body)
+
+        // get productCode from statusModelV2
+        const getProductCode = await statusModelV2.findOne({deviceId:req.body.deviceId});
+
         const productionData = await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},
             {
                 deviceId:req.body.deviceId,
@@ -88,7 +93,8 @@ const createProduction = async (req, res) => {
                 dataEnteredBy: !!(req.body.dataEnteredBy) ? req.body.dataEnteredBy : "",
                 testingDoneBy: !!(req.body.testingDoneBy) ? req.body.testingDoneBy : "",
                 partsIssuedBy: !!(req.body.partsIssuedBy) ? req.body.partsIssuedBy : "",
-                purpose: !!(req.body.purpose) ? req.body.purpose : "NA" 
+                purpose: !!(req.body.purpose) ? req.body.purpose : "NA",
+                productCode:!!getProductCode ? getProductCode.type : "", 
             },
             { upsert:true, new: true },
         );
@@ -235,6 +241,118 @@ const getProductionData = async (req, res) => {
         })
     }
 }
+
+/**
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ * api GET@/production/production-list/v2/:productCode
+ */
+const getProductionDataV2 = async (req, res) => {
+    try {
+        // Search
+        var search = "";
+        if (req.query.search && req.query.search !== "undefined") {
+        search = req.query.search;
+        }
+        // for pagination
+        let page = req.query.page
+        let limit = req.query.limit
+        if (!page || page === "undefined") {
+        page = 1;
+        }
+        if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+        limit = 999999;
+        }
+
+        // aggregate logic
+        var pipline = [
+            // Match
+            {
+                $match: { productCode:req.params.productCode },
+            },
+            {
+              "$lookup": {
+                "from": "s3_bucket_productions",
+                "localField": "deviceId",
+                "foreignField": "deviceId",
+                "as": "bucket_mapping",
+              },
+            },
+            // search operation
+            {
+                "$match":{"$or":[
+                    { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+                    { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
+                ]}
+            },
+            // For this data model, will always be 1 record in right-side
+            // of join, so take 1st joined array element
+            {
+              "$set": {
+                "bucket_mapping": {"$first": "$bucket_mapping"},
+              }
+            },
+            // Extract the joined embeded fields into top level fields
+            {
+              "$set": {"location": "$bucket_mapping.location"},
+            },
+            {
+              "$unset": [
+                "bucket_mapping",
+                "__v",
+                // "createdAt",
+                "updatedAt",
+                // "otp",
+                // "isVerified",
+              ]
+            },
+            {
+              "$sort": {"manufacturingDate":-1}
+            },
+        ]
+      
+        // get data
+        const resData = await productionModel.aggregate(pipline);
+        const count = resData.length
+        // for pagination
+        const paginateArray =  (resData, page, limit) => {
+            const skip = resData.slice((page - 1) * limit, page * limit);
+            return skip;
+        };
+      
+        let data = paginateArray(resData, page, limit)
+        // count data
+        if (data.length > 0) {
+            return res.status(200).json({
+                statusCode: 200,
+                statusValue: "SUCCESS",
+                message: "production data get successfully!",
+                data: data,
+                totalDataCount: count,
+                totalPages: Math.ceil(count / limit),
+                currentPage: page
+            });
+        }
+        return res.status(404).json({
+            statusCode: 404,
+            statusValue: "FAIL",
+            message: "Data not found.",
+            data: [],
+        })
+    } catch (err) {
+        res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message: "Internal server error",
+            data: {
+                generatedTime: new Date(),
+                errMsg: err.stack,
+            }
+        })
+    }
+}
+
 
 /*
 * @param {*} req 
@@ -598,5 +716,6 @@ module.exports = {
     updateProduction,
     deleteProductionById,
     getProductionBySrNo,
-    getProductionDevices
+    getProductionDevices,
+    getProductionDataV2
 }

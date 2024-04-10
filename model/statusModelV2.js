@@ -41,7 +41,7 @@ const statusSchema = mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ["003","004"],
+        enum: ["003","004","005"],
         required: [true, "product code is required."]
     },
 },

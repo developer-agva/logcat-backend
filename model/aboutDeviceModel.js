@@ -157,8 +157,11 @@ const aboutSchema = mongoose.Schema({
     otherRef: {
         type: String,
         default:""
-    }
-
+    },
+    productCode:{
+        type: String,
+        default:""
+    },
 },
     { timestamps: true })
 

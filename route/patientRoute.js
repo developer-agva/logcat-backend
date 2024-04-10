@@ -17,7 +17,6 @@ router.get('/get-all-patient-discharge-data/v2/:projectCode', isAuth, patientCon
 router.get('/get-allUhid', isAuth, patientController.getAllUhid);
 router.get('/v2/get-allUhid', isAuth, patientController.getAllUhidV2);  // v2-version
 
-
 router.get('/get-patient-list/:deviceId', isAuth, patientController.getAllUhidBydeviceId);
 router.get('/get-patient-list/v2/:deviceId', isAuth, patientController.getAllUhidBydeviceIdV2);  // v2-version 
 
