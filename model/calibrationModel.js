@@ -7,7 +7,8 @@ const calibrationSchema = new Schema({
     deviceId: { type: String, required: true },
     message: { type: String, required: true },
     date: { type: String, required: true },
-    name: { type:String, required: true }
+    name: { type:String, required: true },
+    productCode: { type: String, default: "" },
 },
     { timestamps: true }
 );

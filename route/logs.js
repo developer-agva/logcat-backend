@@ -76,17 +76,30 @@ router.post("/v2/:productCode", logController.createNewLogV2);
 
 
 router.post("/location/:project_code", locationController.saveNewLocation);    // for all products
+router.post("/location/v2/:project_code", locationController.saveNewLocation);  // v2-version
+
 router.get('/location/:deviceId/:project_code', locationController.getLocationByDeviceId);
+
 router.post('/calibration/:project_code', calibrationController.saveCalibrationData);  // for all products
+router.post('/calibration/v2/:project_code', calibrationController.saveCalibrationDataV2);   // v2-version
+
 router.get('/calibration/:deviceId', calibrationController.getCalibrationByDeviceId);
 
+
 // Service API
-router.post('/services/:project_code', deviceController.addDeviceService);   // step 1 for ventilator   done
+router.post('/services/:project_code', deviceController.addDeviceService);
+router.post('/services/v2/:project_code', deviceController.addDeviceServiceV2);  // v2-version
+
+
+// step 1 for ventilator   done
 router.post('/services/verify-sms-otp/:project_code', deviceController.verifyOtpSms); // step 2 for ventilator  done
 router.get('/services/get-by-deviceId', deviceController.getServicesById);
 router.post('/services/ticket-status/:project_code', deviceController.updateTicketStatus);  // step 1 for close ticket  done
 router.post('/services/verify-otp-for-ticket-close/:project_code', deviceController.closeTicket);
+
 router.get('/services/get-all', deviceController.getAllServices);
+router.get('/services/get-all/v2/:project_code', deviceController.getAllServicesV2);
+
 
 // End service API
 

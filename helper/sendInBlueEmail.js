@@ -203,7 +203,7 @@ async function sendInBlueEmail(to) {
     } catch (error) {
         console.log(`Error sending email :`, error);
     }
-}
+  }
 
 // async function sendSMS() {
 //     try {

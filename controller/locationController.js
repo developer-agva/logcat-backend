@@ -34,7 +34,15 @@ const saveNewLocation = async (req, res) => {
         }
 
         const project_code = req.params.project_code;
-        const locationData = new locationModel(req.body);
+        const locationData = new locationModel({
+            deviceId:req.body.deviceId,
+            country:req.body.country,
+            state:req.body.state,
+            city:req.body.city,
+            street:req.body.street,
+            pincode:req.body.pincode,
+            productCode:req.params.project_code
+        });
         const saveDoc = await locationData.save();
         if (!saveDoc) {
             return res.status(404).json({

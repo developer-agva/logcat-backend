@@ -30,7 +30,7 @@ const trends_ventilator_collectionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["001", "002"],
+      enum: ["001", "002", "004"],
       required: [true, "Atleast one model required."],
     },
     mode: {

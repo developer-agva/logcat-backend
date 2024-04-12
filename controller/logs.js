@@ -3054,41 +3054,58 @@ const createTrendsV2 = async (req, res) => {
       });
     }
     
-    const { did, time, spo2, pr, hr, ecgRR, iBP_S, iBP_D, cgm, etCo2, rr, nibp_S, nibp_D, temp1, temp2, iBP2_S, iBP2_D} = req.body;
-    // if (!!did || !!time || !!spo2 || !!pr || !!hr || !!ecgRR || !!iBP_S || !!iBP_D || !!cgm || !!etCo2 || !!rr || !!nibp_S || !!nibp_D || !!temp1 || !!temp2 || !!iBP2_S || !!iBP2_D) {
-    //   return res.status(400).json({
-    //     status: 0,
-    //     data: {
-    //       err: {
-    //         generatedTime: new Date(),
-    //         errMsg: 'Please fill all the details.',
-    //         msg: 'Please fill all the details.',
-    //         type: 'Client Error',
-    //       },
-    //     },
-    //   });
-    // }
-    const trends = await new trends_ventilator_collectionV2_model({
-      did:did, 
-      time:time, 
-      spo2:spo2, 
-      pr:pr, 
-      hr:hr, 
-      ecgRR:ecgRR, 
-      iBP_S:iBP_S, 
-      iBP_D:iBP_D, 
-      cgm:cgm, 
-      etCo2:etCo2, 
-      rr:rr, 
-      nibp_S:nibp_S, 
-      nibp_D:nibp_D, 
-      temp1:temp1, 
-      temp2:temp2, 
-      iBP2_S:iBP2_S, 
-      iBP2_D:iBP2_D,
-      type:findProjectWithCode,
-    });
-    const SaveTrends = await trends.save(trends);
+    var SaveTrends;
+    if (req.params.project_code == "003") {
+      const { did, time, spo2, pr, hr, ecgRR, iBP_S, iBP_D, cgm, etCo2, rr, nibp_S, nibp_D, temp1, temp2, iBP2_S, iBP2_D} = req.body;
+      const trends = await new trends_ventilator_collectionV2_model({
+        did:did, 
+        time:time, 
+        spo2:spo2, 
+        pr:pr, 
+        hr:hr, 
+        ecgRR:ecgRR, 
+        iBP_S:iBP_S, 
+        iBP_D:iBP_D, 
+        cgm:cgm, 
+        etCo2:etCo2, 
+        rr:rr, 
+        nibp_S:nibp_S, 
+        nibp_D:nibp_D, 
+        temp1:temp1, 
+        temp2:temp2, 
+        iBP2_S:iBP2_S, 
+        iBP2_D:iBP2_D,
+        type:req.params.project_code,
+      });
+      SaveTrends = await trends.save(trends);
+
+    } else if (req.params.project_code == "004") {
+      const { did,time, type,mode,pip,peep,mean_Airway,vti,vte,mve,mvi,fio2,respiratory_Rate,ie,tinsp,texp,averageLeak,sPo2,pr} = req.body;
+      const trends = await new trends_ventilator_collection({
+        did:did,
+        time:time,
+         type:type,
+         mode:mode,
+         pip:pip,
+         peep:peep,
+         mean_Airway:mean_Airway,
+         vti:vti,
+         vte:vte,
+         mve:mve,
+         mvi:mvi,
+         fio2:fio2,
+         respiratory_Rate:respiratory_Rate,
+         ie:ie,
+         tinsp:tinsp,
+         texp:texp,
+         averageLeak:averageLeak,
+         sPo2:sPo2,
+         pr:pr
+      });
+      SaveTrends = await trends.save(trends);
+    }
+    
+    
     // console.log(11,SaveTrends)
     // console.log(22,req.body)
 
@@ -3105,20 +3122,6 @@ const createTrendsV2 = async (req, res) => {
         data: { eventCounts: SaveTrends.length },
         message: 'Trends add!',
       });
-    }
-
-    else {
-      res.status(500).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'Some error happened during registration',
-            msg: 'Some error happened during registration',
-            type: 'MongodbError',
-          },
-        },
-      }); I
     }
   }
   catch (err) {

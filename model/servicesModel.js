@@ -111,6 +111,10 @@ const ServiceSchema = mongoose.Schema({
         type: String,
         default:"",
     },
+    productCode: {
+        type: String,
+        default:""
+    }
     
     
 },

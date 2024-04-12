@@ -10,6 +10,7 @@ const locationSchema = new mongoose.Schema({
     city: { type: String, required: true},
     street: { type: String, required: true },
     pincode: { type: String, required:true },
+    productCode: { type: String, default:"" },
 },
     { timestamps: true }
 );

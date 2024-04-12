@@ -763,6 +763,169 @@ const addDeviceService = async (req, res) => {
   }
 }
 
+
+
+/**
+ * api      POST @/api/logger/logs/services/:project_code
+ * desc     @addDeviceServices for logger access only
+ */
+const addDeviceServiceV2 = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      deviceId: Joi.string().required(),
+      message: Joi.string().required(),
+      date: Joi.string().required(),
+      serialNo: Joi.string().allow("").optional(),
+      name: Joi.string().required(),
+      contactNo: Joi.string().required(),
+      hospitalName: Joi.string().required(),
+      wardNo: Joi.string().required(),
+      email: Joi.string().required(),
+      department: Joi.string().required(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation Error",
+        message: result.error.details[0].message,
+      })
+    }
+    // const project_code = req.params.project_code
+   
+    // var serialNo = Math.floor(1000 + Math.random() * 9000);
+    // for otp sms on mobile
+    
+    const contactNo = `+91${req.body.contactNo}`;
+    const number = req.body.contactNo;
+    var otpValue = Math.floor(1000 + Math.random() * 9000);
+    
+
+    // define tag name
+    let tag1 = "General Service";
+    let tag2 = "Operating Support";
+    let tag3 = "Request for Consumables";
+    let tag4 = "Physical Damage";
+    let tag5 = "Issue in Ventilation";
+    let tag6 = "Performance Issues";
+    let tag7 = "Apply for CMC/AMC";
+
+    const msg = req.body.message;
+
+    const tags = {
+      tag1: !!(msg && msg.includes("General Service")) ? tag1 : "",
+      tag2: !!(msg && msg.includes("Operating Support")) ? tag2 : "",
+      tag3: !!(msg && msg.includes("Request for Consumables")) ? tag3 : "",
+      tag4: !!(msg && msg.includes("Physical Damage")) ? tag4 : "",
+      tag5: !!(msg && msg.includes("Issue in Ventilation")) ? tag5 : "",
+      tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",
+      tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
+    };
+
+    // check already exixts service request oe not
+    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }] });
+    // console.log(11,checkData);
+    // console.log(12,req.body); 
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Service request already raised.",
+      })
+    }
+
+    // console.log(11,tags)
+    // Set priority
+    let priority;
+    if (msg.includes("General Service") == true || msg.includes("Apply for CMC/AMC") == true) {
+      priority = "Medium";
+    }
+    priority = "High";
+
+    const newServices = new servicesModel({
+      deviceId: req.body.deviceId,
+      message: req.body.message,
+      date: req.body.date,
+      serialNo: otpValue,
+      name: req.body.name,
+      contactNo: req.body.contactNo,
+      hospitalName: req.body.hospitalName,
+      wardNo: req.body.wardNo,
+      email: req.body.email,
+      department: req.body.department,
+      ticketStatus: "Open",
+      remark: "",
+      issues: tags,
+      priority: priority,
+      productCode:req.params.project_code,
+    });
+    // console.log(req.body)
+    const savedServices = await newServices.save();
+
+    const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 });
+    // console.log(11, getLastData) 
+    if (!!savedServices) {
+      await servicesModel.findOneAndUpdate(
+        { serialNo: getLastData[0].serialNo },
+        {
+          otp: getLastData[0].serialNo,
+          isVerified: false,
+        },
+      )
+
+      var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
+      const sendSms = req.query({
+        "authorization": process.env.Fast2SMS_AUTHORIZATION,
+        "variables_values": `${otpValue}`,
+        "route": "otp",
+        "numbers": `${number}`
+      })
+      req.headers({
+        "cache-control": "no-cache"
+      })
+      req.end(function (res) {
+        // console.log(123,res.error.status)
+      if (res.error.status === 400) {
+          console.log(false)
+        } 
+        console.log("Otp sent successfully.")  
+      });
+
+      if (sendSms) {
+        // findlast inserted data
+        return res.status(201).json({
+          statusCode: 201,
+          statusValue: "SUCCESS",
+          message: "Data added successfully.",
+          otp: otpValue
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "otp was not sended.",
+        data: savedServices
+      });
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Error! Data not added.",
+      data: savedServices
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 // const addDeviceService2 = async (req, res) => {
 //   try {
 //     const schema = Joi.object({
@@ -1286,6 +1449,118 @@ const getAllServices = async (req, res) => {
     })
   }
 }
+
+
+/**
+ * api   GET@/api/logger/logs/services/get-all
+ * desc  @getAllServices for logger access only
+ */
+const getAllServicesV2 = async (req, res) => {
+  try {
+
+    let { page, limit, sortBy } = req.query;
+    // for search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+
+    // for pagination
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 999999;
+    }
+
+    // for sorting
+    if (!sortBy || sortBy === "Open" || sortBy == "undefined" || sortBy == "open") {
+      sortBy = {
+        $and: [
+          { isVerified: true },
+          { productCode:req.params.project_code },
+          { ticketStatus: "Open" },
+          {
+            $or: [
+              { serialNo: { $regex: ".*" + search + ".*", $options: "i" } },
+              { email: { $regex: ".*" + search + ".*", $options: "i" } },
+            ]
+          }
+        ],
+      }
+    }
+    else if (sortBy == "All" || sortBy == "all") {
+      sortBy = {
+        $and: [
+          { isVerified: true },
+          { productCode:req.params.project_code },
+          {
+            $or: [
+              { serialNo: { $regex: ".*" + search + ".*", $options: "i" } },
+              { email: { $regex: ".*" + search + ".*", $options: "i" } },
+            ]
+          }
+        ],
+      }
+    }
+    // const project_code = req.query.project_code;
+
+    const resData = await servicesModel.find(sortBy,
+      {
+        __v: 0,
+        otp: 0,
+        createdAt: 0,
+        updatedAt: 0
+      })
+      .sort({ "createdAt": -1 });
+
+    // for pagination
+    const paginateArray = (resData, page, limit) => {
+      const skip = resData.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    let finalData = paginateArray(resData, page, limit)
+    // count data
+    const count = await servicesModel.find(sortBy,
+      {
+        __v: 0,
+        otp: 0,
+        createdAt: 0,
+        updatedAt: 0
+      })
+      .sort({ "createdAt": -1 })
+      .countDocuments();
+
+    if (finalData.length > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Services get successfully!",
+        data: finalData,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
+    }
+    return res.status(404).json({
+      statusCode: 404,
+      statusValue: "FAIL",
+      message: "Data not found."
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 
 
 /**
@@ -3782,5 +4057,7 @@ module.exports = {
   deleteDeviceAccessFromDoctor,
   getDeviceAccessAstList,
   getDeviceAccessDoctList,
-  getDispatchDataV2
+  getDispatchDataV2,
+  addDeviceServiceV2,
+  getAllServicesV2
 }

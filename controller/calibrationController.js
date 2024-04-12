@@ -52,6 +52,59 @@ const saveCalibrationData = async (req, res) => {
     }
 }
 
+const saveCalibrationDataV2 = async (req, res) => {
+    try { 
+        const schema = Joi.object({
+            deviceId: Joi.string().required(),
+            message: Joi.string().required(),
+            date: Joi.string().required(),
+            name: Joi.string().required(),
+        })
+        let result = schema.validate(req.body);
+        if (result.error) {
+            // console.log(req.body);
+            return res.status(201).json({
+                status: 201,
+                statusCode: 400,
+                message: result.error.details[0].message,
+            })
+        }
+
+        const project_code = req.params.project_code;
+        const calibrationData = new calibrationModel({
+            deviceId:req.body.deviceId,
+            message:req.body.message,
+            date:req.body.date,
+            name:req.body.name,
+            productCode:req.params.project_code,
+        });
+        const saveDoc = await calibrationData.save();
+        if (!saveDoc) {
+            return res.status(404).json({
+                status: 404,
+                msg: "Calibration data not saved."
+            });
+        }
+        return res.status(201).json({
+            status: 201,
+            msg: "Calibration data has been saved successfully.",
+            data: saveDoc
+        });
+    } catch (err) {
+        return res.status(500).json({
+            status: -1,
+            data: {
+                err: {
+                    generatedTime: new Date(),
+                    errMsg: err.stack,
+                    msg: err.message,
+                    type: err.name,
+                },
+            },
+        });
+    }
+}
+
 const getCalibrationByDeviceId = async (req, res) => {
     try {
         // Pagination
@@ -125,5 +178,6 @@ const getCalibrationByDeviceId = async (req, res) => {
 
 module.exports = {
     saveCalibrationData,
-    getCalibrationByDeviceId
+    getCalibrationByDeviceId,
+    saveCalibrationDataV2
 }
