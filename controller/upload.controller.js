@@ -9,7 +9,7 @@ const AWS = require('aws-sdk');
 const s3BucketProdModel = require('../model/s3BucketProductionModel');
 const s3BucketInsModel = require('../model/s3BucketInstallationModel');
 const s33 = new AWS.S3();
-const {sendOtp, sendEmailLink} = require('../helper/sendOtp');
+const {sendOtp, sendEmailLink, sendPrintFileLink} = require('../helper/sendOtp');
 const s3PatientFileModel = require('../model/s3PatientFileModel');
 const patientModel = require('../model/patientModel');
 const s3invoiceBucketModel = require('../model/s3invoiceBucketModel');
@@ -18,6 +18,7 @@ const s3shippingBucketModel = require('../model/s3bucketShippingModel');
 const productionModel = require('../model/productionModel');
 const s3poBucketModel = require('../model/s3BucketPoPdfModel');
 const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
+const s3sendPrintFileModel = require('../model/s3sendPrintFileModel');
 
 exports.uploadSingle = async (req, res) => {
     // req.file contains a file object
@@ -38,6 +39,30 @@ exports.uploadSingle = async (req, res) => {
     await sendEmailLink(req.params.email, link) 
     await s3BucketModel.deleteMany({location: ""});
 }
+
+
+exports.uploadPrintFileAndSendEmail = async (req, res) => {
+    // req.file contains a file object
+    console.log(11,req.file)
+    res.json(req.file);
+
+        
+    const newObj = {
+        "deviceId":req.params.deviceId,
+        "email":req.params.email,
+        ...req.file,
+    }
+    const saveDoc = new s3sendPrintFileModel(newObj);
+    // console.log(11,newObj)
+    saveFile = saveDoc.save();
+    // send email  
+    let link = `<a href="${req.file.location}" >Download attachment</a>`
+    await sendPrintFileLink(req.params.email, link) 
+    // await s3BucketModel.deleteMany({location: ""});
+}
+
+
+
 
 // upload quality report for production modules
 exports.uploadQualityReport = async (req, res) => {
@@ -174,6 +199,22 @@ exports.uploadInstallationReport = async (req, res) => {
     saveFile = saveDoc.save();
   //   await s3BucketProdModel.deleteMany({location: ""});
 }
+
+
+// // Upload installation report for service module
+// exports.send = async (req, res) => {
+//     // req.file contains a file object
+//     res.json(req.file);
+//   //   console.log(req.file.fieldname, req.params.deviceId)
+//     const newObj = {
+//         "deviceId":req.params.deviceId,
+//         "flag":req.params.flag,
+//         ...req.file,
+//     }
+//     const saveDoc = new s3BucketInsModel(newObj);
+//     saveFile = saveDoc.save();
+//   //   await s3BucketProdModel.deleteMany({location: ""});
+// }
   
 
 // Upload patient file for patient module

@@ -41,7 +41,8 @@ const {
     getAllInactiveUsers,
     assignHospitalToAssistant,
     getAssistantList,
-    removeHospitalAccessFromAst
+    removeHospitalAccessFromAst,
+
 } = require('../controller/users.js')
 
 const {
@@ -58,6 +59,9 @@ router.post('/auth/register-for-dashboard', registerUserForSuperAdmin);
 
 router.get('/send-otp-sms/:contactNumber', sendOtpSms);
 router.post('/verify-sms-otp', verifyOtpSms);
+
+// sendPRintEmail
+// router.post('/send-print-email',);
 
 router.post('/send-device-req', sendReqForDevice);    // for doctor role
 router.get('/get-user-device-req', getUserDeviceReq); // get device req list for hodpital-admin

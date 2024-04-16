@@ -47,6 +47,8 @@ const fcmTokenModel = require('../model/fcmTockenModel');
 const { registerDevice } = require('./RegisterDevice');
 const statusModelV2 = require('../model/statusModelV2');
 const logModelV2 = require('../model/logModelV2');
+const fcmNotificationModel = require('../model/fcmNotificationModel');
+const { title } = require('process');
 
 // initializeApp({
 //   credential: applicationDefault(),
@@ -2494,7 +2496,7 @@ const createAlertsNew = async (req, res) => {
         // // check deviceId for particular fcm token
         const checkDeviceId = await fcmTokenModel.find({deviceIds:{$in:req.body.did}})
        
-        // // console.log(11,checkDeviceId)
+        console.log(12,checkDeviceId)
         // // start fcm services for notification
         // checkDeviceId.forEach(element => {
           
@@ -2524,9 +2526,11 @@ const createAlertsNew = async (req, res) => {
             },
             token: receivedToken,
           };
-
+          // console.log(11,message.notification) 
           admin.messaging().send(message)
-            .then((response) => {
+            .then(async (response) => {
+              // console.log(13, message)
+              await fcmNotificationModel.findOneAndUpdate({token:"2sfsr3564dve512"},{notification:message.notification, data:message.data, token:message.token},{upsert:true})
               console.log("Notification sent successfully:", response);
             })
             .catch((error) => {

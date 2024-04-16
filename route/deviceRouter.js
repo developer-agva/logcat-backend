@@ -15,7 +15,12 @@ const statusModel = require('../model/statusModel.js')
 router.post('/register', deviceController.createDevice);
 router.get('/', deviceController.getAllDevices);
 router.put('/update/:DeviceId', deviceController.updateDevice);
+
 router.get('/getdevice/:DeviceId', deviceController.getDeviceById);
+router.get('/getdevice/v2/:DeviceId', deviceController.getDeviceByIdV2);
+
+
+
 router.get('/get-details/:DeviceId', deviceController.getDeviceById);
 router.delete('/delete-byid/:DeviceId', deviceController.deleteSingleDevice);
 router.get('/get-devices-by-hospital/:hospital_name', deviceController.getDevicesByHospital);

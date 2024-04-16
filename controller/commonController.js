@@ -23,6 +23,7 @@ const productionModel = require('../model/productionModel.js');
 const prodActivityLogModel = require('../model/productionActivityLogModel.js');
 const dispatchActivityLogModel = require('../model/dispatchActivityLogModel.js');
 const fcmTokenModel = require('../model/fcmTockenModel.js');
+const fcmNotificationModel = require('../model/fcmNotificationModel.js');
 
 
 /**
@@ -260,6 +261,43 @@ const getCountryByPincode = async (req, res) => {
   }
 }
 
+
+/**
+* api      GET @/common/common/get-notification-list/:fcmToken
+* desc     @getFcmNotification for public access
+*/
+const getFcmNotification = async (req, res) => {
+  try {
+    const getData = await fcmNotificationModel.find({token:req.params.fcmToken}).sort({createdAt:-1}).limit(5);
+    if (getData.length < 1) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Opps something went wrong! Or Invalid pincode.",
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data get successfully.",
+      data:getData,
+    })
+    
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+
+
 /**
 * api      GET @/common/get-serial-number-list
 * desc     @getDeviceSerialNumber for public access
@@ -431,5 +469,6 @@ module.exports = {
     getDeviceSerialNumber,
     getProdLogsData,
     getDispatchLogsData,
-    sendFcmToken
+    sendFcmToken,
+    getFcmNotification
 }

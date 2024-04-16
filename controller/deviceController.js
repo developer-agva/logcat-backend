@@ -423,6 +423,71 @@ const getDeviceById = async (req, res) => {
   }
 }
 
+
+/**
+ * api      GET @/devices/getdevice/DeviceId
+ * desc     @get single device by id for logger access only
+ */
+const getDeviceByIdV2 = async (req, res) => {
+  try {
+    const { DeviceId } = req.params;
+    if (!DeviceId) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation error",
+        message: "Device Id is required!"
+      })
+    }
+
+    let data = await Device.findOne({ DeviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    const data2 = await statusModelV2.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    data = {
+      '_id': !!(data._id) ? data._id : "",
+      'DeviceId': !!(data.DeviceId) ? data.DeviceId : "",
+      'Alias_Name': !!(data.Alias_Name) ? data.Alias_Name : "",
+      'Bio_Med': !!(data.Bio_Med) ? data.Bio_Med : "",
+      'Department_Name': !!(data.Department_Name) ? data.Department_Name : "",
+      'Doctor_Name': !!(data.Doctor_Name) ? data.Doctor_Name : "",
+      'Hospital_Name': !!(data.Hospital_Name) ? data.Hospital_Name : "",
+      'IMEI_NO': !!(data.IMEI_NO) ? data.IMEI_NO : "",
+      'message': !!(data2.message) ? data2.message : "",
+      'Ward_No': !!(data.Ward_No) ? data.Ward_No : "",
+      'isAssigned': !!(data.isAssigned) ? data.isAssigned : "",
+      'address': !!(data2.address) ? data2.address : "",
+      'health': !!(data2.health) ? data2.health : "",
+      'last_hours': !!(data2.last_hours) ? data2.last_hours : "",
+      'total_hours': !!(data2.total_hours) ? data2.total_hours : "",
+    };
+    if (!data) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found with this given deviceId.",
+        data: {},
+      })
+    }
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Device get successfully!",
+      data: data
+    });
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
 /**
  * api      GET @/get-devices-by-hospital/:hospital
  * desc     @get single device by id for logger access only
@@ -4059,5 +4124,6 @@ module.exports = {
   getDeviceAccessDoctList,
   getDispatchDataV2,
   addDeviceServiceV2,
-  getAllServicesV2
+  getAllServicesV2,
+  getDeviceByIdV2
 }

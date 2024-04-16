@@ -13,6 +13,9 @@ router.get("/production-logs-data/:serialNo", commonController.getProdLogsData);
 router.get("/dispatch-logs-data/:serialNo", commonController.getDispatchLogsData);
 router.post("/send-fcm-token", commonController.sendFcmToken);
 
+router.get("/get-notification-list/:fcmToken", commonController.getFcmNotification);
+
+
 
 
 

@@ -155,7 +155,7 @@ const registerUser = async (req, res) => {
     // const emailSubject = "Welcome to our Logcat";
     // const emailText = "Please verify your email id";
     // await sendEmail(insertData.email, emailSubject, emailText);
-    // await sendInBlueEmail(insertData.email);
+    await sendInBlueEmail(insertData.email);
     if (saveDoc) {
       return res.status(201).json({
         statusCode:201,
@@ -3155,6 +3155,7 @@ const getUserDeviceReq = async (req, res) => {
 }
 
 
+
 module.exports = {
   registerUser,
   loginUser,
@@ -3193,5 +3194,6 @@ module.exports = {
   getAllInactiveUsers,
   assignHospitalToAssistant,
   getAssistantList,
-  removeHospitalAccessFromAst
+  removeHospitalAccessFromAst,
+  // sendPrintEmail
 };

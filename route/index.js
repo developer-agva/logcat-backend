@@ -7,12 +7,18 @@ const { isAuth } = require('../middleware/authMiddleware');
  
 // service report upload route
 router.post('/upload-single/:deviceId/:serialNo/:faultReason/:email', upload.single('file'), uploadController.uploadSingle);
+
+router.post('/upload-print-file/:deviceId/:email', upload.single('file'), uploadController.uploadPrintFileAndSendEmail);
+
+
+
 router.post('/upload-multiple', upload.array('files', 5), uploadController.uploadMultiple);
 
 router.get('/get-uploaded-files', isAuth, uploadController.getUploadedS3file);
 // router.delete('/delete-file-byid/:id', isAuth, uploadController.deleteFile);
 router.delete('/delete-file/:key', isAuth, uploadController.deleteS3File);
 router.get('/get-uploaded-files/:deviceId', isAuth, uploadController.getFileByDeviceId);
+
 
 
 // router.get('/get-s3bucket-file', uploadController.getS3bucketData);

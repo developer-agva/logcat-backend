@@ -25,8 +25,9 @@ router.get('/get-individual-ticket/:email', supportController.getIndividualTicke
 router.post('/add-feedback', supportController.submitFeedback);
 
 
-
 router.post('/upload-installation-report/:deviceId/:flag', upload.single('file'), uploadController.uploadInstallationReport);
+
+
 router.delete('/delete-installation-report/:key', isAuth, uploadController.deleteInstallationRecord);
 
 
