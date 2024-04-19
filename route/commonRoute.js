@@ -15,7 +15,7 @@ router.post("/send-fcm-token", commonController.sendFcmToken);
 
 router.get("/get-notification-list/:fcmToken", commonController.getFcmNotification);
 
-
+router.delete("/delete-notification/:id", commonController.deleteFcmNotification);
 
 
 

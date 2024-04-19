@@ -655,17 +655,17 @@ const sendPrintFileLink = async function sendPrintFileLink(to, link) {
                                       style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">
                                      <img src="https://i.ibb.co/xfngMWf/lgnewsmall.png" style='width: 2rem;'>
                                     </p>
-                                    <h2>Hello From AgVa Team!</h2>
+                                    <h2>Hello, From AgVa Team!</h2>
                                     <p
                                       style="font-family: sans-serif; font-size: 14px;  margin: 0; margin-bottom: 15px;">
-                                      Hii, ${to}</p>
+                                      Dear ${to},</p>
                                     <p
                                       style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">
                                       We hope you're having a lovely day.</p>
                                     <p
                                       style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 15px;">
-                                      We love hearing from our customers and use your feedback constructively to improve our products
-                                      and services Please share your feedback.
+                                      Please be informed that an important document is attached to this email for your review and action.
+                                      The document, requires your immediate attention. 
                                       <br>
                                       <button
                                        class='submitBtn'>${link}</button>

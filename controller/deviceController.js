@@ -37,7 +37,8 @@ const createDevice = async (req, res) => {
       Doctor_Name: Joi.string().required(),
       IMEI_NO: Joi.string().required(),
       Bio_Med: Joi.string().required(),
-      Alias_Name: Joi.string().required()
+      Alias_Name: Joi.string().required(),
+      deviceType: Joi.string().allow("").optional(),
     })
     let result = schema.validate(req.body);
 
@@ -84,6 +85,7 @@ const createDevice = async (req, res) => {
         Doctor_Name: req.body.Doctor_Name,
         IMEI_NO: req.body.IMEI_NO,
         Bio_Med: req.body.Bio_Med,
+        deviceType: !!(req.body.deviceType) ? req.body.deviceType : "AgVa-Pro", 
       },
       { upsert: true, new: true }
     );

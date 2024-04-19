@@ -281,7 +281,8 @@ const getAccesshospitals = async (req, res) => {
 
 const getHospitals = async (req, res) => {
     try {
-        const data = await registeredHospitalModel.find({$or:[{Pincode:req.params.Pincode},{Hospital_Name:req.params.Hospital_Name}]}, { __v: 0, createdAt: 0, updatedAt: 0 });
+        let Hospital_Name = req.params.Hospital_Name.trim();
+        const data = await registeredHospitalModel.find({$or:[{Pincode:req.params.Pincode},{Hospital_Name:Hospital_Name}]}, { __v: 0, createdAt: 0, updatedAt: 0 });
         if (data.length == "") {
             return res.status(404).json({
                 statusCode: 404,

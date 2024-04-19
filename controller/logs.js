@@ -1946,6 +1946,48 @@ const getAllDeviceId = async (req, res) => {
     },
     filterObj,
     {
+      $lookup:
+      {
+        from: "alert_ventilator_collections",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$did", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "alarmData"
+      },
+    },
+    {
+      $lookup:
+      {
+        from: "patient_ventilator_collections",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$deviceId", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "patientData"
+      },
+    },
+    {
       $project:{
         "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
         "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
@@ -1973,6 +2015,48 @@ const getAllDeviceId = async (req, res) => {
         }
     },
     filterObj,
+    {
+      $lookup:
+      {
+        from: "alert_ventilator_collections",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$did", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "alarmData"
+      },
+    },
+    {
+      $lookup:
+      {
+        from: "patient_ventilator_collections",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$deviceId", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "patientData"
+      },
+    },
     {
       $project:{
         "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,

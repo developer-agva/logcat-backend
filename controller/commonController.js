@@ -273,7 +273,7 @@ const getFcmNotification = async (req, res) => {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "Opps something went wrong! Or Invalid pincode.",
+        message: "Opps something went wrong! Or Invalid fcmToken.",
       })
     }
     return res.status(200).json({
@@ -281,6 +281,40 @@ const getFcmNotification = async (req, res) => {
       statusValue: "SUCCESS",
       message: "Data get successfully.",
       data:getData,
+    })  
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+
+/**
+* api      GET @/common/common/delete-notification-list/:id
+* desc     @deleteFcmNotification for public access
+*/
+const deleteFcmNotification = async (req, res) => {
+  try {
+    const getData = await fcmNotificationModel.findByIdAndDelete({_id:req.params.id});
+    if (!getData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Opps something went wrong! Or Invalid id.",
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data deleted successfully.",
+      // data:getData,
     })
     
   } catch (err) {
@@ -462,6 +496,8 @@ const getDispatchLogsData = async (req, res) => {
 }
 
 
+
+
 module.exports = {
     sendVerificationEmail,
     verifyOtp,
@@ -470,5 +506,6 @@ module.exports = {
     getProdLogsData,
     getDispatchLogsData,
     sendFcmToken,
-    getFcmNotification
+    getFcmNotification,
+    deleteFcmNotification
 }

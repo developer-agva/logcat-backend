@@ -43,25 +43,34 @@ exports.uploadSingle = async (req, res) => {
 
 exports.uploadPrintFileAndSendEmail = async (req, res) => {
     // req.file contains a file object
-    console.log(11,req.file)
+    console.log(11,req.files)
     res.json(req.file);
+    let uploadData = req.files;
+    uploadData.map(async (obj) => {
+        const newObj = {
+            "deviceId":req.params.deviceId,
+            "email":req.params.email,
+            ...obj,
+        }
+        await s3sendPrintFileModel.findOneAndUpdate({deviceId:"4gsr43fdvby45"},newObj,{upsert:true});
+    })    
 
-        
-    const newObj = {
-        "deviceId":req.params.deviceId,
-        "email":req.params.email,
-        ...req.file,
-    }
-    const saveDoc = new s3sendPrintFileModel(newObj);
-    // console.log(11,newObj)
-    saveFile = saveDoc.save();
     // send email  
-    let link = `<a href="${req.file.location}" >Download attachment</a>`
-    await sendPrintFileLink(req.params.email, link) 
+    // let link = `<a href="${req.file.location}" >Download attachment</a>`
+    // await sendPrintFileLink(req.params.email, link) 
     // await s3BucketModel.deleteMany({location: ""});
 }
 
 
+exports.uploadQltyFile = async (req, res) => {
+    // req.file contains a file object
+    console.log(11,req.file)
+    res.json(req.file);
+    const saveDoc = new s3sendPrintFileModel(req.file);
+    // console.log(11,newObj)
+    saveFile = saveDoc.save(); 
+    // await s3BucketModel.deleteMany({location: ""});
+}
 
 
 // upload quality report for production modules
@@ -275,6 +284,7 @@ exports.getUploadedS3file = async (req, res) => {
 exports.uploadMultiple = (req, res) => {
     // req.files contains an array of file object
     res.json(req.files);
+    console.log(11,req.files)
 }
 
 exports.uploadSingleV2 = async (req, res) => {

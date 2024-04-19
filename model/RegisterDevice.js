@@ -57,6 +57,10 @@ const RegisterDeviceSchema = mongoose.Schema({
         type: Boolean,
         required:true,
         default: false,
+    },
+    deviceType:{
+      type: String,
+      default:""
     }
 },
     { timestamps: true })
