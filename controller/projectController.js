@@ -69,7 +69,41 @@ const getAllProjects = async (req, res) => {
 }
 
 
+
+const getAllProducts = async (req, res) => {
+  try {
+    const projectList = await projectModel.find({}, {__v:0});
+    // console.log(projectList) 
+    if (!!projectList) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusCode:"SUCCESS",
+        message:"Product list get successfully.",
+        data:projectList
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusCode:"FAIL",
+      message:"No data found.",
+      data:[]
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+
 module.exports = {
     addNewProject,
-    getAllProjects
+    getAllProjects,
+    getAllProducts
 }

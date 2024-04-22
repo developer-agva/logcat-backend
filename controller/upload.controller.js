@@ -19,6 +19,7 @@ const productionModel = require('../model/productionModel');
 const s3poBucketModel = require('../model/s3BucketPoPdfModel');
 const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
 const s3sendPrintFileModel = require('../model/s3sendPrintFileModel');
+const projectModel = require('../model/projectModel');
 
 exports.uploadSingle = async (req, res) => {
     // req.file contains a file object
@@ -41,11 +42,28 @@ exports.uploadSingle = async (req, res) => {
 }
 
 
+exports.addProjectWithImage = async (req, res) => {
+    // req.file contains a file object
+    res.json(req.file);
+    // console.log(req.file.fieldname, req.params.deviceId)
+    await projectModel.findOneAndUpdate({project_code:req.query.project_code},
+        {
+            project_name:req.query.project_name,
+            project_description:req.query.project_description,
+            image_url:req.file.location,
+            project_code:req.query.project_code,
+        },
+        {upsert:true});
+    // console.log(11,newObj)
+}
+
+
 exports.uploadPrintFileAndSendEmail = async (req, res) => {
     // req.file contains a file object
-    console.log(11,req.files)
-    res.json(req.file);
+    
+    res.json(req.files);
     let uploadData = req.files;
+    // console.log(11,uploadData)
     uploadData.map(async (obj) => {
         const newObj = {
             "deviceId":req.params.deviceId,
@@ -55,9 +73,19 @@ exports.uploadPrintFileAndSendEmail = async (req, res) => {
         await s3sendPrintFileModel.findOneAndUpdate({deviceId:"4gsr43fdvby45"},newObj,{upsert:true});
     })    
 
-    // send email  
-    // let link = `<a href="${req.file.location}" >Download attachment</a>`
-    // await sendPrintFileLink(req.params.email, link) 
+    // send email 
+     
+    if (!!uploadData && uploadData.length == 1) {
+        link = `<a href="${uploadData[0].location}" >Download File 1</a>`
+    }
+    if (!!uploadData && uploadData.length == 2) {
+        link = `<a href="${uploadData[0].location}" >Download File 1</a> <a href="${uploadData[1].location}" >Download File 2</a>`
+    }
+    if (!!uploadData && uploadData.length == 3) {
+        link = `<a href="${uploadData[0].location}" >Download File 1</a> <a href="${uploadData[1].location}" >Download File 2</a> <a href="${uploadData[1].location}" >Download File 3</a>`
+    }
+
+    await sendPrintFileLink(req.params.email, link) 
     // await s3BucketModel.deleteMany({location: ""});
 }
 

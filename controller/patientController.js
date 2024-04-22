@@ -509,7 +509,7 @@ const getAllUhidBydeviceId = async (req, res) => {
       
       let allData = paginateArray(getList, page, limit)
 
-      if (!!allData.length>0) {
+      if (!!getList) {
         return res.status(200).json({
           statusCode: 200,
           statusValue: "SUCCESS",
@@ -572,7 +572,7 @@ const getAllUhidBydeviceIdV2 = async (req, res) => {
       
       let allData = paginateArray(getList, page, limit)
 
-      if (!!allData.length>0) {
+      if (!!getList) {
         return res.status(200).json({
           statusCode: 200,
           statusValue: "SUCCESS",

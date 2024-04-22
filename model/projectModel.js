@@ -21,9 +21,18 @@ const projectSchema = mongoose.Schema({
         required: true,
         default: ""
     },
+    project_code: {
+        type: String,
+        default: ""
+    },
+    image_url: {
+        type: String,
+        default: ""
+    },
     
 },
     { timestamps: true })
+
 
 const projectModel = mongoose.model('project_colletion', projectSchema)
 module.exports = projectModel

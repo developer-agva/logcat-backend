@@ -634,7 +634,7 @@ const getTrendsById = async (req, res) => {
       status:0,
       statusCode:400,
       message:"Data not found",
-      data:{}
+      data:[]
     })
   }
   catch (err) {

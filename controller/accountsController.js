@@ -731,6 +731,7 @@ const getDispatchedDeviceList = async (req, res) => {
                 "$match":{"$or":[
                     { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
                     { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
+                    { hospitalName: { $regex: ".*" + search + ".*", $options: "i" } },
                 ]}
             },
             {$sort:{"updatedAt":-1}},
@@ -848,6 +849,7 @@ const getAwaitingForShippedData = async (req, res) => {
                     "$or":[
                         { deviceId: {$regex: ".*" + search + ".*", $options: "i"} },
                         { serialNumber: {$regex: ".*" + search + ".*", $options: "i"} },
+                        { hospitalName: {$regex: ".*" + search + ".*", $options: "i"} },
                     ]
                 }
            },

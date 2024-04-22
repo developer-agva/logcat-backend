@@ -8,12 +8,12 @@ const { isAuth } = require('../middleware/authMiddleware');
 // service report upload route
 router.post('/upload-single/:deviceId/:serialNo/:faultReason/:email', upload.single('file'), uploadController.uploadSingle);
 
-router.post('/upload-print-file/:deviceId/:email', upload.array('files', 5), uploadController.uploadPrintFileAndSendEmail);
+router.post('/add-project-with-image', upload.single('file'), uploadController.addProjectWithImage);
+
+
+router.post('/upload-print-file/:deviceId/:email', upload.array('files', 3), uploadController.uploadPrintFileAndSendEmail);
 
 router.post('/upload-quality-file', upload.single('file'), uploadController.uploadQltyFile);  // upload qlty file for oodo CRM
-
-
-
 
 
 router.post('/upload-multiple', upload.array('files', 5), uploadController.uploadMultiple);
