@@ -10,6 +10,8 @@ router.post('/upload-single/:deviceId/:serialNo/:faultReason/:email', upload.sin
 
 router.post('/add-project-with-image', upload.single('file'), uploadController.addProjectWithImage);
 
+router.post('/add-featured-product-with-image', upload.single('file'), uploadController.addFeaturedProdWithImage);
+
 
 router.post('/upload-print-file/:deviceId/:email', upload.array('files', 3), uploadController.uploadPrintFileAndSendEmail);
 

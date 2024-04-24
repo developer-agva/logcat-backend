@@ -5,6 +5,7 @@ const projectController = require('../controller/projectController.js');
 
 router.post('/addNewProject', isAuth, isAdmin, projectController.addNewProject);
 router.get('/project-list', isAuth, isAdmin, projectController.getAllProjects);
+// router.get('/featured-product-list', isAuth, isAdmin, projectController.getAllProjects);
 
 router.get('/product-list', projectController.getAllProducts);
 

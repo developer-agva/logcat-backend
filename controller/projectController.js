@@ -1,6 +1,7 @@
 // projectController.js
 const Joi = require('joi');
 const projectModel = require('../model/projectModel');
+const featuredProductModel = require('../model/featuredProductModel');
 
 
 /**
@@ -38,16 +39,17 @@ const addNewProject = async (req, res) => {
   }
 }
 
-
 const getAllProjects = async (req, res) => {
   try {
     const projectList = await projectModel.find({}, {__v:0});
+   
     if (projectList.length) {
       res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Project list get successfully.",
         data: projectList,
+        // data2:featuredProdList
       })
     }
     res.status(400).json({
@@ -68,18 +70,22 @@ const getAllProjects = async (req, res) => {
   }
 }
 
-
-
 const getAllProducts = async (req, res) => {
   try {
-    const projectList = await projectModel.find({}, {__v:0});
+    const projectList = await projectModel.find({}, {__v:0, provide_device_type:0});
+    const featuredProdList = await featuredProductModel.find({},{__v:0});
     // console.log(projectList) 
     if (!!projectList) {
       return res.status(200).json({
         statusCode: 200,
         statusCode:"SUCCESS",
         message:"Product list get successfully.",
-        data:projectList
+        data:
+        {
+          bannerProduct:projectList,
+          featuredProduct:featuredProdList
+        },
+        // data2:{feafeaturedProdList}
       })
     }
     return res.status(400).json({
@@ -100,7 +106,6 @@ const getAllProducts = async (req, res) => {
     });
   }
 }
-
 
 module.exports = {
     addNewProject,

@@ -20,6 +20,7 @@ const s3poBucketModel = require('../model/s3BucketPoPdfModel');
 const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
 const s3sendPrintFileModel = require('../model/s3sendPrintFileModel');
 const projectModel = require('../model/projectModel');
+const featuredProductModel = require('../model/featuredProductModel');
 
 exports.uploadSingle = async (req, res) => {
     // req.file contains a file object
@@ -52,9 +53,26 @@ exports.addProjectWithImage = async (req, res) => {
             project_description:req.query.project_description,
             image_url:req.file.location,
             project_code:req.query.project_code,
+            type:"banner",
         },
         {upsert:true});
     // console.log(11,newObj)
+}
+
+
+exports.addFeaturedProdWithImage = async (req, res) => {
+    // req.file contains a file object
+    res.json(req.file);
+    // console.log(req.file.fieldname, req.params.deviceId)
+    await featuredProductModel.findOneAndUpdate({product_name:req.query.product_name},
+        {
+            product_name:req.query.product_name,
+            bg_color:req.query.bg_color,
+            project_code:req.query.project_code,
+            image_url:req.file.location,
+            type:"featured",
+        },
+        {upsert:true});
 }
 
 
