@@ -74,17 +74,18 @@ const getAllProducts = async (req, res) => {
   try {
     const projectList = await projectModel.find({}, {__v:0, provide_device_type:0});
     const featuredProdList = await featuredProductModel.find({},{__v:0});
+    let finalArrList = [...projectList, ...featuredProdList]
     // console.log(projectList) 
     if (!!projectList) {
       return res.status(200).json({
         statusCode: 200,
         statusCode:"SUCCESS",
         message:"Product list get successfully.",
-        data:
-        {
-          bannerProduct:projectList,
-          featuredProduct:featuredProdList
-        },
+        data:finalArrList,
+        // {
+        //   bannerProduct:projectList,
+        //   featuredProduct:featuredProdList
+        // },
         // data2:{feafeaturedProdList}
       })
     }

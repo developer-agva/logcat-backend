@@ -26,7 +26,7 @@ The captain's aggression changed the entire course of the match.
 19. Analyze - to examine methodically and in detail - He is trying to find a solution to this issue through analysis./ His analysis clarifies his way of thinking.
 20. Anecdote - a short and amusing or interesting story about a real incident or person
 21. Animated - full of life or excitement; lively
-22. Anticipate - to expect or predict
+22. Anticipate - to expect or predict (purvaanumaan) -  I am eagerly anticipating the release of this new movie.
 23. Apathy - lack of interest, enthusiasm, or concern
 24. Appropriate - suitable or proper in the circumstances
 25. Arrogant - having or revealing an exaggerated sense of one's own importance or abilities

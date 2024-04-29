@@ -726,9 +726,9 @@ const addDeviceService = async (req, res) => {
       tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",
       tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
     };
-
+    
     // check already exixts service request oe not
-    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }] });
+    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }, { ticketStatus: "Open" }] });
     // console.log(11,checkData);
     // console.log(12,req.body); 
     if (!!checkData) {
@@ -746,26 +746,53 @@ const addDeviceService = async (req, res) => {
       priority = "Medium";
     }
     priority = "High";
-
-    const newServices = new servicesModel({
-      deviceId: req.body.deviceId,
-      message: req.body.message,
-      date: req.body.date,
-      serialNo: otpValue,
-      name: req.body.name,
-      contactNo: req.body.contactNo,
-      hospitalName: req.body.hospitalName,
-      wardNo: req.body.wardNo,
-      email: req.body.email,
-      department: req.body.department,
-      ticketStatus: "Open",
-      remark: "",
-      issues: tags,
-      priority: priority,
-    });
-    // console.log(req.body)
-    const savedServices = await newServices.save();
-
+    
+    // check already exists and isVerified
+    const checkIsexistsAndVerfied = await servicesModel.findOne({
+      $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
+    })
+    
+    let savedServices;
+    if (!!checkIsexistsAndVerfied) {
+      savedServices = await servicesModel.findOneAndUpdate({
+        $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
+      },{
+        deviceId: req.body.deviceId,
+        message: req.body.message,
+        date: req.body.date,
+        serialNo: otpValue,
+        name: req.body.name,
+        contactNo: req.body.contactNo,
+        hospitalName: req.body.hospitalName,
+        wardNo: req.body.wardNo,
+        email: req.body.email,
+        department: req.body.department,
+        ticketStatus: "Open",
+        remark: "",
+        issues: tags,
+        priority: priority,
+      })
+    } else {
+      const newServices = new servicesModel({
+        deviceId: req.body.deviceId,
+        message: req.body.message,
+        date: req.body.date,
+        serialNo: otpValue,
+        name: req.body.name,
+        contactNo: req.body.contactNo,
+        hospitalName: req.body.hospitalName,
+        wardNo: req.body.wardNo,
+        email: req.body.email,
+        department: req.body.department,
+        ticketStatus: "Open",
+        remark: "",
+        issues: tags,
+        priority: priority,
+      });
+      // console.log(req.body)
+      savedServices = await newServices.save();
+    }
+    
     const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 });
     // console.log(11, getLastData) 
     if (!!savedServices) {
@@ -776,7 +803,7 @@ const addDeviceService = async (req, res) => {
           isVerified: false,
         },
       )
-
+      
       var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
       const sendSms = req.query({
         "authorization": process.env.Fast2SMS_AUTHORIZATION,
@@ -890,7 +917,7 @@ const addDeviceServiceV2 = async (req, res) => {
     };
 
     // check already exixts service request oe not
-    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }] });
+    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true },{ ticketStatus: "Open" }] });
     // console.log(11,checkData);
     // console.log(12,req.body); 
     if (!!checkData) {
@@ -908,26 +935,54 @@ const addDeviceServiceV2 = async (req, res) => {
       priority = "Medium";
     }
     priority = "High";
-
-    const newServices = new servicesModel({
-      deviceId: req.body.deviceId,
-      message: req.body.message,
-      date: req.body.date,
-      serialNo: otpValue,
-      name: req.body.name,
-      contactNo: req.body.contactNo,
-      hospitalName: req.body.hospitalName,
-      wardNo: req.body.wardNo,
-      email: req.body.email,
-      department: req.body.department,
-      ticketStatus: "Open",
-      remark: "",
-      issues: tags,
-      priority: priority,
-      productCode:req.params.project_code,
-    });
-    // console.log(req.body)
-    const savedServices = await newServices.save();
+    
+    // check already exists and isVerified
+    const checkIsexistsAndVerfied = await servicesModel.findOne({
+      $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
+    })
+    
+    let savedServices;
+    if (!!checkIsexistsAndVerfied) {
+      savedServices = await servicesModel.findOneAndUpdate({
+        $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
+      },{
+        deviceId: req.body.deviceId,
+        message: req.body.message,
+        date: req.body.date,
+        serialNo: otpValue,
+        name: req.body.name,
+        contactNo: req.body.contactNo,
+        hospitalName: req.body.hospitalName,
+        wardNo: req.body.wardNo,
+        email: req.body.email,
+        department: req.body.department,
+        ticketStatus: "Open",
+        remark: "",
+        issues: tags,
+        priority: priority,
+        productCode:req.params.project_code,
+      })
+    } else {
+      const newServices = new servicesModel({
+        deviceId: req.body.deviceId,
+        message: req.body.message,
+        date: req.body.date,
+        serialNo: otpValue,
+        name: req.body.name,
+        contactNo: req.body.contactNo,
+        hospitalName: req.body.hospitalName,
+        wardNo: req.body.wardNo,
+        email: req.body.email,
+        department: req.body.department,
+        ticketStatus: "Open",
+        remark: "",
+        issues: tags,
+        priority: priority,
+        productCode:req.params.project_code,
+      });
+      // console.log(req.body)
+      savedServices = await newServices.save();
+    }
 
     const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 });
     // console.log(11, getLastData) 
@@ -1251,12 +1306,12 @@ const updateTicketStatus = async (req, res) => {
     var otpValue = Math.floor(1000 + Math.random() * 9000);
     
     // check ticket 
-    const checkTicket = await servicesModel.findById({ _id: mongoose.Types.ObjectId(req.body._id)});
+    const checkTicket = await servicesModel.findById({ _id: req.body._id});
     
     if (!!checkTicket) {
       // console.log(13,otp)
       await servicesModel.findOneAndUpdate(
-        { _id: mongoose.Types.ObjectId(req.body._id) },
+        { _id: req.body._id },
         {
           otp: otpValue,
           UID: req.body.UId,

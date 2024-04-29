@@ -974,6 +974,14 @@ const getSignleDispatchedData = async (req, res) => {
               "as":"shippingFileData"
             }
         },
+        {
+            "$lookup":{
+              "from":"s3_return_po_buckets",
+              "localField":"deviceId",
+              "foreignField":"deviceId",
+              "as":"returnPoFileData"
+            }
+        },
         //    // search operation
         //    {
         //     "$match":{"prodData.shipmentMode":"awaiting_for_shipped"},
@@ -989,6 +997,7 @@ const getSignleDispatchedData = async (req, res) => {
                  "poFileData": {"$first":"$poFileData"},
                  "shippingFileData": {"$first": "$shippingFileData"},
                 //  "markAsShippedData": {"$first": "$markAsShippedData"},
+                 "returnPoFileData": {"$first": "$returnPoFileData"},
                }
            },
            // Extract the joined embeded fields into top level fields
@@ -1002,7 +1011,8 @@ const getSignleDispatchedData = async (req, res) => {
                 // "billedDate":"$accountsData.updatedAt",
                 "DhrPdf": "$prodData.location",
                 "poPdf":"$poFileData.location",
-                "shippingInvoicePdf": "$shippingFileData.location"
+                "shippingInvoicePdf": "$shippingFileData.location",
+                "returnPoFilePdf": "$returnPoFileData.location",
                 },
             },
         //    {
@@ -1023,6 +1033,7 @@ const getSignleDispatchedData = async (req, res) => {
                  "prodData",
                  "poFileData",
                  "shippingFileData",
+                 "returnPoFileData",
                  // "otp",
                  // "isVerified",
                ]
@@ -1036,9 +1047,9 @@ const getSignleDispatchedData = async (req, res) => {
         let finalObj = {
             ...resData[0], 
             hospitalName:!!dispatchData ? dispatchData.hospital_name : "",
-            address:!!dispatchData ? dispatchData.address : ""
+            address:!!dispatchData ? dispatchData.address : "",
+            returnPoFilePdf:!!(resData.returnPoFilePdf) ? resData.returnPoFilePdf : "NA"
         }
-
         if (resData.length>0) {
             return res.status(200).json({
                 statusCode: 200,

@@ -22,10 +22,8 @@ const productSchema = mongoose.Schema({
         type:String,
         default: ""
     }
-    
 },
     { timestamps: true })
-
 
 const featuredProductModel = mongoose.model('featured_product_collection', productSchema)
 module.exports = featuredProductModel;

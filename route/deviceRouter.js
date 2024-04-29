@@ -6,7 +6,7 @@ const deviceController = require('../controller/deviceController');
 const locationController = require('../controller/locationController');
 const router = express.Router();
 const { isAuth, isAdmin } = require("../middleware/authMiddleware.js");
-const File = require("../model/File.js");
+// const File = require("../model/File.js");
 const statusModel = require('../model/statusModel.js')
 
 // const statusData = await statusModel.find({})

@@ -2539,9 +2539,17 @@ const createAlertsNew = async (req, res) => {
     // { ack: [], did: 'd6edb19162a04c8b', type: '002' }
     // check alert exist or not
     const checkAlert = await modelReference.find({did:did})
-    if (!!checkAlert.length>0) {
-      await modelReference.deleteMany({did:did})
+    // console.log(12, checkAlert)
+    if (checkAlert.length>999) {
+      const length = checkAlert.length;
+      const deletedArr = checkAlert.slice(0, 1001)
+      deletedArr.map(async (item) => {
+        await modelReference.deleteMany({_id:item._id})
+      })
+      // Delete documents for each 'did' except the latest two
+      
     }
+
     let dbSavePromise = ack.map(async (ac) => {
       const putDataIntoLoggerDb = await new modelReference({
         did: did,

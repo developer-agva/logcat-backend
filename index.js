@@ -287,7 +287,6 @@ io.on('connection', (socket) => {
 //   "cache-control": "no-cache"
 // });
 
-
 // req.end(function (res) {
 //   if (res.error) throw new Error(res.error);
 
@@ -297,9 +296,9 @@ io.on('connection', (socket) => {
 // end fast2sms api code
 // end sms
 
+
 server.listen(PORT, () =>
   logger.error(`Server is running on port : ${PORT}`)
-  
 );
 // module.exports = app.listen(PORT, () => console.log(`active on port ${PORT} `));
 
