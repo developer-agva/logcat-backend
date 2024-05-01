@@ -14,7 +14,6 @@ router.put('/accounts/update-data', isAuth, accountsController.updateAccountData
 router.get('/accounts/get-accounts-data', isAuth, accountsController.getAccountsData);
 router.get('/accounts/get-dispatch-req-data', isAuth, accountsController.getDispatchReqData);
 
-
 router.get('/accounts/get-data/:serialNo', isAuth, accountsController.getAccountsDataBySerialNo);
 
 router.post('/upload-invoice-file/:serialNo/:invoiceNo', upload.single('file'), uploadController.uploadInvoicePdf);
@@ -31,9 +30,6 @@ router.get('/get-production-list/v2', accountsController.getProductionListV2);  
 router.get('/get-complete-device-details/:serialNo', accountsController.getSignleDispatchedData);   // completed
 router.post('/upload-po-file/:serialNo', upload.single('file'), uploadController.uploadpoPdf);  // completed
 router.post('/upload-return-po-file/:serialNo', upload.single('file'), uploadController.uploadreturnPoPdf);  // completed
-
-
-
 
 
 module.exports = router;

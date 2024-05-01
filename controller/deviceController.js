@@ -248,6 +248,7 @@ const updateAddtofocus = async (req, res) => {
       { upsert: true, new: true },
     )
     await statusModel.updateMany({deviceId:req.params.deviceId},{addTofocus:req.body.addTofocus},{upsert:true})
+    await statusModelV2.updateMany({deviceId:req.params.deviceId},{addTofocus:req.body.addTofocus},{upsert:true})
     const getAddTofocusList = await Device.find({addTofocus:true})
     
     // check userId in fcm_token model

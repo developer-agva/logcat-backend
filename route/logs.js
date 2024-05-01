@@ -52,7 +52,8 @@ const {
   getAlertsByIdV2,
   getTrendsByIdV2,
   getEventsByIdV2,
-  getLogsByIdV2
+  getLogsByIdV2,
+  getAllDeviceIdForApp
 } = require("../controller/logs");
 // New controller
 const logController = require('../controller/logController.js');
@@ -255,6 +256,9 @@ router.get("/v2/deviceLogs/:device", getLogsByIdV2);   // v2-version
 
 
 router.get("/Allevents/Events", isAuth, getAllDeviceId);
+
+router.get("/Allevents-for-app/Events", isAuth, getAllDeviceIdForApp);  // for app only
+
 router.get("/v2/Allevents/Events/:projectCode", isAuth, getAllDeviceIdV2);  // v2-version
 
 

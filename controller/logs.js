@@ -375,6 +375,7 @@ const createLogsV2 = async (req, res) => {
   }
 };
 
+// get device alarm data by did
 const getAlertsById = async (req, res) => {
   try {
     const { did } = req.params;
@@ -2040,6 +2041,345 @@ const getAllDeviceId = async (req, res) => {
       $lookup:
       {
         from: "patient_ventilator_collections",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$deviceId", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "patientData"
+      },
+    },
+    {
+      $project:{
+        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
+        "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
+      }
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+
+    var finalArr = [...activeDevices, ...inactiveDevices];
+    // remove duplicate records
+    var key = "deviceId";
+    let updatedArray = []
+    let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
+
+
+    // show isAssigned key for doctor role or assistant role
+    if (!!loggedInUser && (loggedInUser.userType === "Doctor")) {
+      const assignDeviceData = await assignDeviceTouserModel.find({ userId: loggedInUser._id })
+
+      // map data for isAssigned key 
+      function updateIsAssigned(arrayUniqueByKey, assignDeviceData) {
+        // Map deviceId to assignDeviceData for faster lookup
+        const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
+          map[assign.deviceId] = assign;
+          return map;
+        }, {});
+
+        // Update isAssigned based on matching deviceId
+        return arrayUniqueByKey.map(item => {
+          const assignInfo = assignDeviceMap[item.deviceId];
+          // console.log(11,assignInfo)
+          if (assignInfo && assignInfo.isAssigned === 'Accepted') {
+            item.isAssigned = true;
+          } else {
+            item.isAssigned = false;
+          }
+          return item;
+        });
+      }
+
+      updatedArray = updateIsAssigned(arrayUniqueByKey, assignDeviceData);
+      // console.log(123, updatedArray);
+
+    } else if (!!loggedInUser && (loggedInUser.userType === "Assistant")) {
+      const assignDeviceData = await assignDeviceTouserModel.find({ securityCode: loggedInUser.securityCode })
+      // start
+      function updateAndFilterArray(arrayUniqueByKey, assignDeviceData) {
+        // Map deviceId to isAssigned for faster lookup
+        const isAssignedMap = assignDeviceData.reduce((map, assign) => {
+          map[assign.deviceId] = assign.isAssigned === 'Accepted';
+          return map;
+        }, {});
+
+        // Filter and update arrayUniqueByKey
+        const filteredArray = arrayUniqueByKey.filter(item => {
+          const isAssigned = isAssignedMap[item.deviceId];
+          if (isAssigned !== undefined) {
+            item.addTofocus = isAssigned;
+            return true;
+          }
+          return false;
+        });
+
+        return filteredArray;
+      }
+
+      const filteredArray = updateAndFilterArray(arrayUniqueByKey, assignDeviceData);
+      // console.log(123,filteredArray);
+      const paginateArray = (filteredArray, page, limit) => {
+        const skip = filteredArray.slice((page - 1) * limit, page * limit);
+        return skip;
+      };
+
+      var allDevices = paginateArray(filteredArray, page, limit)
+      
+      return res.status(200).json({
+        status: 200,
+        statusValue: "SUCCESS",
+        message: "Event lists has been retrieved successfully.",
+        data: !!allDevices ? { data: allDevices } : {},
+        totalDataCount: filteredArray.length,
+        totalPages: Math.ceil((filteredArray.length) / limit),
+        currentPage: page,
+        // tempData: allDevices,
+      })
+
+    }
+
+    updatedArray = arrayUniqueByKey
+
+    // For pagination
+    const paginateArray = (updatedArray, page, limit) => {
+      const skip = updatedArray.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    var allDevices = paginateArray(updatedArray, page, limit)
+    if (updatedArray.length > 0) {
+      return res.status(200).json({
+        status: 200,
+        statusValue: "SUCCESS",
+        message: "Event lists has been retrieved successfully.",
+        data: { data: allDevices, },
+        totalDataCount: updatedArray.length,
+        totalPages: Math.ceil((updatedArray.length) / limit),
+        currentPage: page,
+        // tempData: allDevices,
+      })
+    }
+    return res.status(400).json({
+      status: 400,
+      statusValue: "FAIL",
+      message: 'Data not found.',
+      data: {}
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
+
+// get all devices by on the basis of userType for app
+const getAllDeviceIdForApp = async (req, res) => {
+  try {
+     // Search
+     var search = "";
+     if (req.query.search && req.query.search !== "undefined") {
+       search = req.query.search;
+    }
+     // Pagination
+    let { page, limit } = req.query;
+    if (!page || page === "undefined") {
+       page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+       limit = 99999;
+    }
+
+    // get loggedin user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
+    // console.log(loggedInUser.hospitalName)
+    // Declare blank obj
+    let filterObj = {};
+    // check user
+    if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
+      filterObj = {
+        $match: {$and:[
+          {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
+      }
+    } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
+      filterObj = {
+        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      }
+    } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
+      filterObj = {
+        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+    } 
+  } else if (!!loggedInUser && loggedInUser.userType === "Production") {
+    filterObj = {
+      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+    } 
+  } else if (!!loggedInUser && loggedInUser.userType === "User") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  } 
+  else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  }
+  else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
+    // console.log(loggedInUser.accessHospital)
+    filterObj = {
+      $match: {$and:[
+        {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
+    }
+  } else {
+    filterObj = {
+      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+    } 
+  }
+    
+    
+    // check user
+  
+  const activeDevices = await statusModelV2.aggregate([
+    {
+      $match: {
+        "message":"ACTIVE",
+      }
+    },
+    {
+      $lookup:
+      {
+        from: "registerdevices",
+        localField: "deviceId",
+        foreignField: "DeviceId",
+        as: "deviceInfo"
+      }
+    },
+    filterObj,
+    {
+      $lookup:
+      {
+        from: "alert_ventilator_collection_v2",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$did", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "alarmData"
+      },
+    },
+    {
+      $lookup:
+      {
+        from: "patient_ventilator_collection_v2",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$deviceId", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "patientData"
+      },
+    },
+    {
+      $project:{
+        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
+        "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+      }
+    },
+    {
+      $sort: { updatedAt:-1 },
+    },
+  ]);
+   
+  
+  const inactiveDevices = await statusModelV2.aggregate([
+    {
+      $match: {
+        "message":"INACTIVE",
+      }
+    },
+    {
+      $lookup:
+        {
+          from: "registerdevices",
+          localField: "deviceId",
+          foreignField: "DeviceId",
+          as: "deviceInfo"
+        }
+    },
+    filterObj,
+    {
+      $lookup:
+      {
+        from: "alert_ventilator_collection_v2",
+        let: { deviceId: "$deviceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$did", "$$deviceId"] }
+            }
+          },
+          {
+            $sort: { "createdAt": -1 } // Sorting by age in descending order
+          },
+          {
+            $limit: 1 // Limiting to 1 result per deviceId
+          }
+        ],
+        as: "alarmData"
+      },
+    },
+    {
+      $lookup:
+      {
+        from: "patient_ventilator_collection_v2",
         let: { deviceId: "$deviceId" },
         pipeline: [
           {
@@ -5400,7 +5740,8 @@ module.exports = {
   getAlertsByIdV2,
   getTrendsByIdV2,
   getEventsByIdV2,
-  getLogsByIdV2
+  getLogsByIdV2,
+  getAllDeviceIdForApp
 };
 
 
