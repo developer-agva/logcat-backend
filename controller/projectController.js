@@ -2,6 +2,8 @@
 const Joi = require('joi');
 const projectModel = require('../model/projectModel');
 const featuredProductModel = require('../model/featuredProductModel');
+const fs = require('fs');
+const projectListData = require('../projectListData.json')
 
 
 /**
@@ -70,6 +72,7 @@ const getAllProjects = async (req, res) => {
   }
 }
 
+// dynamic product list
 const getAllProducts = async (req, res) => {
   try {
     const projectList = await projectModel.find({}, {__v:0, provide_device_type:0});
@@ -108,8 +111,33 @@ const getAllProducts = async (req, res) => {
   }
 }
 
+// project-list from json file
+const getAllProjectList = async (req, res) => {
+  try {
+    fs.readFile('projectListData.json', 'utf8', (err, projectListData) => {
+      if (err) {
+        console.error(err)
+         res.status(500).json({ error: 'Failed to read data file.' });
+         return;
+     }
+     res.json(JSON.parse(projectListData));
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
 module.exports = {
     addNewProject,
     getAllProjects,
-    getAllProducts
+    getAllProducts,
+    getAllProjectList
 }

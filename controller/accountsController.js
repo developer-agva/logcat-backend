@@ -495,7 +495,6 @@ const getDispatchReqData = async (req, res) => {
     }
 }
 
-
 /**
  * @desc get all accounts data submitted by a/c dept. 
  * api GET@/api/logger/
@@ -506,16 +505,16 @@ const getAccountsData = async (req, res) => {
         // Search
         var search = "";
         if (req.query.search && req.query.search !== "undefined") {
-        search = req.query.search;
+            search = req.query.search;
         }
         // for pagination
         let page = req.query.page
         let limit = req.query.limit
         if (!page || page === "undefined") {
-        page = 1;
+            page = 1;
         }
         if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-        limit = 999999;
+            limit = 999999;
         }
 
         // aggregate logic

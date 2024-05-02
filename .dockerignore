@@ -3,3 +3,4 @@ dummy.txt
 node_modules
 info.log
 .env
+.md

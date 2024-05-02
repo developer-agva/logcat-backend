@@ -2195,218 +2195,218 @@ const getAllDeviceId = async (req, res) => {
 // get all devices by on the basis of userType for app
 const getAllDeviceIdForApp = async (req, res) => {
   try {
-     // Search
-     var search = "";
-     if (req.query.search && req.query.search !== "undefined") {
-       search = req.query.search;
-    }
-     // Pagination
-    let { page, limit } = req.query;
-    if (!page || page === "undefined") {
-       page = 1;
-    }
-    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-       limit = 99999;
-    }
+      // Search
+      var search = "";
+      if (req.query.search && req.query.search !== "undefined") {
+        search = req.query.search;
+      }
+      // Pagination
+      let { page, limit } = req.query;
+      if (!page || page === "undefined") {
+        page = 1;
+      }
+      if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+        limit = 99999;
+      }
 
-    // get loggedin user details
-    const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-    const loggedInUser = await User.findById({_id:verified.user});
-    // console.log(loggedInUser.hospitalName)
-    // Declare blank obj
-    let filterObj = {};
-    // check user
-    if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
+      // get loggedin user details
+      const token = req.headers["authorization"].split(' ')[1];
+      const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+      const loggedInUser = await User.findById({_id:verified.user});
+      // console.log(loggedInUser.hospitalName)
+      // Declare blank obj
+      let filterObj = {};
+      // check user
+      if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
+        filterObj = {
+          $match: {$and:[
+            {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+            {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+          ]}
+        }
+      } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
+        filterObj = {
+          $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        }
+      } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
+        filterObj = {
+          $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      } 
+    } else if (!!loggedInUser && loggedInUser.userType === "Production") {
+      filterObj = {
+        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      } 
+    } else if (!!loggedInUser && loggedInUser.userType === "User") {
       filterObj = {
         $match: {$and:[
           {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
         ]}
       }
-    } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
+    } 
+    else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
       filterObj = {
-        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        $match: {$and:[
+          {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
       }
-    } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
+    }
+    else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
+      // console.log(loggedInUser.accessHospital)
+      filterObj = {
+        $match: {$and:[
+          {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
+      }
+    } else {
       filterObj = {
         $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-    } 
-  } else if (!!loggedInUser && loggedInUser.userType === "Production") {
-    filterObj = {
-      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-    } 
-  } else if (!!loggedInUser && loggedInUser.userType === "User") {
-    filterObj = {
-      $match: {$and:[
-        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      ]}
+      } 
     }
-  } 
-  else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
-    filterObj = {
-      $match: {$and:[
-        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      ]}
-    }
-  }
-  else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
-    // console.log(loggedInUser.accessHospital)
-    filterObj = {
-      $match: {$and:[
-        {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      ]}
-    }
-  } else {
-    filterObj = {
-      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-    } 
-  }
     
     
     // check user
   
-  const activeDevices = await statusModelV2.aggregate([
-    {
-      $match: {
-        "message":"ACTIVE",
-      }
-    },
-    {
-      $lookup:
+    const activeDevices = await statusModelV2.aggregate([
       {
-        from: "registerdevices",
-        localField: "deviceId",
-        foreignField: "DeviceId",
-        as: "deviceInfo"
-      }
-    },
-    filterObj,
-    {
-      $lookup:
-      {
-        from: "alert_ventilator_collection_v2",
-        let: { deviceId: "$deviceId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$did", "$$deviceId"] }
-            }
-          },
-          {
-            $sort: { "createdAt": -1 } // Sorting by age in descending order
-          },
-          {
-            $limit: 1 // Limiting to 1 result per deviceId
-          }
-        ],
-        as: "alarmData"
+        $match: {
+          "message":"ACTIVE",
+        }
       },
-    },
-    {
-      $lookup:
       {
-        from: "patient_ventilator_collection_v2",
-        let: { deviceId: "$deviceId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$deviceId", "$$deviceId"] }
-            }
-          },
-          {
-            $sort: { "createdAt": -1 } // Sorting by age in descending order
-          },
-          {
-            $limit: 1 // Limiting to 1 result per deviceId
-          }
-        ],
-        as: "patientData"
-      },
-    },
-    {
-      $project:{
-        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
-        "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
-      }
-    },
-    {
-      $sort: { updatedAt:-1 },
-    },
-  ]);
-   
-  
-  const inactiveDevices = await statusModelV2.aggregate([
-    {
-      $match: {
-        "message":"INACTIVE",
-      }
-    },
-    {
-      $lookup:
+        $lookup:
         {
           from: "registerdevices",
           localField: "deviceId",
           foreignField: "DeviceId",
           as: "deviceInfo"
         }
-    },
-    filterObj,
-    {
-      $lookup:
-      {
-        from: "alert_ventilator_collection_v2",
-        let: { deviceId: "$deviceId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$did", "$$deviceId"] }
-            }
-          },
-          {
-            $sort: { "createdAt": -1 } // Sorting by age in descending order
-          },
-          {
-            $limit: 1 // Limiting to 1 result per deviceId
-          }
-        ],
-        as: "alarmData"
       },
-    },
-    {
-      $lookup:
+      filterObj,
       {
-        from: "patient_ventilator_collection_v2",
-        let: { deviceId: "$deviceId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$deviceId", "$$deviceId"] }
+        $lookup:
+        {
+          from: "alert_ventilator_collection_v2",
+          let: { deviceId: "$deviceId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$did", "$$deviceId"] }
+              }
+            },
+            {
+              $sort: { "createdAt": -1 } // Sorting by age in descending order
+            },
+            {
+              $limit: 1 // Limiting to 1 result per deviceId
             }
-          },
-          {
-            $sort: { "createdAt": -1 } // Sorting by age in descending order
-          },
-          {
-            $limit: 1 // Limiting to 1 result per deviceId
-          }
-        ],
-        as: "patientData"
+          ],
+          as: "alarmData"
+        },
       },
-    },
-    {
-      $project:{
-        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
-        "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
-      }
-    },
-    {
-      $sort: { updatedAt:-1 },
-    },
-  ]);
+      {
+        $lookup:
+        {
+          from: "patient_ventilator_collection_v2",
+          let: { deviceId: "$deviceId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$deviceId", "$$deviceId"] }
+              }
+            },
+            {
+              $sort: { "createdAt": -1 } // Sorting by age in descending order
+            },
+            {
+              $limit: 1 // Limiting to 1 result per deviceId
+            }
+          ],
+          as: "patientData"
+        },
+      },
+      {
+        $project:{
+          "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
+          "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+        }
+      },
+      {
+        $sort: { updatedAt:-1 },
+      },
+    ]);
+   
+  
+    const inactiveDevices = await statusModelV2.aggregate([
+      {
+        $match: {
+          "message":"INACTIVE",
+        }
+      },
+      {
+        $lookup:
+          {
+            from: "registerdevices",
+            localField: "deviceId",
+            foreignField: "DeviceId",
+            as: "deviceInfo"
+          }
+      },
+      filterObj,
+      {
+        $lookup:
+        {
+          from: "alert_ventilator_collection_v2",
+          let: { deviceId: "$deviceId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$did", "$$deviceId"] }
+              }
+            },
+            {
+              $sort: { "createdAt": -1 } // Sorting by age in descending order
+            },
+            {
+              $limit: 1 // Limiting to 1 result per deviceId
+            }
+          ],
+          as: "alarmData"
+        },
+      },
+      {
+        $lookup:
+        {
+          from: "patient_ventilator_collection_v2",
+          let: { deviceId: "$deviceId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$deviceId", "$$deviceId"] }
+              }
+            },
+            {
+              $sort: { "createdAt": -1 } // Sorting by age in descending order
+            },
+            {
+              $limit: 1 // Limiting to 1 result per deviceId
+            }
+          ],
+          as: "patientData"
+        },
+      },
+      {
+        $project:{
+          "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
+          "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
+        }
+      },
+      {
+        $sort: { updatedAt:-1 },
+      },
+    ]);
 
     var finalArr = [...activeDevices, ...inactiveDevices];
     // remove duplicate records
