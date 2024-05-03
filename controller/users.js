@@ -669,7 +669,7 @@ const addUserExperience = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-    const checkUser = await Users.findOne({_id:mongoose.Types.ObjectId(req.body.userId)})
+    const checkUser = await Users.findOne({_id:req.body.userId})
     // console.log(11,checkUser.profile)
     if (!checkUser) {
       return res.status(400).json({
@@ -689,7 +689,7 @@ const addUserExperience = async (req, res) => {
       })
     }
     const checkData = await Users.findOne({
-      "_id":mongoose.Types.ObjectId(req.body.userId),
+      "_id":req.body.userId,
       "profile.associationName":req.body.associationName,
     })
     // console.log(checkUser)
@@ -714,7 +714,7 @@ const addUserExperience = async (req, res) => {
     }
     // console.log("_id :", req.body._id, Users._id)
     const updateUser = await Users.findByIdAndUpdate(
-      {_id:mongoose.Types.ObjectId(req.body.userId)},
+      {_id:req.body.userId},
       {$push:{profile:bodyObj}},
       { upsert:true }
     );
@@ -725,7 +725,7 @@ const addUserExperience = async (req, res) => {
         message:"Error! while adding work experience."
       });
     }
-    await Users.findByIdAndUpdate({_id:mongoose.Types.ObjectId(req.body.userId)},{$push:{accessHospital:req.body.associationName}},{upsert:true})
+    await Users.findByIdAndUpdate({_id:req.body.userId},{$push:{accessHospital:req.body.associationName}},{upsert:true})
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -765,7 +765,7 @@ const updatePrimaryEmail = async (req, res) => {
     }
 
     const checkUser = await Users.findOne({
-      "_id":mongoose.Types.ObjectId(req.body.userId)
+      "_id":req.body.userId
     })
     // console.log(checkUser)
     if (!checkUser) {
@@ -777,7 +777,7 @@ const updatePrimaryEmail = async (req, res) => {
     }
     const updateUser = await Users.findOneAndUpdate(
       {
-        "_id":mongoose.Types.ObjectId(req.body.userId)
+        "_id":req.body.userId
       },
       {
         "email":req.body.email
@@ -830,8 +830,8 @@ const endAssociation = async (req, res) => {
     }
 
     const checkUser = await Users.findOne({
-      "_id":mongoose.Types.ObjectId(req.body.userId),
-      "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+      "_id":req.body.userId,
+      "profile._id":req.body.profileId
     })
     // console.log(checkUser)
     if (!checkUser) {
@@ -848,8 +848,8 @@ const endAssociation = async (req, res) => {
     };
     const updateUser = await Users.updateOne(
       {
-        "_id":mongoose.Types.ObjectId(req.body.userId),
-        "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+        "_id":req.body.userId,
+        "profile._id":req.body.profileId
       },
       updateData
     );
@@ -907,8 +907,8 @@ const updateUserExperience = async (req, res) => {
     }
    
     const checkUser = await Users.findOne({
-      "_id":mongoose.Types.ObjectId(req.body.userId),
-      "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+      "_id":req.body.userId,
+      "profile._id":req.body.profileId
     })
     // check hospital
     const hospitalData = await registeredHospitalModel.findOne({Hospital_Name:req.body.associationName});
@@ -929,8 +929,8 @@ const updateUserExperience = async (req, res) => {
     }
     var updateData = {
       $set: {
-          "profile.$.userId": mongoose.Types.ObjectId(req.body.userId),
-          "profile.$._id": mongoose.Types.ObjectId(req.body.profileId),
+          "profile.$.userId":req.body.userId,
+          "profile.$._id":req.body.profileId,
           "profile.$.associationName": req.body.associationName,
           "profile.$.workAddress": !!hospitalData ? `${hospitalData.Hospital_Address}, ${hospitalData.State}, ${hospitalData.City}, ${hospitalData.Pincode}` : "",
           // "profile.$.startDate": req.body.startDate,
@@ -945,8 +945,8 @@ const updateUserExperience = async (req, res) => {
     };
     const updateUser = await Users.updateOne(
       {
-        "_id":mongoose.Types.ObjectId(req.body.userId),
-        "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+        "_id":req.body.userId,
+        "profile._id":req.body.profileId
       },
       updateData
     );
@@ -958,7 +958,7 @@ const updateUserExperience = async (req, res) => {
       });
     }
     if (!!(req.body.associationName)) {
-      await Users.findByIdAndUpdate({_id:mongoose.Types.ObjectId(req.body.userId)},{$push:{accessHospital:req.body.associationName}},{upsert:true})
+      await Users.findByIdAndUpdate({_id:req.body.userId},{$push:{accessHospital:req.body.associationName}},{upsert:true})
     }
     return res.status(200).json({
       statusCode: 200,
@@ -1010,8 +1010,8 @@ const updateUserExperiencee = async (req, res) => {
     }
 
     const checkUser = await Users.findOne({
-      "_id":mongoose.Types.ObjectId(req.body.userId),
-      "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+      "_id":req.body.userId,
+      "profile._id":req.body.profileId
     })
     // console.log(checkUser)
     if (!checkUser) {
@@ -1023,8 +1023,8 @@ const updateUserExperiencee = async (req, res) => {
     }
     var updateData = {
       $set: {
-          "profile.$.userId": mongoose.Types.ObjectId(req.body.userId),
-          "profile.$._id": mongoose.Types.ObjectId(req.body.profileId),
+          "profile.$.userId":req.body.userId,
+          "profile.$._id":req.body.profileId,
           "profile.$.associationName": req.body.associationName,
           "profile.$.workAddress": req.body.workAddress,
           "profile.$.startDate": req.body.startDate,
@@ -1039,8 +1039,8 @@ const updateUserExperiencee = async (req, res) => {
     };
     const updateUser = await Users.updateOne(
       {
-        "_id":mongoose.Types.ObjectId(req.body.userId),
-        "profile._id":mongoose.Types.ObjectId(req.body.profileId)
+        "_id":req.body.userId,
+        "profile._id":req.body.profileId
       },
       updateData
     );
@@ -1079,9 +1079,9 @@ const updateUserProfile = async (req, res) => {
   try {
     let {userId, name, email} = req.body;
     let arr = name.split(" ");
-    const checkUser = await Users.findOne({_id:mongoose.Types.ObjectId(req.body.userId)})
+    const checkUser = await Users.findOne({_id:req.body.userId})
     // console.log("_id :", req.body._id, Users._id)
-    const updateUser = await Users.findByIdAndUpdate({_id:mongoose.Types.ObjectId(req.body.userId)},{
+    const updateUser = await Users.findByIdAndUpdate({_id:req.body.userId},{
       firstName:arr[0]? arr[0] : checkUser.firstName,
       lastName:arr[1]? arr[1] : checkUser.lastName,
       email:req.body.email,
@@ -1436,7 +1436,7 @@ const userPasswordChange = async (req, res) => {
       })
     }
 
-    const isUserExist = await Users.findById({ _id: mongoose.Types.ObjectId(req.body._id)})
+    const isUserExist = await Users.findById({ _id:req.body._id})
     if (!isUserExist) {
       return res.status(400).json({
         statusCode: 400,
@@ -1459,7 +1459,7 @@ const userPasswordChange = async (req, res) => {
     const salt = await bcrypt.genSalt();
     let mpwd = await bcrypt.hash(req.body.newPasswordHash, salt);
     const updateDoc = await Users.findByIdAndUpdate(
-      { _id: mongoose.Types.ObjectId(req.body._id) },
+      { _id:req.body._id },
       { passwordHash: mpwd }
     )
     res.status(200).json({
@@ -2611,7 +2611,7 @@ const changeUserType = async (req, res) => {
       })
     }
     const userId = req.params.userId;
-    const checkUser = await Users.findById({ _id: mongoose.Types.ObjectId(userId) })
+    const checkUser = await Users.findById({_id:userId})
     if (!checkUser) {
       return res.status(400).json({
         statusCode: 400,
@@ -2619,7 +2619,7 @@ const changeUserType = async (req, res) => {
         message: "User not found with this userId"
       })
     }
-    const updateDoc = await Users.findByIdAndUpdate({ _id: mongoose.Types.ObjectId(userId) }, {
+    const updateDoc = await Users.findByIdAndUpdate({_id:userId}, {
       userType: req.body.userType
     }, { new: true });
     if (!updateDoc) {
@@ -2700,7 +2700,7 @@ const getUserByUserId = async (req, res) => {
 const deleteSingleUser = async (req, res) => {
   try {
     const id = req.params.id;
-    const checkUser = await Users.findById({ _id: mongoose.Types.ObjectId(id) })
+    const checkUser = await Users.findById({_id:id})
     if (!checkUser) {
       return res.status(400).json({
         statusCode: 400,
@@ -2708,7 +2708,7 @@ const deleteSingleUser = async (req, res) => {
         message: "User not found with this userId"
       })
     }
-    const deleteDoc = await Users.findByIdAndDelete({ _id: mongoose.Types.ObjectId(id) }, { new: true });
+    const deleteDoc = await Users.findByIdAndDelete({_id:id}, { new: true });
     if (!deleteDoc) {
       return res.status(400).json({
         statusCode: 400,
@@ -2754,7 +2754,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
     }
 
     // check already exists
-    const checkData = await assignDeviceTouserModel.findOne({ $and:[{deviceId:req.body.deviceId}, {userId:mongoose.Types.ObjectId(req.body.userId)}]});
+    const checkData = await assignDeviceTouserModel.findOne({ $and:[{deviceId:req.body.deviceId}, {userId:req.body.userId}]});
     if (!!checkData) {
       return res.status(400).json({
         statusCode: 400,
@@ -2768,7 +2768,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
     const loggedInUser = await User.findById({_id:verified.user}); 
 
     // find securityCode
-    const findCode = await User.findById({_id:mongoose.Types.ObjectId(req.body.userId)})
+    const findCode = await User.findById({_id:req.body.userId})
     // console.log(findCode)
     if (!findCode) {
       return res.status(400).json({
@@ -2779,7 +2779,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
     }
     const reqData = new assignDeviceTouserModel({
       deviceId:req.body.deviceId,
-      userId:mongoose.Types.ObjectId(req.body.userId),
+      userId:req.body.userId,
       assignedBy:!!(loggedInUser.email) ? loggedInUser.email : "",
       hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "",
       deviceType:"Ventilator",
@@ -2788,7 +2788,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
       securityCode:findCode.securityCode,  
     })
     const saveDoc = await reqData.save();
-    await sendDeviceReqModel.findOneAndRemove({deviceId:req.body.deviceId,userId:mongoose.Types.ObjectId(req.body.userId)})
+    await sendDeviceReqModel.findOneAndRemove({deviceId:req.body.deviceId,userId:req.body.userId})
     if (!saveDoc) {
       return res.status(400).json({
         statusCode: 400,

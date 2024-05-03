@@ -1599,7 +1599,7 @@ const getAllDevicesForUsers = async (req, res) => {
    
   // filter data on the basis of userType
   if (loggedInUser.userType == "User" || loggedInUser.userType == "Nurse") {
-    const assignedDeviceIds = await assignDeviceTouserModel.find({userId:mongoose.Types.ObjectId(loggedInUser._id)})
+    const assignedDeviceIds = await assignDeviceTouserModel.find({userId:loggedInUser._id})
     const deviceIds = assignedDeviceIds.map(item => item.deviceId)
     filteredData = arrayUniqueByKey.filter(item => deviceIds.includes(item.deviceId)) 
     arrayUniqueByKey = filteredData

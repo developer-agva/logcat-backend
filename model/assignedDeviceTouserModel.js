@@ -30,8 +30,8 @@ const assignDeviceSchema = mongoose.Schema({
         default: "",
     },
     assistantId: {
-        type: String,
-        default:""
+        type: Schema.Types.ObjectId,
+        ref: "User"
     },
     securityCode: {
         type:String,

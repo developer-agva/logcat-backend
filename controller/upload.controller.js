@@ -64,15 +64,15 @@ exports.addFeaturedProdWithImage = async (req, res) => {
     // req.file contains a file object
     res.json(req.file);
     // console.log(req.file.fieldname, req.params.deviceId)
-    await featuredProductModel.findOneAndUpdate({product_name:req.query.product_name},
-        {
-            product_name:req.query.product_name,
-            bg_color:req.query.bg_color,
-            project_code:req.query.project_code,
-            image_url:req.file.location,
-            type:"featured",
-        },
-        {upsert:true});
+    // await featuredProductModel.findOneAndUpdate({product_name:req.query.product_name},
+    //     {
+    //         product_name:req.query.product_name,
+    //         bg_color:req.query.bg_color,
+    //         project_code:req.query.project_code,
+    //         image_url:req.file.location,
+    //         type:"featured",
+    //     },
+    //     {upsert:true});
 }
 
 
@@ -514,7 +514,7 @@ exports.deletePatientFile = async (req, res) => {
 // exports.deleteFile = async (req, res) => {
 //     try {
 //         const id = req.params.id;
-//         const deleteDoc = await s3BucketModel.findByIdAndDelete({_id:mongoose.Types.ObjectId(id)});
+//         const deleteDoc = await s3BucketModel.findByIdAndDelete({_id:id});
 //         if (!!deleteDoc) {
 //             return res.status(200).json({
 //                 statusCode: 200,

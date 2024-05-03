@@ -234,7 +234,7 @@ const updatePatientById = async (req, res) => {
     const loggedInUser = await User.findById({_id:verified.user});
 
     const patientData = await patientModel.findOneAndUpdate(
-      {_id:mongoose.Types.ObjectId(req.params.id)},
+      {_id:req.params.id},
       {
         UHID:!!(req.body.UHID) ? req.body.UHID : "",
         age:!!(req.body.age) ? req.body.age : "",

@@ -3001,7 +3001,7 @@ const assignedDeviceToUser = async (req, res) => {
     let arrData = [];
     userIds.map(async (item) => {
       var obj = {
-        "userId": mongoose.Types.ObjectId(item),
+        "userId":item,
         "deviceId": req.body.deviceId,
       }
       arrData.push(obj);
@@ -3066,7 +3066,7 @@ const assignedDeviceToUser2 = async (req, res) => {
     //   })
     // }
     const updateDoc = await assignDeviceTouserModel.findOneAndUpdate({
-      userId: mongoose.Types.ObjectId(req.body._id),
+      userId:req.body._id,
     }, {
       $push: {
         Assigned_Devices: findDevice
@@ -3121,7 +3121,7 @@ const getAssignedDeviceById1 = async (req, res) => {
         message: "User Id is required!"
       })
     }
-    const data = await assignDeviceTouserModel.find({ userId: mongoose.Types.ObjectId(userId) })
+    const data = await assignDeviceTouserModel.find({ userId:userId})
       .select({ _id: 0, __v: 0, updatedAt: 0 })
       .sort({ createdAt: -1 });
 
@@ -3162,7 +3162,7 @@ const getAssignedDeviceById = async (req, res) => {
     var pipline = [
       // Match
       {
-        "$match": { status: true, userId: mongoose.Types.ObjectId(userId) },
+        "$match": { status: true, userId:userId },
       },
       {
         "$lookup": {
@@ -3354,6 +3354,7 @@ const getDeviceAccessAstList = async (req, res) => {
       },
     ]
     let assignData = await assignDeviceTouserModel.aggregate(pipline)
+    // const getUserdetails = await User.find
     // console.log(assignData)
     if (!assignData.length) {
       return res.status(404).json({
@@ -3553,7 +3554,7 @@ const deleteDeviceAccessFromAst = async (req, res) => {
     // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
     const removeData = await assignDeviceTouserModel.findByIdAndUpdate(
-      { _id: mongoose.Types.ObjectId(req.params._id) },
+      { _id:req.params._id },
       {assistantId:""}
     )
     if (!removeData) {
@@ -3589,7 +3590,7 @@ const deleteDeviceAccessFromDoctor = async (req, res) => {
     // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
     const removeData = await assignDeviceTouserModel.findByIdAndDelete(
-      { _id: mongoose.Types.ObjectId(req.params._id) }
+      { _id:req.params._id}
     )
     if (!removeData) {
       return res.status(400).json({
