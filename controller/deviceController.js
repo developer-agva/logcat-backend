@@ -1882,11 +1882,11 @@ const saveStatusV2 = async (req, res) => {
         message: result.error.details[0].message,
       });
     }
-    if (req.params.productCode !== "003") {
+    if (req.params.productCode == "002") {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "Validation Error",
-        message: "productCode must be 003 or 004 format.",
+        message: "productCode must be 003 or 004 or 005 or 006 format.",
       });
     }
     // const newStatus = new statusModel(req.body);

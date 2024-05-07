@@ -269,34 +269,37 @@ const registerUserForSuperAdmin = async (req, res) => {
 */
 const sendOtpSms = async (req, res) => {
   try {
-    const contactNumber = `+91${req.params.contactNumber}`; 
+    var unirest = require("unirest");
+
     const number = req.params.contactNumber;
+    // console.log(11,number)
+    const contactNumber = `+91${req.params.contactNumber}`; 
     var otpValue = Math.floor(1000 + Math.random() * 9000);
-    const checkOtp = await otpVerificationModel.findOne({ contactNumber: contactNumber });
-    const errors = validationResult(req);
+    // const checkOtp = await otpVerificationModel.findOne({ contactNumber: contactNumber });
+    // const errors = validationResult(req);
     //  console.log(11,checkOtp)
 
-    if (!!checkOtp && checkOtp.isVerified == true) {
-      return res.status(400).json({
-        statusCode: 400,
-        statusValue:"FAIL",
-        message:"Contact Number already verified.",
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: errors
-              .array()
-              .map((err) => {
-                return `${err.msg}: ${err.param}`;})
-                .join(' | '),
-            msg: 'Contact Number already verified.',
-            type: 'ValidationError',
-            statusCode:400,
-          },
-        },
-      });
+    // if (!!checkOtp && checkOtp.isVerified == true) {
+    //   return res.status(400).json({
+    //     statusCode: 400,
+    //     statusValue:"FAIL",
+    //     message:"Contact Number already verified.",
+    //     data: {
+    //       err: {
+    //         generatedTime: new Date(),
+    //         errMsg: errors
+    //           .array()
+    //           .map((err) => {
+    //             return `${err.msg}: ${err.param}`;})
+    //             .join(' | '),
+    //         msg: 'Contact Number already verified.',
+    //         type: 'ValidationError',
+    //         statusCode:400,
+    //       },
+    //     },
+    //   });
       // console.log()
-    }
+    // }
     
     if (!!contactNumber) {
       await otpVerificationModel.findOneAndUpdate(
@@ -322,7 +325,7 @@ const sendOtpSms = async (req, res) => {
       if (res.error.status === 400) {
           console.log(false)
         } 
-        console.log("Otp sent successfully.")  
+        console.log("Error! while sending OTP.")  
       });
       
       if (sendSms) {
@@ -339,7 +342,7 @@ const sendOtpSms = async (req, res) => {
           message:"Otp not sent.",
         })   
     }
-
+////////////////////////////////////////
     // const twilio = require('twilio');
 
     // const accountSid = process.env.ACCOUNTSID

@@ -317,7 +317,7 @@ const getSingleHospital = async (req, res) => {
     try {
         const data = await registeredHospitalModel.findById(
             {
-                _id:mongoose.Types.ObjectId(req.params.id)
+                _id:req.params.id
             }, 
             { 
                 __v: 0, createdAt: 0, updatedAt: 0 

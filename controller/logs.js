@@ -26,7 +26,7 @@ const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel');
 let redisClient = require("../config/redisInit");
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
-const {deviceIdArr} = require('../middleware/msgResponse');
+const {deviceIdArr, trendsDataKey} = require('../middleware/msgResponse');
 const alert_ventilator_collectionV2 = require('../model/alert_ventilator_collection_v2');
 const event_ventilator_collection_v2 = require('../model/event_ventilator_collection_v2');
 const { default: mongoose } = require('mongoose');
@@ -729,6 +729,14 @@ const getTrendsByIdV2 = async (req, res) => {
     const count = findDeviceById.length
     // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
     // console.log(collectionName,'collectionName');
+
+    // check Device code
+    let data2;
+    const checkCode = await trends_ventilator_collectionV2_model.findOne({ did: did })
+    if (checkCode.type == "002" || "") {
+      data2 = trendsDataKey[0]
+    }
+    data2 = trendsDataKey[0]
     if (finalData.length > 0) {
       return res.status(200).json({
         status: 1,
@@ -742,6 +750,7 @@ const getTrendsByIdV2 = async (req, res) => {
         data: {
           findDeviceById:finalData
         },
+        data2:[data2],
         totalDataCount: count,
         totalPages: Math.ceil(count / limit),
         currentPage: page
@@ -3013,14 +3022,14 @@ const createAlertsNew = async (req, res) => {
 const createAlertsNewV2 = async (req, res) => {
   try {
     // console.log(11,req.body)
-    if (req.params.productCode !== "003") {
+    if (req.params.productCode == "002") {
       return res.status(404).json({
         status: 404,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'Product code must be 003',
-            msg: 'Product code must be 003',
+            errMsg: 'Product code must be 003 || 004 || 005 || 006',
+            msg: 'Product code must be 003 || 004 || 005 || 006',
             type: 'MongoDb Error',
           },
         },
@@ -3238,14 +3247,14 @@ const createEvents = async (req, res, next) => {
 const createEventsV2 = async (req, res, next) => {
   try {
     
-    if (req.params.productCode !== "003") {
+    if (req.params.productCode == "002" ) {
       return res.status(404).json({
         status: 0,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'Product code must be 003',
-            msg: 'Product code must be 003',
+            errMsg: 'Product code must be 003 || 004 || 005 || 006',
+            msg: 'Product code must be 003 || 004 || 005 || 006',
             type: 'MongoDb Error',
           },
         },
