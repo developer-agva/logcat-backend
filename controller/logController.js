@@ -59,7 +59,7 @@ const createNewLogV2 = async (req, res) => {
         const { productCode } = req.params.productCode
         // console.log(11, req.body)
         // Check project exist or not
-        if (req.params.productCode !== "003") {
+        if (req.params.productCode == "002") {
             return res.status(404).json({
                 status: 404,
                 data: {

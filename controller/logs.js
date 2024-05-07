@@ -62,7 +62,7 @@ const createLogsV2 = async (req, res) => {
     const { project_code } = req.params;
     // check project exist or not
     const findProjectWithCode = await Projects.findOne({ code: project_code });
-
+    // console.log(11,"124546")
     if (!findProjectWithCode) {
       return res.status(404).json({
         status: 0,
@@ -613,6 +613,17 @@ const getTrendsById = async (req, res) => {
     const count = findDeviceById.length
     // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
     // console.log(collectionName,'collectionName');
+    
+    // for dynamic UI data
+    let data2;
+    let checkCode = await trends_ventilator_collection.find({ did: did }).sort({_id:-1}).limit(1)
+    checkCode = !!checkCode[0] ? checkCode[0] : []
+    if (checkCode.type == "002" || "") {
+      data2 = [trendsDataKey[0]]
+    } else if (checkCode.type == "003") {
+      data2 = [trendsDataKey[1]]
+    }
+
     if (finalData.length > 0) {
       return res.status(200).json({
         status: 1,
@@ -626,6 +637,7 @@ const getTrendsById = async (req, res) => {
         data: {
           findDeviceById:finalData
         },
+        data2:data2,
         totalDataCount: count,
         totalPages: Math.ceil(count / limit),
         currentPage: page
@@ -732,11 +744,13 @@ const getTrendsByIdV2 = async (req, res) => {
 
     // check Device code
     let data2;
-    const checkCode = await trends_ventilator_collectionV2_model.findOne({ did: did })
+    let checkCode = await trends_ventilator_collectionV2_model.find({ did: did }).sort({_id:-1}).limit(1)
+    checkCode = !!checkCode[0] ? checkCode[0] : []
     if (checkCode.type == "002" || "") {
-      data2 = trendsDataKey[0]
+      data2 = [trendsDataKey[0]]
+    } else if (checkCode.type == "003") {
+      data2 = [trendsDataKey[1]]
     }
-    data2 = trendsDataKey[0]
     if (finalData.length > 0) {
       return res.status(200).json({
         status: 1,
@@ -750,7 +764,7 @@ const getTrendsByIdV2 = async (req, res) => {
         data: {
           findDeviceById:finalData
         },
-        data2:[data2],
+        data2:data2,
         totalDataCount: count,
         totalPages: Math.ceil(count / limit),
         currentPage: page
@@ -3246,7 +3260,7 @@ const createEvents = async (req, res, next) => {
 // create events or save device id -- for all upcomming products
 const createEventsV2 = async (req, res, next) => {
   try {
-    
+
     if (req.params.productCode == "002" ) {
       return res.status(404).json({
         status: 0,
@@ -3260,9 +3274,10 @@ const createEventsV2 = async (req, res, next) => {
         },
       });
     }
-    
+    console.log(123, req.body)
     //console.log(modelReference,'modelReference');
     const { did, type, message, date } = req.body;
+    console.log(123, req.body)
     // console.log(`did : ${did}`)
     if (!did || !type || !message || !date) {
       return res.status(400).json({
@@ -3278,36 +3293,28 @@ const createEventsV2 = async (req, res, next) => {
       });
     }
     // const dd = await event_ventilator_collection_v2.find()
-    const events = new event_ventilator_collection_v2({
-      did: did,
-      message: message,
-      type: type,
-      date: date,
-    });
-    console.log(req.body)
+    // const events = new event_ventilator_collection_v2({
+    //   did: did,
+    //   message: message,
+    //   type: type,
+    //   date: date,
+    // });
+    const events = await event_ventilator_collection_v2.findOneAndUpdate(
+      {did:"d3wr53vht7f"},
+      {
+      did: !!(req.body.did) ? req.body.did : "",
+      message: !!(req.body.message) ? req.body.message : "",
+      type: !!(req.body.type) ? req.body.type : "",
+      date: !!(req.body.date) ? req.body.date : "",
+    }, {upsert: true});
+    console.log(12, req.body)
     console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
 
-    const SaveEvents = await events.save(events);
-    if (SaveEvents) {
-      res.status(201).json({
-        status: 201,
-        data: { eventCounts: SaveEvents.length },
-        message: 'Event has been added successfully!',
-      });
-    }
-    else {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'data not added',
-            msg: 'Some error happened during registration',
-            type: 'MongodbError',
-          },
-        },
-      }); I
-    }
+    return res.status(201).json({
+      status: 201,
+      message: 'Event has been added successfully!',
+    })
+
   }
   catch (err) {
     return res.status(500).json({

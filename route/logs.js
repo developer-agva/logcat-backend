@@ -69,7 +69,7 @@ const hospitalController = require("../controller/hospitalController");
 // old API
 router.post("/:project_code", logController.createNewLog);
 // New API for all products instead of AGVA PRO
-router.post("/v2/:productCode", logController.createNewLogV2);
+router.post("/v2/:productCode", logController.createNewLogV2); // 
 
 
 
