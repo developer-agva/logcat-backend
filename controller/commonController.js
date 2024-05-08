@@ -273,7 +273,7 @@ const getFcmNotification = async (req, res) => {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "Opps something went wrong! Or Invalid fcmToken.",
+        message: "Or Invalid fcmToken. || or data not found.",
       })
     }
     return res.status(200).json({

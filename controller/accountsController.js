@@ -724,6 +724,38 @@ const getDispatchedDeviceList = async (req, res) => {
                 // { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
               ]
             }},
+            // join production collection with about collection
+            {
+                "$lookup":{
+                    "from":"about_devices",
+                    "localField":"deviceId",
+                    "foreignField":"deviceId",
+                    "as":"deviceDetails"
+                },
+            },
+            {
+                "$lookup":{
+                    "from":"s3_po_buckets",
+                    "localField":"deviceId",
+                    "foreignField":"deviceId",
+                    "as":"poFilePdfData"
+                },
+            },
+            // For this data model, will always be 1 record in right-side
+            // of join, so take 1st joined array element
+            {
+                "$set":{
+                    "deviceDetails": { "$first": "$deviceDetails" },
+                    "poFilePdfData": { "$first": "$poFilePdfData" },
+                }
+            },
+            // Extract the joined embeded fields into top level fields
+            {
+                "$set":{
+                    "marketing_lead":"$deviceDetails.marketing_lead",
+                    "soPdfFile": "$poFilePdfData.location",
+                },
+            },
             // filter data from the above data list
             // search operation
             {
@@ -732,6 +764,20 @@ const getDispatchedDeviceList = async (req, res) => {
                     { serialNumber: { $regex: ".*" + search + ".*", $options: "i" } },
                     { hospitalName: { $regex: ".*" + search + ".*", $options: "i" } },
                 ]}
+            },
+            {
+               "$unset":[
+                "__v",
+                "deviceDetails.__v",
+                "deviceDetails.createdAt",
+                "deviceDetails.updatedAt",
+                "deviceDetails.date_of_manufacturing",
+                "deviceDetails.deviceId",
+                "deviceDetails.serial_no",
+                "deviceDetails.purpose", 
+                "deviceDetails.marketing_lead",
+                "poFilePdfData"
+               ]
             },
             {$sort:{"updatedAt":-1}},
         ]

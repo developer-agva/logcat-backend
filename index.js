@@ -173,13 +173,30 @@ const PORT = process.env.PORT || 8000;
 const { Server } = require("socket.io");
 const { messaging } = require("firebase-admin");
 
+// const io = new Server(server, {
+//   cors: {
+//     // origin: "http://192.168.2.37:3000",
+//     origin: "http://medtap.in",
+//     methods: ["GET", "POST", "PUT"],
+//   },
+// });
+
 const io = new Server(server, {
   cors: {
-    // origin: "http://192.168.2.37:3000",
-    origin: "http://medtap.in",
+    origin: (origin, callback) => {
+      // List of allowed origins
+      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://3.26.37.114:3000"];
+
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT"],
   },
 });
+
 // console.log(process.env.ORIGIN)
 // Global 
 // var deviceIdArr = [];

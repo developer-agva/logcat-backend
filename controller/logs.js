@@ -2902,7 +2902,7 @@ const createAlertsNew = async (req, res) => {
     // { ack: [], did: 'd6edb19162a04c8b', type: '002' }
     // check alert exist or not
     const checkAlert = await modelReference.find({did:did})
-    // console.log(12, checkAlert)
+    // console.log(13, checkAlert)
     if (checkAlert.length>999) {
       const length = checkAlert.length;
       const deletedArr = checkAlert.slice(0, 1001)
@@ -2951,7 +2951,7 @@ const createAlertsNew = async (req, res) => {
         // // check deviceId for particular fcm token
         const checkDeviceId = await fcmTokenModel.find({deviceIds:{$in:req.body.did}})
        
-        console.log(12,checkDeviceId)
+        // console.log(123,checkDeviceId)
         // // start fcm services for notification
         // checkDeviceId.forEach(element => {
           
@@ -3054,8 +3054,16 @@ const createAlertsNewV2 = async (req, res) => {
 
     // check alert data
     const checkAlert = await alert_ventilator_collectionV2.find({did:did})
-    if (!!checkAlert.length>0) {
-      await alert_ventilator_collectionV2.deleteMany({did:did})
+    // const checkAlert = await modelReference.find({did:did})
+    // console.log(13, checkAlert)
+    if (checkAlert.length>999) {
+      const length = checkAlert.length;
+      const deletedArr = checkAlert.slice(0, 1001)
+      deletedArr.map(async (item) => {
+        await alert_ventilator_collectionV2.deleteMany({_id:item._id})
+      })
+      // Delete documents for each 'did' except the latest two
+      
     }
 
     // save alert data
@@ -3274,10 +3282,9 @@ const createEventsV2 = async (req, res, next) => {
         },
       });
     }
-    console.log(123, req.body)
     //console.log(modelReference,'modelReference');
     const { did, type, message, date } = req.body;
-    console.log(123, req.body)
+    // console.log(123, req.body)
     // console.log(`did : ${did}`)
     if (!did || !type || !message || !date) {
       return res.status(400).json({
@@ -3307,14 +3314,13 @@ const createEventsV2 = async (req, res, next) => {
       type: !!(req.body.type) ? req.body.type : "",
       date: !!(req.body.date) ? req.body.date : "",
     }, {upsert: true});
-    console.log(12, req.body)
+
     console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
 
     return res.status(201).json({
       status: 201,
       message: 'Event has been added successfully!',
     })
-
   }
   catch (err) {
     return res.status(500).json({
