@@ -110,6 +110,60 @@ const createDevice = async (req, res) => {
 };
 
 
+const updatePaymentStatus = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      DeviceId: Joi.string().required(),
+      isPaymentDone:Joi.string().optional(),
+      isLocked:Joi.boolean().optional(),
+    })
+    let result = schema.validate(req.body);
+
+    if (result.error) {
+      return res.status(200).json({
+        status: 0,
+        statusCode: 400,
+        message: result.error.details[0].message,
+      })
+    }
+    
+    //check deviceId
+    const checkDeviceId = await Device.findOne({ DeviceId: req.body.DeviceId })
+    if (!checkDeviceId) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue:"FAIL",
+        message: "DeviceId not registered."
+      })
+    }
+
+    const deviceData = await Device.findOneAndUpdate(
+      { DeviceId: req.body.DeviceId },
+      { 
+        isPaymentDone: !!(req.body.isPaymentDone) ? req.body.isPaymentDone : "true",
+        isLocked: !!(req.body.isLocked) ? req.body.isLocked : false
+     },
+      { upsert: true, new: true }
+    );
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      data: deviceData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
 /**
  * api      UPDATE @/devices/update/DeviceId
  * desc     @update devices for logger access only
@@ -123,11 +177,6 @@ const updateDevices = async (req, res) => {
     //   console.log(data[i])
     // }
     
-
-
-
-
-
     // check hospital
     // const checkDevices = await productionModel.find({},{deviceId:1});
     // if (!checkDevices) {
@@ -158,8 +207,6 @@ const updateDevices = async (req, res) => {
     });
   }
 };
-
-
 
 
 
@@ -380,6 +427,13 @@ const getDeviceById = async (req, res) => {
     }
 
     let data = await Device.findOne({ DeviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    if (!data) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "DeviceId not registered.",
+      })
+    }
     const data2 = await statusModel.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
     data = {
       '_id': data._id,
@@ -397,6 +451,8 @@ const getDeviceById = async (req, res) => {
       'health': data2.health,
       'last_hours': data2.last_hours,
       'total_hours': data2.total_hours,
+      'isPaymentDone':!!(data.isPaymentDone) ? data.isPaymentDone : "true" ,
+      'isLocked':!!(data.isLocked) ? data.isLocked : false,
     };
     if (!data) {
       return res.status(404).json({
@@ -406,7 +462,6 @@ const getDeviceById = async (req, res) => {
         data: {},
       })
     }
-
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -433,7 +488,8 @@ const getDeviceById = async (req, res) => {
  */
 const getDeviceByIdV2 = async (req, res) => {
   try {
-    const { DeviceId } = req.params;
+
+    const DeviceId  = req.params.DeviceId;
     if (!DeviceId) {
       return res.status(400).json({
         statusCode: 400,
@@ -443,7 +499,24 @@ const getDeviceByIdV2 = async (req, res) => {
     }
 
     let data = await Device.findOne({ DeviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    // console.log(12,data)
+    if (!data) {          
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "DeviceId not registered..",
+      })
+    }
+
     const data2 = await statusModelV2.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    if (!data2) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Status data not found with this given deviceId.",
+      })
+    }
+
     data = {
       '_id': !!(data._id) ? data._id : "",
       'DeviceId': !!(data.DeviceId) ? data.DeviceId : "",
@@ -460,7 +533,10 @@ const getDeviceByIdV2 = async (req, res) => {
       'health': !!(data2.health) ? data2.health : "",
       'last_hours': !!(data2.last_hours) ? data2.last_hours : "",
       'total_hours': !!(data2.total_hours) ? data2.total_hours : "",
+      'isPaymentDone':!!(data.isPaymentDone) ? data.isPaymentDone : "true" ,
+      'isLocked':!!(data.isLocked) ? data.isLocked : false,
     };
+    
     if (!data) {
       return res.status(404).json({
         statusCode: 400,
@@ -488,7 +564,6 @@ const getDeviceByIdV2 = async (req, res) => {
     })
   }
 }
-
 
 
 /**
@@ -2891,6 +2966,7 @@ const s3poBucketModel = require('../model/s3BucketPoPdfModel');
 const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
 const statusModelV2 = require('../model/statusModelV2');
 const fcmTokenModel = require('../model/fcmTockenModel');
+const { messaging } = require('firebase-admin');
 
 // const jwtr = require("jwtr-redis").default;
 // const jwtr = new jwtrR(redisClient);
@@ -4184,5 +4260,6 @@ module.exports = {
   getDispatchDataV2,
   addDeviceServiceV2,
   getAllServicesV2,
-  getDeviceByIdV2
+  getDeviceByIdV2,
+  updatePaymentStatus
 }

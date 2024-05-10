@@ -61,6 +61,14 @@ const RegisterDeviceSchema = mongoose.Schema({
     deviceType:{
       type: String,
       default:""
+    },
+    isPaymentDone:{
+        type: String,
+        default: "true",
+    },
+    isLocked:{
+        type: Boolean,
+        default:false,
     }
 },
     { timestamps: true })
