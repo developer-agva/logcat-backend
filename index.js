@@ -37,6 +37,7 @@ const supportRouter = require("./route/supportRoute.js");
 var indexRouter = require('./route/index');
 const commonRouter = require("./route/commonRoute.js");
 const accountsRouter = require("./route/accountsRoute.js");
+const salesRouter = require('./route/salesRoute.js');
 
 // var redis = require("redis")
 // redisClient = redis.createClient();
@@ -143,6 +144,7 @@ app.use("/support/", supportRouter);
 app.use('/api/s3', indexRouter);
 app.use("/api/common", commonRouter);
 app.use("/api/logger", accountsRouter);
+app.use("/api/marketing", salesRouter);
 
 
 // Logs Routing

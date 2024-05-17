@@ -37,6 +37,7 @@
     "fs": "^0.0.1-security",
     "graphql": "^16.8.1",
     "html-to-text": "^8.2.0",
+    "https": "^1.0.0",
     "india-pincode-search": "^1.0.2",
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.2",
