@@ -25,6 +25,10 @@ const mileStoneSchema = new mongoose.Schema({
     userId:{
         type: String,
         required: true,
+    },
+    isExpired: {
+        type: Boolean,
+        default:false,   
     }
 },{
     timestamps: true

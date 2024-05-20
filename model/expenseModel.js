@@ -24,7 +24,7 @@ const expenseSchema = new mongoose.Schema({
     isAvlBill:{
         type: String,
         default: ""
-    },
+    }
 },{
     timestamps: true
 })

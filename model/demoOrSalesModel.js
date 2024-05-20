@@ -40,6 +40,10 @@ const demoSalesSchema = new mongoose.Schema({
     soldDate:{
         type: String,
         default: "", 
+    },
+    isExpired: {
+        type: Boolean,
+        default:false,   
     }
 },{
     timestamps: true

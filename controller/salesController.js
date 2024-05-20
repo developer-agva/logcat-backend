@@ -463,8 +463,6 @@ exports.getUserData = async (req, res) => {
             message: "Data not found.",
             data: uniqueColors
         }) 
-        
-        
     } catch (err) {
         return res.status(500).json({
             statusCode: 500,
@@ -650,7 +648,8 @@ exports.addDemo = async (req, res) => {
             priority:req.body.priority,
             status:"Ongoing",
             date: formattedDate,
-            description:!!(req.body.description) ? req.body.description : ""
+            description:!!(req.body.description) ? req.body.description : "",
+            isExpired:false,
         })
         const savedData = await saveDoc.save();
         // let getMilestone = await mileStoneModel.find({userId:loggedInUser._id}).sort({createdAt:-1}).limit(1);
@@ -813,6 +812,12 @@ exports.addMileStone = async (req, res) => {
         // Get current date
         // Format the date as "dd-mm-yyyy"
         // console.log(11, req.body)
+        
+        // Check data and expire it
+        const currentMileStone = await mileStoneModel.find({$and:[{isExpired:false},{userId:req.body.userId}]})
+        if (!!currentMileStone) {
+            await mileStoneModel.findOneAndUpdate({userId:req.body.userId},{isExpired:true})
+        }
         const saveDoc = new mileStoneModel({
             createdBy:loggedInUser._id,
             startDate:req.body.startDate,
@@ -821,6 +826,7 @@ exports.addMileStone = async (req, res) => {
             targetSales:req.body.targetSales,
             userId:req.body.userId,
             // totalDemoSet:req.body.targetDemo,
+            isExpired:false,
         })
         const savedData = await saveDoc.save();
         if (!!savedData) {

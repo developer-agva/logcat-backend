@@ -3385,7 +3385,7 @@ const createTrends = async (req, res, next) => {
     const modelReference = require(`../model/${collectionName}`);
     console.log(modelReference,'modelReference');
     const { did,time, type,mode,pip,peep,mean_Airway,vti,vte,mve,mvi,fio2,respiratory_Rate,ie,tinsp,texp,averageLeak,sPo2,pr} = req.body;
-    if (!did || !time || !type ||!mode|| !pip|| !peep|| !mean_Airway|| !vti|| !vte|| !mve|| !mvi|| !fio2|| !respiratory_Rate|| !ie|| !tinsp|| !texp|| !averageLeak || !sPo2 || !pr) {
+    if (!did ) {
       return res.status(400).json({
         status: 0,
         data: {
@@ -3397,28 +3397,27 @@ const createTrends = async (req, res, next) => {
           },
         },
       });
-
     }
     const trends = await new modelReference({
       did:did,
-      time:time,
-       type:type,
-       mode:mode,
-       pip:pip,
-       peep:peep,
-       mean_Airway:mean_Airway,
-       vti:vti,
-       vte:vte,
-       mve:mve,
-       mvi:mvi,
-       fio2:fio2,
-       respiratory_Rate:respiratory_Rate,
-       ie:ie,
-       tinsp:tinsp,
-       texp:texp,
-       averageLeak:averageLeak,
-       sPo2:sPo2,
-       pr:pr
+      time:!!time ? time : "",
+       type:!!type ? type : "",
+       mode:!!mode ? mode : "",
+       pip:!!pip ? pip : "",
+       peep:!!peep ? peep : "",
+       mean_Airway:!!mean_Airway ? mean_Airway : "",
+       vti:!!vti ? vti : "",
+       vte:!!vte ? vte : "",
+       mve:!!mve? mve : "",
+       mvi:!!mvi ? mvi : "",
+       fio2:!!fio2 ? fio2 : "",
+       respiratory_Rate:!!respiratory_Rate ? respiratory_Rate : "",
+       ie:!!ie ? ie : "",
+       tinsp:!!tinsp ? tinsp : "",
+       texp:!!texp ? texp : "",
+       averageLeak:!!averageLeak ? averageLeak : "",
+       sPo2:!!sPo2 ? sPo2 : "",
+       pr:!!pr ? pr : "",
     });
     const SaveTrends = await trends.save(trends);
     // console.log(11,SaveTrends)
@@ -3517,22 +3516,22 @@ const createTrendsV2 = async (req, res) => {
       const { did, time, spo2, pr, hr, ecgRR, iBP_S, iBP_D, cgm, etCo2, rr, nibp_S, nibp_D, temp1, temp2, iBP2_S, iBP2_D} = req.body;
       const trends = await new trends_ventilator_collectionV2_model({
         did:did, 
-        time:time, 
-        spo2:spo2, 
-        pr:pr, 
-        hr:hr, 
-        ecgRR:ecgRR, 
-        iBP_S:iBP_S, 
-        iBP_D:iBP_D, 
-        cgm:cgm, 
-        etCo2:etCo2, 
-        rr:rr, 
-        nibp_S:nibp_S, 
-        nibp_D:nibp_D, 
-        temp1:temp1, 
-        temp2:temp2, 
-        iBP2_S:iBP2_S, 
-        iBP2_D:iBP2_D,
+        time:!!time ? time : "", 
+        spo2:!!spo2 ? spo2 : "",
+        pr:!!pr ? pr : "",
+        hr:!!hr ? hr : "",
+        ecgRR:!!ecgRR ? ecgRR : "",
+        iBP_S:!!iBP_S ? iBP_S : "",
+        iBP_D:!!iBP_D ? iBP_D : "",
+        cgm:!!cgm ? cgm : "",
+        etCo2:!!etCo2 ? etCo2 : "",
+        rr:!!rr ? rr : "",
+        nibp_S:!!nibp_S ? nibp_S : "",
+        nibp_D:!!nibp_D ? nibp_D : "",
+        temp1:temp1 ? temp1 : "",
+        temp2:temp2 ? temp2 : "",
+        iBP2_S:!!iBP2_S ? iBP2_S : "",
+        iBP2_D:!!iBP2_D ? iBP2_D : "",
         type:req.params.project_code,
       });
       SaveTrends = await trends.save(trends);
@@ -3541,24 +3540,24 @@ const createTrendsV2 = async (req, res) => {
       const { did,time, type,mode,pip,peep,mean_Airway,vti,vte,mve,mvi,fio2,respiratory_Rate,ie,tinsp,texp,averageLeak,sPo2,pr} = req.body;
       const trends = await new trends_ventilator_collection({
         did:did,
-        time:time,
-         type:type,
-         mode:mode,
-         pip:pip,
-         peep:peep,
-         mean_Airway:mean_Airway,
-         vti:vti,
-         vte:vte,
-         mve:mve,
-         mvi:mvi,
-         fio2:fio2,
-         respiratory_Rate:respiratory_Rate,
-         ie:ie,
-         tinsp:tinsp,
-         texp:texp,
-         averageLeak:averageLeak,
-         sPo2:sPo2,
-         pr:pr
+        time:!!time ? time : "",
+         type:!!type ? type : "",
+         mode:!!mode ? mode : "",
+         pip:!!pip ? pip : "",
+         peep:!!peep ? peep : "",
+         mean_Airway:!!mean_Airway ? mean_Airway : "",
+         vti:!!vti ? vti : "",
+         vte:!!vte ? vte : "",
+         mve:!!mve ? mve : "",
+         mvi:!!mvi ? mvi : "",
+         fio2:!!fio2 ? fio2 : "",
+         respiratory_Rate:!!respiratory_Rate ? respiratory_Rate : "",
+         ie:!!ie ? ie : "",
+         tinsp:!!tinsp ? tinsp : "",
+         texp:!!texp ? texp : "",
+         averageLeak:!!averageLeak ? averageLeak : "",
+         sPo2:!!sPo2 ? sPo2 : "",
+         pr:!!pr ? pr : "",
       });
       SaveTrends = await trends.save(trends);
     }

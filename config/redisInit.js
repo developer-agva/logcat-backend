@@ -8,9 +8,9 @@ if (process.env.REDISCLOUD_URL) {
     no_ready_check: true,
   });
   redisClient.auth(redisURL.auth.split(":")[1]);
-  console.log(1)
+  // console.log(1)
 } else {
-  console.log(2)
+  // console.log(2)
   redisClient = redis.createClient();
 }
 // console.log(11,redisClient.jti)
