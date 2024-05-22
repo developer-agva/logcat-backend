@@ -187,7 +187,7 @@ const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
       // List of allowed origins
-      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://3.26.37.114:3000"];
+      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000"];
 
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
