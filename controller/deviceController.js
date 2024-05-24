@@ -21,6 +21,7 @@ const jwtr = new JWTR(redisClient);
 
 require("dotenv").config({ path: "../.env" });
 var unirest = require("unirest");
+// const mongoose = require('mongoose');
 // console.log(11111,process.env.ORIGIN)
 
 /**
@@ -3629,9 +3630,11 @@ const deleteDeviceAccessFromAst = async (req, res) => {
     // const token = req.headers["authorization"].split(' ')[1];
     // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
-    const removeData = await assignDeviceTouserModel.findByIdAndUpdate(
-      { _id:req.params._id },
-      {assistantId:""}
+    // console.log(11, req.params._id)
+    const removeDatas = await assignDeviceTouserModel.find({ _id:req.params._id })
+    // console.log(11,removeDatas)
+    const removeData = await assignDeviceTouserModel.findOneAndDelete(
+      { _id:req.params._id }
     )
     if (!removeData) {
       return res.status(400).json({

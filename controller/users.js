@@ -2755,20 +2755,39 @@ const acceptOrRejectdeviceReq = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-
-    // check already exists
-    const checkData = await assignDeviceTouserModel.findOne({ $and:[{deviceId:req.body.deviceId}, {userId:req.body.userId}]});
-    if (!!checkData) {
-      return res.status(400).json({
-        statusCode: 400,
-        statusValue: "FAIL",
-        message: "DeviceId already assigned to user"
-      })
-    }
+    console.log(33, req.body)
     // for loggedin user details
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user}); 
+
+    // check already exists
+    const checkData = await assignDeviceTouserModel.findOne({ $and:[{deviceId:req.body.deviceId}, {userId:req.body.userId}]});
+    if (!!checkData) {
+      const reqData = await assignDeviceTouserModel.findOneAndUpdate(
+        { $and:[{deviceId:req.body.deviceId}, {userId:req.body.userId}]},
+        {
+        deviceId:req.body.deviceId,
+        userId:req.body.userId,
+        assignedBy:!!(loggedInUser.email) ? loggedInUser.email : "",
+        hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "",
+        deviceType:"Ventilator",
+        status:true,
+        isAssigned:req.body.isAssigned,
+        // securityCode:findCode.securityCode,  
+      },{upsert:true})
+      
+      // remove data from requested 
+      await sendDeviceReqModel.findOneAndDelete({deviceId:req.body.deviceId,userId:req.body.userId})
+
+      // Send response to the client user
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Request approved successfully.",
+        data: reqData
+      })
+    }
 
     // find securityCode
     const findCode = await User.findById({_id:req.body.userId})
@@ -2780,6 +2799,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
         message: "Doctor security code does not exists."
       })
     }
+
     const reqData = new assignDeviceTouserModel({
       deviceId:req.body.deviceId,
       userId:req.body.userId,
@@ -2791,7 +2811,9 @@ const acceptOrRejectdeviceReq = async (req, res) => {
       securityCode:findCode.securityCode,  
     })
     const saveDoc = await reqData.save();
-    await sendDeviceReqModel.findOneAndRemove({deviceId:req.body.deviceId,userId:req.body.userId})
+
+    // Delete data from sendDeviceReqModel 
+    await sendDeviceReqModel.findOneAndDelete({deviceId:req.body.deviceId,userId:req.body.userId})
     if (!saveDoc) {
       return res.status(400).json({
         statusCode: 400,
@@ -3069,12 +3091,13 @@ const sendReqForDevice = async (req, res) => {
       })
     }
     
-
+    console.log(44, req.body)
     // for loggedin user details
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user}); 
     // check data
+    // console.log(22, loggedInUser.hospitalName);
     const checkData = await sendDeviceReqModel.findOne({$and:[{userId:loggedInUser._id},
       {deviceId:req.body.deviceId}]});
     if (!!checkData) {
@@ -3126,7 +3149,8 @@ const getUserDeviceReq = async (req, res) => {
   try {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-    const loggedInUser = await User.findById({_id:verified.user});    
+    const loggedInUser = await User.findById({_id:verified.user});
+    console.log(33, loggedInUser)    
     const getReqData = await sendDeviceReqModel.find({
       hospitalName:!!(loggedInUser.hospitalName)?loggedInUser.hospitalName:"KGMU Lucknow"
     })

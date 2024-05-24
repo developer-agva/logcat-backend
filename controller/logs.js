@@ -3346,24 +3346,24 @@ const createTrends = async (req, res, next) => {
     //console.log(findProjectWithCode,'findProjectWithProjectCode----')
 
     const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: errors
-              .array()
-              .map((err) => {
-                return `${err.msg}: ${err.param}`;
-              })
-              .join(' | '),
-            msg: 'Invalid data entered.',
-            type: 'ValidationError',
-          },
-        },
-      });
-    }
+    // if (!errors.isEmpty()) {
+    //   return res.status(400).json({
+    //     status: 0,
+    //     data: {
+    //       err: {
+    //         generatedTime: new Date(),
+    //         errMsg: errors
+    //           .array()
+    //           .map((err) => {
+    //             return `${err.msg}: ${err.param}`;
+    //           })
+    //           .join(' | '),
+    //         msg: 'Invalid data entered.',
+    //         type: 'ValidationError',
+    //       },
+    //     },
+    //   });
+    // }
     if (!findProjectWithCode) {
       return res.status(404).json({
         status: 0,
@@ -3377,9 +3377,7 @@ const createTrends = async (req, res, next) => {
         },
       });
     }
-
-
-
+    
     const collectionName = findProjectWithCode.trends_collection_name;
     console.log(collectionName,'collectionName-----')
     const modelReference = require(`../model/${collectionName}`);
@@ -3398,10 +3396,11 @@ const createTrends = async (req, res, next) => {
         },
       });
     }
+    // console.log(55, req.body)
     const trends = await new modelReference({
       did:did,
       time:!!time ? time : "",
-       type:!!type ? type : "",
+       type:!!type ? type : "002",
        mode:!!mode ? mode : "",
        pip:!!pip ? pip : "",
        peep:!!peep ? peep : "",
@@ -3541,7 +3540,7 @@ const createTrendsV2 = async (req, res) => {
       const trends = await new trends_ventilator_collection({
         did:did,
         time:!!time ? time : "",
-         type:!!type ? type : "",
+         type:req.params.project_code,
          mode:!!mode ? mode : "",
          pip:!!pip ? pip : "",
          peep:!!peep ? peep : "",

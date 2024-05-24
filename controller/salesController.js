@@ -714,7 +714,7 @@ exports.updateVentialtorStatus = async (req, res) => {
         const formattedDate = `${day}-${month}-${year}`;
         // check Id isExists or not
         const checkData = await demoOrSalesModel.findById({_id:req.body._id})
-        if (checkData.length<1) {
+        if (!checkData) {
             return res.status(400).json({
                 statusCode: 400,
                 statusValue: "FAIL",
@@ -728,13 +728,24 @@ exports.updateVentialtorStatus = async (req, res) => {
         // targetSales = targetSales-1
         // let targetDemo = getMilestone.targetDemo
         // targetDemo = targetDemo-1
+        // console.log(11, req.body)
 
         if (req.body.status == "Sold") {
-            await demoOrSalesModel.findByIdAndUpdate({_id:req.body._id},{
-                status:"Sold",
+            // console.log(12, req.body)
+            const updateData = await demoOrSalesModel.findByIdAndUpdate({_id:req.body._id},{
+                status:req.body.status,
                 soldDate: formattedDate,
             })
-            await demoOrSalesModel.findOneAndUpdate({_id:"6646dd2913563a908c254adf"},{
+            const alreadyClosed = await demoOrSalesModel.findOne({$and:[{userId:updateData.userId},{deviceId:updateData.deviceId},{status:"Closed"}]})
+            console.log(12,alreadyClosed)
+            if(!!alreadyClosed) {
+                return res.status(200).json({
+                    statusCode: 200,
+                    statusValue: "SUCCESS",
+                    message: "Status added successfully!",
+                })
+            }
+            const bodyData = new demoOrSalesModel({
                 userId:checkData.userId,
                 deviceId:checkData.deviceId,
                 contactNo:checkData.contactNo,
@@ -744,9 +755,10 @@ exports.updateVentialtorStatus = async (req, res) => {
                 status:"Closed",
                 date:checkData.date,
                 description:checkData.description,
-                soldDate:checkData.soldDate,
-                createdAt:checkData.createdAt,
-            },{upsert:true})
+                soldDate:checkData.soldDate, 
+            })
+            const savedData = await bodyData.save();
+            if (!!savedData)
             // update sales count
             // await mileStoneModel.findByIdAndUpdate({_id:getMilestone._id},{targetSales:targetSales})
             return res.status(200).json({
@@ -772,7 +784,6 @@ exports.updateVentialtorStatus = async (req, res) => {
             statusValue: "FAIL",
             message: "Wrong _id! data not found with given _id",
         })
-
     } catch (err) {
         return res.status(500).json({
             statusCode: 500,
@@ -785,7 +796,6 @@ exports.updateVentialtorStatus = async (req, res) => {
         })
     }
 }
-
 
 
 exports.addMileStone = async (req, res) => {
