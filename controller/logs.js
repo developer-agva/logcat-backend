@@ -377,21 +377,29 @@ const createLogsV2 = async (req, res) => {
 
 // get device alarm data by did
 const getAlertsById = async (req, res) => {
+  const { did } = req.params;
+  // Pagination
+  let { page, limit } = req.query;
+  page = parseInt(page) || 1;
+  limit = parseInt(limit) || 10;
+
+  if (limit <= 0) {
+    limit = 10; // Set a default limit to prevent fetching too many records
+  }
+
+  const skip = (page - 1) * limit;
   try {
-    const { did } = req.params;
-    // Pagination
-    let { page, limit } = req.query;
-    if (!page || page === "undefined") {
-      page = 1;
-    }
-    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 9999;
-    }
+    // Fetch data with pagination and sorting applied directly in the query
+    const findDeviceById = await alert_ventilator_collection.find({ did })
+    .select({ __v: 0, createdAt: 0, updatedAt: 0 })
+    .sort({ "ack.date": -1 })
+    .skip(skip)
+    .limit(limit);
 
-    const findDeviceById = await alert_ventilator_collection.find({ did: did }).select({__v:0,createdAt:0,updatedAt:0}).sort({"ack.date":-1});
+    // Count total documents for pagination info
+    const totalCount = await alert_ventilator_collection.countDocuments({ did });
 
-    //console.log(findDeviceById, 'findDeviceById');
-    if (!findDeviceById) {
+    if (!findDeviceById.length) {
       return res.status(404).json({
         status: 0,
         statusCode: 404,
@@ -405,56 +413,116 @@ const getAlertsById = async (req, res) => {
         },
       });
     }
-   
-    const paginateArray =  (findDeviceById, page, limit) => {
-      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
-      return skip;
-    };
-    let finalArrData = paginateArray(findDeviceById, page, limit);
-    var splitedArr = [];
-    let modifiedArr = finalArrData.map((item) => { 
-      let objItem = {
-        _id:item._id,
-        did:item.did,
-        type:item.type,
-        ack:{
-          msg:item.ack.msg,
-          code:item.ack.code,
-          date:item.ack.date.split('T')[0],
-          time:item.ack.date.split('T')[1],
-        },
-        priority:item.priority,
-      }
-      splitedArr.push(objItem)
-    })
 
+    // Process and format the result
+    const splitedArr = findDeviceById.map(item => ({
+      _id: item._id,
+      did: item.did,
+      type: item.type,
+      ack: {
+        msg: item.ack.msg,
+        code: item.ack.code,
+        date:item.ack.date.split('T')[0],
+        time:item.ack.date.split('T')[1], // Use ISO string for date-time splitting
+      },
+      priority: item.priority,
+    }));
+
+    // Send the response
     return res.status(200).json({
       status: 1,
       statusCode: 200,
-      message: 'Data get successfully.',
+      message: 'Data retrieved successfully.',
       data: {
-        findDeviceById: splitedArr
+        findDeviceById: splitedArr,
       },
-      totalDataCount: findDeviceById.length,
-      totalPages: Math.ceil( (findDeviceById.length)/ limit),
-      currentPage: page
+      totalDataCount: totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page,
     });
-
-  }
-  catch (err) {
+  
+  } catch (error) {
+    console.error('Error fetching data:', error);
     return res.status(500).json({
-      status: -1,
+      status: 0,
+      statusCode: 500,
       data: {
         err: {
           generatedTime: new Date(),
-          errMsg: err.stack,
-          msg: err.message,
-          type: err.name,
+          errMsg: 'Internal Server Error',
+          msg: 'An error occurred while fetching data',
+          type: 'Server Error',
         },
       },
     });
   }
 }
+
+
+  // try {
+    // const { did } = req.params;
+    // // Pagination
+    // let { page, limit } = req.query;
+    // if (!page || page === "undefined") {
+    //   page = 1;
+    // }
+    // if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+    //   limit = 9999;
+    // }
+
+    // const findDeviceById = await alert_ventilator_collection.find({ did: did }).select({__v:0,createdAt:0,updatedAt:0}).sort({"ack.date":-1});
+
+    // console.log(findDeviceById, 'findDeviceById');
+    // if (!findDeviceById) {
+    //   return res.status(404).json({
+    //     status: 0,
+    //     statusCode: 404,
+    //     data: {
+    //       err: {
+    //         generatedTime: new Date(),
+    //         errMsg: 'device not found',
+    //         msg: 'device not found',
+    //         type: 'Client Error',
+    //       },
+    //     },
+    //   });
+    // }
+   
+    // const paginateArray =  (findDeviceById, page, limit) => {
+    //   const skip = findDeviceById.slice((page - 1) * limit, page * limit);
+    //   return skip;
+    // };
+    // let finalArrData = paginateArray(findDeviceById, page, limit);
+    // var splitedArr = [];
+    // let modifiedArr = finalArrData.map((item) => { 
+    //   let objItem = {
+    //     _id:item._id,
+    //     did:item.did,
+    //     type:item.type,
+    //     ack:{
+    //       msg:item.ack.msg,
+    //       code:item.ack.code,
+    //       date:item.ack.date.split('T')[0],
+    //       time:item.ack.date.split('T')[1],
+    //     },
+    //     priority:item.priority,
+    //   }
+    //   splitedArr.push(objItem)
+    // })
+
+    // return res.status(200).json({
+    //   status: 1,
+    //   statusCode: 200,
+    //   message: 'Data get successfully.',
+    //   data: {
+    //     findDeviceById: splitedArr
+    //   },
+    //   totalDataCount: findDeviceById.length,
+    //   totalPages: Math.ceil( (findDeviceById.length)/ limit),
+    //   currentPage: page
+    // });
+    
+    
 
 // get alarm data by did for new projects
 const getAlertsByIdV2 = async (req, res) => {
@@ -1899,32 +1967,63 @@ const getAllDeviceId = async (req, res) => {
     const loggedInUser = await User.findById({_id:verified.user});
     // console.log(loggedInUser.hospitalName)
     // Declare blank obj
+    // Construct filter object based on user type
+    const searchRegex = { $regex: ".*" + search + ".*", $options: "i" };
+    const deviceFilter = {
+      $or: [
+        { deviceId: searchRegex },
+        { "deviceInfo.Hospital_Name": searchRegex },
+        { "deviceInfo.Alias_Name": searchRegex },
+      ]
+    };
+
     let filterObj = {};
+    
     // check user
     if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
       filterObj = {
         $match: {$and:[
           {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+          {$or:[
+            {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+            {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }},
+            {"prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" }}
+          ]}
         ]}
       }
     } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
       filterObj = {
-        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        $match:{$or:[
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+          {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }},
+          {"prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
       }
     } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
       filterObj = {
-        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        $match:{$or:[
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+          {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }},
+          {"prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
     } 
   } else if (!!loggedInUser && loggedInUser.userType === "Production") {
     filterObj = {
-      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      $match:{$or:[
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+        {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }},
+        {"prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
     } 
   } else if (!!loggedInUser && loggedInUser.userType === "User") {
     filterObj = {
       $match: {$and:[
         {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        {$or:[
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+          {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }},
+          {"prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
       ]}
     }
   } 
@@ -1932,7 +2031,11 @@ const getAllDeviceId = async (req, res) => {
     filterObj = {
       $match: {$and:[
         {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        {$or:[
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+          {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }},
+          {"prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
       ]}
     }
   }
@@ -1941,158 +2044,103 @@ const getAllDeviceId = async (req, res) => {
     filterObj = {
       $match: {$and:[
         {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+        {$or:[
+          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+          {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }},
+          {"prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" }}
+        ]}
       ]}
     }
   } else {
     filterObj = {
-      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+      $match:{$or:[
+        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+        {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }},
+        {"prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" }}
+      ]}
     } 
   }
-    
-    
-    // check user
-  
-  const activeDevices = await statusModel.aggregate([
-    {
-      $match: {
-        "message":"ACTIVE",
-      }
-    },
-    {
-      $lookup:
+
+  const getDeviceData = async (message) => {
+    return statusModel.aggregate([
       {
-        from: "registerdevices",
-        localField: "deviceId",
-        foreignField: "DeviceId",
-        as: "deviceInfo"
-      }
-    },
-    filterObj,
-    {
-      $lookup:
-      {
-        from: "alert_ventilator_collections",
-        let: { deviceId: "$deviceId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$did", "$$deviceId"] }
-            }
-          },
-          {
-            $sort: { "createdAt": -1 } // Sorting by age in descending order
-          },
-          {
-            $limit: 1 // Limiting to 1 result per deviceId
-          }
-        ],
-        as: "alarmData"
+        $match: { message }
       },
-    },
-    {
-      $lookup:
       {
-        from: "patient_ventilator_collections",
-        let: { deviceId: "$deviceId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$deviceId", "$$deviceId"] }
-            }
-          },
-          {
-            $sort: { "createdAt": -1 } // Sorting by age in descending order
-          },
-          {
-            $limit: 1 // Limiting to 1 result per deviceId
-          }
-        ],
-        as: "patientData"
-      },
-    },
-    {
-      $project:{
-        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
-        "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
-      }
-    },
-    {
-      $sort: { updatedAt:-1 },
-    },
-  ]);
-   
-  
-  const inactiveDevices = await statusModel.aggregate([
-    {
-      $match: {
-        "message":"INACTIVE",
-      }
-    },
-    {
-      $lookup:
-        {
+        $lookup: {
           from: "registerdevices",
           localField: "deviceId",
           foreignField: "DeviceId",
           as: "deviceInfo"
         }
-    },
-    filterObj,
-    {
-      $lookup:
-      {
-        from: "alert_ventilator_collections",
-        let: { deviceId: "$deviceId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$did", "$$deviceId"] }
-            }
-          },
-          {
-            $sort: { "createdAt": -1 } // Sorting by age in descending order
-          },
-          {
-            $limit: 1 // Limiting to 1 result per deviceId
-          }
-        ],
-        as: "alarmData"
       },
-    },
-    {
-      $lookup:
       {
-        from: "patient_ventilator_collections",
-        let: { deviceId: "$deviceId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$deviceId", "$$deviceId"] }
-            }
-          },
-          {
-            $sort: { "createdAt": -1 } // Sorting by age in descending order
-          },
-          {
-            $limit: 1 // Limiting to 1 result per deviceId
-          }
-        ],
-        as: "patientData"
+        $lookup: {
+          from: "productions",
+          localField: "deviceId",
+          foreignField: "deviceId",
+          as: "prodDataInfo"
+        }
       },
-    },
-    {
-      $project:{
-        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
-        "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
+      filterObj,
+      {
+        $lookup: {
+          from: "alert_ventilator_collections",
+          let: { deviceId: "$deviceId" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$did", "$$deviceId"] } } },
+            { $sort: { "createdAt": -1 } },
+            { $limit: 1 }
+          ],
+          as: "alarmData"
+        }
+      },
+      {
+        $lookup: {
+          from: "patient_ventilator_collections",
+          let: { deviceId: "$deviceId" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$deviceId", "$$deviceId"] } } },
+            { $sort: { "createdAt": -1 } },
+            { $limit: 1 }
+          ],
+          as: "patientData"
+        }
+      },
+      {
+        "$set": {
+                  "prodDataInfo": {"$first": "$prodDataInfo"},
+                }
+      },
+      // Extract the joined embeded fields into top level fields
+      {
+        "$set": {"purpose": "$prodDataInfo.purpose", "serialNumber": "$prodDataInfo.serialNumber"},
+      },
+      {
+        $project: {
+          "createdAt": 0,
+          "__v": 0,
+          "deviceInfo.__v": 0,
+          "deviceInfo.createdAt": 0,
+          "deviceInfo.isAssigned": 0,
+          "deviceInfo.updatedAt": 0,
+          "deviceInfo.Status": 0,
+          "prodDataInfo":0,
+        }
+      },
+      {
+        $sort: { updatedAt: -1 }
       }
-    },
-    {
-      $sort: { updatedAt:-1 },
-    },
-  ]);
+    ]);
+  };
 
-    var finalArr = [...activeDevices, ...inactiveDevices];
+  const [activeDevices, inactiveDevices] = await Promise.all([
+    getDeviceData("ACTIVE"),
+    getDeviceData("INACTIVE")
+  ]);
+  
+  const finalArr = [...activeDevices, ...inactiveDevices];
+
     // remove duplicate records
     var key = "deviceId";
     let updatedArray = []
@@ -2214,503 +2262,961 @@ const getAllDeviceId = async (req, res) => {
   }
 };
 
+// const getAllDeviceId = async (req, res) => {
+//   try {
+//     // Search
+//      var search = "";
+//      if (req.query.search && req.query.search !== "undefined") {
+//       search = req.query.search;
+//     }
+//     let { page, limit } = req.query;
+    
+//     page = parseInt(page) || 1;
+//     limit = parseInt(limit) || 10;
+//     if (limit <= 0) {
+//       limit = 10; // Set a default limit to prevent fetching too many records
+//     }
+
+//     // Get logged-in user details
+//     const token = req.headers["authorization"].split(' ')[1];
+//     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+//     const loggedInUser = await User.findById({_id: verified.user});
+
+//     // Construct filter object based on user type
+//     const searchRegex = { $regex: ".*" + search + ".*", $options: "i" };
+//     const deviceFilter = {
+//       $or: [
+//         { deviceId: searchRegex },
+//         { "deviceInfo.Hospital_Name": searchRegex },
+//         { "deviceInfo.Alias_Name": searchRegex },
+//       ]
+//     };
+
+//     let filterObj = {};
+//     if (loggedInUser) {
+//       switch (loggedInUser.userType) {
+//         case "Hospital-Admin":
+//         case "User":
+//         case "Assistant":
+//           filterObj = {
+//             $match: {
+//               $and: [
+//                 { "deviceInfo.Hospital_Name": loggedInUser.hospitalName },
+//                 deviceFilter
+//               ]
+//             }
+//           };
+//           break;
+//         case "Doctor":
+//           filterObj = {
+//             $match: {
+//               $and: [
+//                 { "deviceInfo.Hospital_Name": { $in: loggedInUser.accessHospital } },
+//                 deviceFilter
+//               ]
+//             }
+//           };
+//           break;
+//         default:
+//           filterObj = { $match: deviceFilter };
+//           break;
+//       }
+//     } else {
+//       filterObj = { $match: deviceFilter };
+//     }
+
+//     // Function to get device data
+//     const getDeviceData = async (message) => {
+//       return statusModel.aggregate([
+//         { $match: { message } },
+//         {
+//           $lookup: {
+//             from: "registerdevices",
+//             localField: "deviceId",
+//             foreignField: "DeviceId",
+//             as: "deviceInfo"
+//           }
+//         },
+//         filterObj,
+//         {
+//           $lookup: {
+//             from: "alert_ventilator_collections",
+//             let: { deviceId: "$deviceId" },
+//             pipeline: [
+//               { $match: { $expr: { $eq: ["$did", "$$deviceId"] } } },
+//               { $sort: { createdAt: -1 } },
+//               { $limit: 1 }
+//             ],
+//             as: "alarmData"
+//           }
+//         },
+//         {
+//           $lookup: {
+//             from: "patient_ventilator_collections",
+//             let: { deviceId: "$deviceId" },
+//             pipeline: [
+//               { $match: { $expr: { $eq: ["$deviceId", "$$deviceId"] } } },
+//               { $sort: { createdAt: -1 } },
+//               { $limit: 1 }
+//             ],
+//             as: "patientData"
+//           }
+//         },
+//         {
+//           $project: {
+//             createdAt: 0,
+//             __v: 0,
+//             "deviceInfo.__v": 0,
+//             "deviceInfo.createdAt": 0,
+//             "deviceInfo.isAssigned": 0,
+//             "deviceInfo.updatedAt": 0,
+//             "deviceInfo.Status": 0
+//           }
+//         },
+//         { $sort: { updatedAt: -1 } },
+//         { $skip: (page - 1) * limit },
+//         { $limit: limit }
+//       ]);
+//     };
+
+//     const [activeDevices, inactiveDevices] = await Promise.all([
+//       getDeviceData("ACTIVE"),
+//       getDeviceData("INACTIVE")
+//     ]);
+
+//     // Combine and remove duplicates
+//     const finalArr = [...activeDevices, ...inactiveDevices];
+//     const uniqueDevices = [...new Map(finalArr.map(item => [item.deviceId, item])).values()];
+
+//     // Update devices for Doctor and Assistant roles
+//     if (loggedInUser) {
+//       if (loggedInUser.userType === "Doctor") {
+//         const assignDeviceData = await assignDeviceTouserModel.find({ userId: loggedInUser._id });
+//         uniqueDevices.forEach(device => {
+//           const assignInfo = assignDeviceData.find(assign => assign.deviceId === device.deviceId);
+//           device.isAssigned = assignInfo && assignInfo.isAssigned === 'Accepted';
+//         });
+//       } else if (loggedInUser.userType === "Assistant") {
+//         const assignDeviceData = await assignDeviceTouserModel.find({ securityCode: loggedInUser.securityCode });
+//         uniqueDevices.forEach(device => {
+//           const assignInfo = assignDeviceData.find(assign => assign.deviceId === device.deviceId);
+//           if (assignInfo) {
+//             device.addTofocus = assignInfo.isAssigned === 'Accepted';
+//           }
+//         });
+//         uniqueDevices = uniqueDevices.filter(device => device.addTofocus);
+//       }
+//     }
+
+//     // Calculate total data count before pagination
+//     const totalDataCount = uniqueDevices.length;
+//     const totalPages = Math.ceil(totalDataCount / limit);
+
+//     return res.status(200).json({
+//       status: 200,
+//       statusValue: "SUCCESS",
+//       message: "Event lists have been retrieved successfully.",
+//       data: { data: uniqueDevices },
+//       totalDataCount,
+//       totalPages,
+//       currentPage: page,
+//     });
+//   } catch (err) {
+//     return res.status(500).json({
+//       status: -1,
+//       data: {
+//         err: {
+//           generatedTime: new Date(),
+//           errMsg: err.stack,
+//           msg: err.message,
+//           type: err.name,
+//         },
+//       },
+//     });
+//   }
+// };
 
 // get all devices by on the basis of userType for app
+// const getAllDeviceIdForApp = async (req, res) => {
+//   try {
+//       // Search
+//       var search = "";
+//       if (req.query.search && req.query.search !== "undefined") {
+//         search = req.query.search;
+//       }
+//       // Pagination
+//       let { page, limit } = req.query;
+//       if (!page || page === "undefined") {
+//         page = 1;
+//       }
+//       if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+//         limit = 99999;
+//       }
+
+//       // get loggedin user details
+//       const token = req.headers["authorization"].split(' ')[1];
+//       const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+//       const loggedInUser = await User.findById({_id:verified.user});
+//       // console.log(loggedInUser.hospitalName)
+//       // Declare blank obj
+//       let filterObj = {};
+//       // check user
+//       if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
+//         filterObj = {
+//           $match: {$and:[
+//             {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+//             {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+//           ]}
+//         }
+//       } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
+//         filterObj = {
+//           $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+//         }
+//       } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
+//         filterObj = {
+//           $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+//       } 
+//     } else if (!!loggedInUser && loggedInUser.userType === "Production") {
+//       filterObj = {
+//         $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+//       } 
+//     } else if (!!loggedInUser && loggedInUser.userType === "User") {
+//       filterObj = {
+//         $match: {$and:[
+//           {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+//           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+//         ]}
+//       }
+//     } 
+//     else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
+//       filterObj = {
+//         $match: {$and:[
+//           {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+//           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+//         ]}
+//       }
+//     }
+//     else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
+//       // console.log(loggedInUser.accessHospital)
+//       filterObj = {
+//         $match: {$and:[
+//           {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
+//           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+//         ]}
+//       }
+//     } else {
+//       filterObj = {
+//         $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
+//       } 
+//     }
+  
+//     const activeDevices = await statusModelV2.aggregate([
+//       {
+//         $match: {
+//           "message":"ACTIVE",
+//         }
+//       },
+//       {
+//         $lookup:
+//         {
+//           from: "registerdevices",
+//           localField: "deviceId",
+//           foreignField: "DeviceId",
+//           as: "deviceInfo"
+//         }
+//       },
+//       filterObj,
+//       {
+//         $lookup:
+//         {
+//           from: "alert_ventilator_collection_v2",
+//           let: { deviceId: "$deviceId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: { $eq: ["$did", "$$deviceId"] }
+//               }
+//             },
+//             {
+//               $sort: { "createdAt": -1 } // Sorting by age in descending order
+//             },
+//             {
+//               $limit: 1 // Limiting to 1 result per deviceId
+//             }
+//           ],
+//           as: "alarmData"
+//         },
+//       },
+//       {
+//         $lookup:
+//         {
+//           from: "patient_ventilator_collection_v2",
+//           let: { deviceId: "$deviceId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: { $eq: ["$deviceId", "$$deviceId"] }
+//               }
+//             },
+//             {
+//               $sort: { "createdAt": -1 } // Sorting by age in descending order
+//             },
+//             {
+//               $limit: 1 // Limiting to 1 result per deviceId
+//             }
+//           ],
+//           as: "patientData"
+//         },
+//       },
+//       {
+//         $project:{
+//           "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
+//           "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+//         }
+//       },
+//       {
+//         $sort: { updatedAt:-1 },
+//       },
+//     ]);
+   
+  
+//     const inactiveDevices = await statusModelV2.aggregate([
+//       {
+//         $match: {
+//           "message":"INACTIVE",
+//         }
+//       },
+//       {
+//         $lookup:
+//           {
+//             from: "registerdevices",
+//             localField: "deviceId",
+//             foreignField: "DeviceId",
+//             as: "deviceInfo"
+//           }
+//       },
+//       filterObj,
+//       {
+//         $lookup:
+//         {
+//           from: "alert_ventilator_collection_v2",
+//           let: { deviceId: "$deviceId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: { $eq: ["$did", "$$deviceId"] }
+//               }
+//             },
+//             {
+//               $sort: { "createdAt": -1 } // Sorting by age in descending order
+//             },
+//             {
+//               $limit: 1 // Limiting to 1 result per deviceId
+//             }
+//           ],
+//           as: "alarmData"
+//         },
+//       },
+//       {
+//         $lookup:
+//         {
+//           from: "patient_ventilator_collection_v2",
+//           let: { deviceId: "$deviceId" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: { $eq: ["$deviceId", "$$deviceId"] }
+//               }
+//             },
+//             {
+//               $sort: { "createdAt": -1 } // Sorting by age in descending order
+//             },
+//             {
+//               $limit: 1 // Limiting to 1 result per deviceId
+//             }
+//           ],
+//           as: "patientData"
+//         },
+//       },
+//       {
+//         $project:{
+//           "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
+//           "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
+//         }
+//       },
+//       {
+//         $sort: { updatedAt:-1 },
+//       },
+//     ]);
+
+//     var finalArr = [...activeDevices, ...inactiveDevices];
+//     // remove duplicate records
+//     var key = "deviceId";
+//     let updatedArray = []
+//     let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
+
+
+//     // show isAssigned key for doctor role or assistant role
+//     if (!!loggedInUser && (loggedInUser.userType === "Doctor")) {
+//       const assignDeviceData = await assignDeviceTouserModel.find({ userId: loggedInUser._id })
+
+//       // map data for isAssigned key 
+//       function updateIsAssigned(arrayUniqueByKey, assignDeviceData) {
+//         // Map deviceId to assignDeviceData for faster lookup
+//         const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
+//           map[assign.deviceId] = assign;
+//           return map;
+//         }, {});
+
+//         // Update isAssigned based on matching deviceId
+//         return arrayUniqueByKey.map(item => {
+//           const assignInfo = assignDeviceMap[item.deviceId];
+//           // console.log(11,assignInfo)
+//           if (assignInfo && assignInfo.isAssigned === 'Accepted') {
+//             item.isAssigned = true;
+//           } else {
+//             item.isAssigned = false;
+//           }
+//           return item;
+//         });
+//       }
+
+//       updatedArray = updateIsAssigned(arrayUniqueByKey, assignDeviceData);
+//       // console.log(123, updatedArray);
+
+//     } else if (!!loggedInUser && (loggedInUser.userType === "Assistant")) {
+//       const assignDeviceData = await assignDeviceTouserModel.find({ securityCode: loggedInUser.securityCode })
+//       // start
+//       function updateAndFilterArray(arrayUniqueByKey, assignDeviceData) {
+//         // Map deviceId to isAssigned for faster lookup
+//         const isAssignedMap = assignDeviceData.reduce((map, assign) => {
+//           map[assign.deviceId] = assign.isAssigned === 'Accepted';
+//           return map;
+//         }, {});
+
+//         // Filter and update arrayUniqueByKey
+//         const filteredArray = arrayUniqueByKey.filter(item => {
+//           const isAssigned = isAssignedMap[item.deviceId];
+//           if (isAssigned !== undefined) {
+//             item.addTofocus = isAssigned;
+//             return true;
+//           }
+//           return false;
+//         });
+
+//         return filteredArray;
+//       }
+
+//       const filteredArray = updateAndFilterArray(arrayUniqueByKey, assignDeviceData);
+//       // console.log(123,filteredArray);
+//       const paginateArray = (filteredArray, page, limit) => {
+//         const skip = filteredArray.slice((page - 1) * limit, page * limit);
+//         return skip;
+//       };
+
+//       var allDevices = paginateArray(filteredArray, page, limit)
+      
+//       return res.status(200).json({
+//         status: 200,
+//         statusValue: "SUCCESS",
+//         message: "Event lists has been retrieved successfully.",
+//         data: !!allDevices ? { data: allDevices } : {},
+//         totalDataCount: filteredArray.length,
+//         totalPages: Math.ceil((filteredArray.length) / limit),
+//         currentPage: page,
+//         // tempData: allDevices,
+//       })
+
+//     }
+
+//     updatedArray = arrayUniqueByKey
+
+//     // For pagination
+//     const paginateArray = (updatedArray, page, limit) => {
+//       const skip = updatedArray.slice((page - 1) * limit, page * limit);
+//       return skip;
+//     };
+
+//     var allDevices = paginateArray(updatedArray, page, limit)
+//     if (updatedArray.length > 0) {
+//       return res.status(200).json({
+//         status: 200,
+//         statusValue: "SUCCESS",
+//         message: "Event lists has been retrieved successfully.",
+//         data: { data: allDevices, },
+//         totalDataCount: updatedArray.length,
+//         totalPages: Math.ceil((updatedArray.length) / limit),
+//         currentPage: page,
+//         // tempData: allDevices,
+//       })
+//     }
+//     return res.status(400).json({
+//       status: 400,
+//       statusValue: "FAIL",
+//       message: 'Data not found.',
+//       data: {}
+//     });
+//   } catch (err) {
+//     return res.status(500).json({
+//       status: -1,
+//       data: {
+//         err: {
+//           generatedTime: new Date(),
+//           errMsg: err.stack,
+//           msg: err.message,
+//           type: err.name,
+//         },
+//       },
+//     });
+//   }
+// };
+
 const getAllDeviceIdForApp = async (req, res) => {
   try {
-      // Search
-      var search = "";
-      if (req.query.search && req.query.search !== "undefined") {
-        search = req.query.search;
-      }
-      // Pagination
-      let { page, limit } = req.query;
-      if (!page || page === "undefined") {
-        page = 1;
-      }
-      if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-        limit = 99999;
-      }
-
-      // get loggedin user details
-      const token = req.headers["authorization"].split(' ')[1];
-      const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-      const loggedInUser = await User.findById({_id:verified.user});
-      // console.log(loggedInUser.hospitalName)
-      // Declare blank obj
-      let filterObj = {};
-      // check user
-      if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
-        filterObj = {
-          $match: {$and:[
-            {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-            {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-          ]}
-        }
-      } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
-        filterObj = {
-          $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-        }
-      } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
-        filterObj = {
-          $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      } 
-    } else if (!!loggedInUser && loggedInUser.userType === "Production") {
-      filterObj = {
-        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      } 
-    } else if (!!loggedInUser && loggedInUser.userType === "User") {
-      filterObj = {
-        $match: {$and:[
-          {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-        ]}
-      }
-    } 
-    else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
-      filterObj = {
-        $match: {$and:[
-          {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-        ]}
-      }
+    // Search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
     }
-    else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
-      // console.log(loggedInUser.accessHospital)
-      filterObj = {
-        $match: {$and:[
-          {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
-          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-        ]}
+    let { page, limit } = req.query;
+    
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 10;
+    if (limit <= 0) {
+      limit = 10; // Set a default limit to prevent fetching too many records
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Get logged-in user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({ _id: verified.user });
+
+    // Construct filter object based on user type
+    let filterObj;
+    if (loggedInUser) {
+      const hospitalFilter = { "deviceInfo.Hospital_Name": loggedInUser.hospitalName };
+      const deviceFilter = { deviceId: { $regex: `.*${search}.*`, $options: "i" } };
+
+      switch (loggedInUser.userType) {
+        case "Hospital-Admin":
+        case "User":
+        case "Assistant":
+          filterObj = { $and: [hospitalFilter, deviceFilter] };
+          break;
+        case "Doctor":
+          filterObj = { $and: [{ "deviceInfo.Hospital_Name": { $in: loggedInUser.accessHospital } }, deviceFilter] };
+          break;
+        default:
+          filterObj = deviceFilter;
       }
     } else {
-      filterObj = {
-        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      } 
+      filterObj = { deviceId: { $regex: `.*${search}.*`, $options: "i" } };
     }
-    
-    
-    // check user
-  
-    const activeDevices = await statusModelV2.aggregate([
+
+    // Aggregation pipeline for active and inactive devices
+    const buildPipeline = (status) => [
+      { $match: { message: status } },
+      { $lookup: { from: "registerdevices", localField: "deviceId", foreignField: "DeviceId", as: "deviceInfo" } },
+      { $match: filterObj },
       {
-        $match: {
-          "message":"ACTIVE",
-        }
-      },
-      {
-        $lookup:
-        {
-          from: "registerdevices",
-          localField: "deviceId",
-          foreignField: "DeviceId",
-          as: "deviceInfo"
-        }
-      },
-      filterObj,
-      {
-        $lookup:
-        {
+        $lookup: {
           from: "alert_ventilator_collection_v2",
           let: { deviceId: "$deviceId" },
           pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$did", "$$deviceId"] }
-              }
-            },
-            {
-              $sort: { "createdAt": -1 } // Sorting by age in descending order
-            },
-            {
-              $limit: 1 // Limiting to 1 result per deviceId
-            }
+            { $match: { $expr: { $eq: ["$did", "$$deviceId"] } } },
+            { $sort: { "createdAt": -1 } },
+            { $limit: 1 }
           ],
           as: "alarmData"
-        },
+        }
       },
       {
-        $lookup:
-        {
+        $lookup: {
           from: "patient_ventilator_collection_v2",
           let: { deviceId: "$deviceId" },
           pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$deviceId", "$$deviceId"] }
-              }
-            },
-            {
-              $sort: { "createdAt": -1 } // Sorting by age in descending order
-            },
-            {
-              $limit: 1 // Limiting to 1 result per deviceId
-            }
+            { $match: { $expr: { $eq: ["$deviceId", "$$deviceId"] } } },
+            { $sort: { "createdAt": -1 } },
+            { $limit: 1 }
           ],
           as: "patientData"
+        }
+      },
+      {
+        $project: {
+          createdAt: 0, __v: 0, "deviceInfo.__v": 0, "deviceInfo.createdAt": 0, "deviceInfo.isAssigned": 0,
+          "deviceInfo.updatedAt": 0, "deviceInfo.Status": 0
+        }
+      },
+      { $sort: { updatedAt: -1 } }
+    ];
+
+    const [activeDevices, inactiveDevices] = await Promise.all([
+      statusModelV2.aggregate(buildPipeline("ACTIVE")),
+      statusModelV2.aggregate(buildPipeline("INACTIVE"))
+    ]);
+
+    // Combine and remove duplicate records
+    const finalArr = [...activeDevices, ...inactiveDevices];
+    const arrayUniqueByKey = [...new Map(finalArr.map(item => [item.deviceId, item])).values()];
+
+    // Show isAssigned key for Doctor or Assistant role
+    if (loggedInUser && (loggedInUser.userType === "Doctor" || loggedInUser.userType === "Assistant")) {
+      const assignDeviceData = loggedInUser.userType === "Doctor"
+        ? await assignDeviceTouserModel.find({ userId: loggedInUser._id })
+        : await assignDeviceTouserModel.find({ securityCode: loggedInUser.securityCode });
+
+      const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
+        map[assign.deviceId] = assign.isAssigned === 'Accepted';
+        return map;
+      }, {});
+
+      const filteredArray = arrayUniqueByKey.filter(item => assignDeviceMap[item.deviceId] !== undefined);
+      filteredArray.forEach(item => {
+        item.isAssigned = assignDeviceMap[item.deviceId];
+      });
+
+      const paginatedDevices = filteredArray.slice(skip, skip + limit);
+      return res.status(200).json({
+        status: 200,
+        statusValue: "SUCCESS",
+        message: "Event lists have been retrieved successfully.",
+        data: { data: paginatedDevices },
+        totalDataCount: filteredArray.length,
+        totalPages: Math.ceil(filteredArray.length / limit),
+        currentPage: page,
+      });
+    }
+
+    // Pagination for other roles
+    const paginatedDevices = arrayUniqueByKey.slice(skip, skip + limit);
+    return res.status(200).json({
+      status: 200,
+      statusValue: "SUCCESS",
+      message: "Event lists have been retrieved successfully.",
+      data: { data: paginatedDevices },
+      totalDataCount: arrayUniqueByKey.length,
+      totalPages: Math.ceil(arrayUniqueByKey.length / limit),
+      currentPage: page,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
         },
       },
-      {
-        $project:{
-          "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
-          "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
-        }
-      },
-      {
-        $sort: { updatedAt:-1 },
-      },
-    ]);
+    });
+  }
+};
+
+
+
+// get all devices by on the basis of userType
+// const getAllDeviceIdV2 = async (req, res) => {
+//   try {
+//      // Search
+//      var search = "";
+//      if (req.query.search && req.query.search !== "undefined") {
+//        search = req.query.search;
+//     }
+//      // Pagination
+//     let { page, limit } = req.query;
+//     if (!page || page === "undefined") {
+//        page = 1;
+//     }
+//     if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+//        limit = 99999;
+//     }
+
+//     // get loggedin user details
+//     const token = req.headers["authorization"].split(' ')[1];
+//     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+//     const loggedInUser = await User.findById({_id:verified.user});
+//     // console.log(loggedInUser.hospitalName)
+//     // Declare blank obj
+//     let filterObj = {};
+//     // check user
+//     if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
+//       filterObj = {
+//         $match: {$and:[
+//           {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+//           {$or:[
+//             {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+//             {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }}
+//           ]}
+//         ]}
+//       }
+//     } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
+//       filterObj = {
+//         $match:{$or:[
+//           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+//           {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }}
+//         ]}
+//       }
+//     } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
+//       filterObj = {
+//         $match:{$or:[
+//           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+//           {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }}
+//         ]}
+//     } 
+//   } else if (!!loggedInUser && loggedInUser.userType === "Production") {
+//     filterObj = {
+//       $match:{$or:[
+//         {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+//         {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }}
+//       ]}
+//     } 
+//   } else if (!!loggedInUser && loggedInUser.userType === "User") {
+//     filterObj = {
+//       $match: {$and:[
+//         {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+//         {$or:[
+//           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+//           {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }}
+//         ]}
+//       ]}
+//     }
+//   } 
+//   else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
+//     filterObj = {
+//       $match: {$and:[
+//         {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
+//         {$or:[
+//           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+//           {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }}
+//         ]}
+//       ]}
+//     }
+//   }
+//   else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
+//     // console.log(loggedInUser.accessHospital)
+//     filterObj = {
+//       $match: {$and:[
+//         {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
+//         {$or:[
+//           {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+//           {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }}
+//         ]}
+//       ]}
+//     }
+//   } else {
+//     filterObj = {
+//       $match:{$or:[
+//         {deviceId: { $regex: ".*" + search + ".*", $options: "i" }},
+//         {"deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" }}
+//       ]}
+//     } 
+//   }
+    
+    
+//     // check user
+  
+//   const activeDevices = await statusModelV2.aggregate([
+//     {
+//       $match: {
+//           $and:[{ "message":"ACTIVE"},{"type":req.params.projectCode}]
+//       }
+//     },
+//     {
+//       $lookup:
+//       {
+//         from: "registerdevices",
+//         localField: "deviceId",
+//         foreignField: "DeviceId",
+//         as: "deviceInfo"
+//       }
+//     },
+//     filterObj,
+//     {
+//       $project:{
+//         "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+//         "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
+//       }
+//     },
+//     {
+//       $sort: { updatedAt:-1 },
+//     },
+//   ]);
    
   
-    const inactiveDevices = await statusModelV2.aggregate([
-      {
-        $match: {
-          "message":"INACTIVE",
-        }
-      },
-      {
-        $lookup:
-          {
+//   const inactiveDevices = await statusModelV2.aggregate([
+//     {
+//       $match: {
+//         $and:[{ "message":"INACTIVE"},{"type":req.params.projectCode}]
+//       }
+//     },
+//     {
+//       $lookup:
+//         {
+//           from: "registerdevices",
+//           localField: "deviceId",
+//           foreignField: "DeviceId",
+//           as: "deviceInfo"
+//         }
+//     },
+//     filterObj,
+//     {
+//       $project:{
+//         "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
+//         "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
+//       }
+//     },
+//     {
+//       $sort: { updatedAt:-1 },
+//     },
+//   ]);
+
+//     var finalArr = [...activeDevices, ...inactiveDevices];
+//     // console.log(111,finalArr)
+//     // remove duplicate recordss
+//     var key = "deviceId";
+//     let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
+
+//     // For pagination
+//     const paginateArray = (arrayUniqueByKey, page, limit) => {
+//       const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
+//       return skip;
+//     };
+
+//     var allDevices = paginateArray(arrayUniqueByKey, page, limit)
+//     if (arrayUniqueByKey.length > 0) {
+//       return res.status(200).json({
+//         status: 200,
+//         statusValue: "SUCCESS",
+//         message: "Event lists has been retrieved successfully.",
+//         data: { data: allDevices, },
+//         totalDataCount: arrayUniqueByKey.length,
+//         totalPages: Math.ceil((arrayUniqueByKey.length) / limit),
+//         currentPage: page,
+//         // tempData: allDevices,
+//       })
+//     }
+//     return res.status(400).json({
+//       status: 400,
+//       statusValue: "FAIL",
+//       message: 'Data not found.',
+//       data: {}
+//     });
+//   } catch (err) {
+//     return res.status(500).json({
+//       status: -1,
+//       data: {
+//         err: {
+//           generatedTime: new Date(),
+//           errMsg: err.stack,
+//           msg: err.message,
+//           type: err.name,
+//         },
+//       },
+//     });
+//   }
+// };
+const getAllDeviceIdV2 = async (req, res) => {
+  try {
+    // Search
+    var search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+     search = req.query.search;
+   }
+   let { page, limit } = req.query;
+   
+   page = parseInt(page) || 1;
+   limit = parseInt(limit) || 10;
+   if (limit <= 0) {
+     limit = 10; // Set a default limit to prevent fetching too many records
+   }
+
+    // Get logged-in user details
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({ _id: verified.user });
+
+    // Create filter object based on user type
+    const searchFilter = { 
+      $or: [
+        { deviceId: { $regex: `.*${search}.*`, $options: "i" } },
+        { "deviceInfo.Hospital_Name": { $regex: `.*${search}.*`, $options: "i" } },
+        { "deviceInfo.Alias_Name": { $regex: `.*${search}.*`, $options: "i" } },
+      ]
+    };
+
+    let filterObj = { $match: searchFilter };
+
+    if (loggedInUser) {
+      const hospitalMatch = { "deviceInfo.Hospital_Name": loggedInUser.hospitalName };
+      const accessHospitalMatch = { "deviceInfo.Hospital_Name": { $in: loggedInUser.accessHospital } };
+      
+      switch (loggedInUser.userType) {
+        case "Hospital-Admin":
+        case "User":
+        case "Assistant":
+          filterObj = { $match: { $and: [hospitalMatch, searchFilter] } };
+          break;
+        case "Doctor":
+          filterObj = { $match: { $and: [accessHospitalMatch, searchFilter] } };
+          break;
+        // "Super-Admin", "Dispatch", "Production" have the same filter logic as the default case
+      }
+    }
+
+    // Aggregation pipeline to fetch devices
+    const getDevices = async (message) => {
+      return statusModelV2.aggregate([
+        { $match: { $and: [{ message }, { type: req.params.projectCode }] } },
+        {
+          $lookup: {
             from: "registerdevices",
             localField: "deviceId",
             foreignField: "DeviceId",
             as: "deviceInfo"
           }
-      },
-      filterObj,
-      {
-        $lookup:
-        {
-          from: "alert_ventilator_collection_v2",
-          let: { deviceId: "$deviceId" },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$did", "$$deviceId"] }
-              }
-            },
-            {
-              $sort: { "createdAt": -1 } // Sorting by age in descending order
-            },
-            {
-              $limit: 1 // Limiting to 1 result per deviceId
-            }
-          ],
-          as: "alarmData"
         },
-      },
-      {
-        $lookup:
+        filterObj,
         {
-          from: "patient_ventilator_collection_v2",
-          let: { deviceId: "$deviceId" },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$deviceId", "$$deviceId"] }
-              }
-            },
-            {
-              $sort: { "createdAt": -1 } // Sorting by age in descending order
-            },
-            {
-              $limit: 1 // Limiting to 1 result per deviceId
-            }
-          ],
-          as: "patientData"
+          $project: {
+            "createdAt": 0, "__v": 0, "deviceInfo.__v": 0, "deviceInfo.createdAt": 0,
+            "deviceInfo.updatedAt": 0, "deviceInfo.Status": 0,
+          }
         },
-      },
-      {
-        $project:{
-          "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,"deviceInfo.isAssigned":0,
-          "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
-        }
-      },
-      {
-        $sort: { updatedAt:-1 },
-      },
+        { $sort: { updatedAt: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit }
+      ]);
+    };
+
+    // Fetch active and inactive devices
+    const [activeDevices, inactiveDevices] = await Promise.all([
+      getDevices("ACTIVE"),
+      getDevices("INACTIVE")
     ]);
 
-    var finalArr = [...activeDevices, ...inactiveDevices];
-    // remove duplicate records
-    var key = "deviceId";
-    let updatedArray = []
-    let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
-
-
-    // show isAssigned key for doctor role or assistant role
-    if (!!loggedInUser && (loggedInUser.userType === "Doctor")) {
-      const assignDeviceData = await assignDeviceTouserModel.find({ userId: loggedInUser._id })
-
-      // map data for isAssigned key 
-      function updateIsAssigned(arrayUniqueByKey, assignDeviceData) {
-        // Map deviceId to assignDeviceData for faster lookup
-        const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
-          map[assign.deviceId] = assign;
-          return map;
-        }, {});
-
-        // Update isAssigned based on matching deviceId
-        return arrayUniqueByKey.map(item => {
-          const assignInfo = assignDeviceMap[item.deviceId];
-          // console.log(11,assignInfo)
-          if (assignInfo && assignInfo.isAssigned === 'Accepted') {
-            item.isAssigned = true;
-          } else {
-            item.isAssigned = false;
-          }
-          return item;
-        });
-      }
-
-      updatedArray = updateIsAssigned(arrayUniqueByKey, assignDeviceData);
-      // console.log(123, updatedArray);
-
-    } else if (!!loggedInUser && (loggedInUser.userType === "Assistant")) {
-      const assignDeviceData = await assignDeviceTouserModel.find({ securityCode: loggedInUser.securityCode })
-      // start
-      function updateAndFilterArray(arrayUniqueByKey, assignDeviceData) {
-        // Map deviceId to isAssigned for faster lookup
-        const isAssignedMap = assignDeviceData.reduce((map, assign) => {
-          map[assign.deviceId] = assign.isAssigned === 'Accepted';
-          return map;
-        }, {});
-
-        // Filter and update arrayUniqueByKey
-        const filteredArray = arrayUniqueByKey.filter(item => {
-          const isAssigned = isAssignedMap[item.deviceId];
-          if (isAssigned !== undefined) {
-            item.addTofocus = isAssigned;
-            return true;
-          }
-          return false;
-        });
-
-        return filteredArray;
-      }
-
-      const filteredArray = updateAndFilterArray(arrayUniqueByKey, assignDeviceData);
-      // console.log(123,filteredArray);
-      const paginateArray = (filteredArray, page, limit) => {
-        const skip = filteredArray.slice((page - 1) * limit, page * limit);
-        return skip;
-      };
-
-      var allDevices = paginateArray(filteredArray, page, limit)
-      
-      return res.status(200).json({
-        status: 200,
-        statusValue: "SUCCESS",
-        message: "Event lists has been retrieved successfully.",
-        data: !!allDevices ? { data: allDevices } : {},
-        totalDataCount: filteredArray.length,
-        totalPages: Math.ceil((filteredArray.length) / limit),
-        currentPage: page,
-        // tempData: allDevices,
-      })
-
-    }
-
-    updatedArray = arrayUniqueByKey
+    // Combine and remove duplicates
+    const finalArr = [...activeDevices, ...inactiveDevices];
+    const arrayUniqueByKey = [...new Map(finalArr.map(item => [item.deviceId, item])).values()];
 
     // For pagination
-    const paginateArray = (updatedArray, page, limit) => {
-      const skip = updatedArray.slice((page - 1) * limit, page * limit);
-      return skip;
-    };
+    const paginatedDevices = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
 
-    var allDevices = paginateArray(updatedArray, page, limit)
-    if (updatedArray.length > 0) {
-      return res.status(200).json({
-        status: 200,
-        statusValue: "SUCCESS",
-        message: "Event lists has been retrieved successfully.",
-        data: { data: allDevices, },
-        totalDataCount: updatedArray.length,
-        totalPages: Math.ceil((updatedArray.length) / limit),
-        currentPage: page,
-        // tempData: allDevices,
-      })
-    }
-    return res.status(400).json({
-      status: 400,
-      statusValue: "FAIL",
-      message: 'Data not found.',
-      data: {}
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: -1,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: err.stack,
-          msg: err.message,
-          type: err.name,
-        },
-      },
-    });
-  }
-};
-
-
-// get all devices by on the basis of userType
-const getAllDeviceIdV2 = async (req, res) => {
-  try {
-     // Search
-     var search = "";
-     if (req.query.search && req.query.search !== "undefined") {
-       search = req.query.search;
-    }
-     // Pagination
-    let { page, limit } = req.query;
-    if (!page || page === "undefined") {
-       page = 1;
-    }
-    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-       limit = 99999;
-    }
-
-    // get loggedin user details
-    const token = req.headers["authorization"].split(' ')[1];
-    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-    const loggedInUser = await User.findById({_id:verified.user});
-    // console.log(loggedInUser.hospitalName)
-    // Declare blank obj
-    let filterObj = {};
-    // check user
-    if (!!loggedInUser && loggedInUser.userType === "Hospital-Admin") {
-      filterObj = {
-        $match: {$and:[
-          {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-          {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-        ]}
-      }
-    } else if(!!loggedInUser && loggedInUser.userType === "Super-Admin") {
-      filterObj = {
-        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      }
-    } else if(!!loggedInUser && loggedInUser.userType === "Dispatch") {
-      filterObj = {
-        $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-    } 
-  } else if (!!loggedInUser && loggedInUser.userType === "Production") {
-    filterObj = {
-      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-    } 
-  } else if (!!loggedInUser && loggedInUser.userType === "User") {
-    filterObj = {
-      $match: {$and:[
-        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      ]}
-    }
-  } 
-  else if (!!loggedInUser && loggedInUser.userType === "Assistant") {
-    filterObj = {
-      $match: {$and:[
-        {"deviceInfo.Hospital_Name":loggedInUser.hospitalName},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      ]}
-    }
-  }
-  else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
-    // console.log(loggedInUser.accessHospital)
-    filterObj = {
-      $match: {$and:[
-        {"deviceInfo.Hospital_Name":{$in:loggedInUser.accessHospital}},
-        {deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-      ]}
-    }
-  } else {
-    filterObj = {
-      $match:{deviceId: { $regex: ".*" + search + ".*", $options: "i" }}
-    } 
-  }
-    
-    
-    // check user
-  
-  const activeDevices = await statusModelV2.aggregate([
-    {
-      $match: {
-          $and:[{ "message":"ACTIVE"},{"type":req.params.projectCode}]
-      }
-    },
-    {
-      $lookup:
-      {
-        from: "registerdevices",
-        localField: "deviceId",
-        foreignField: "DeviceId",
-        as: "deviceInfo"
-      }
-    },
-    filterObj,
-    {
-      $project:{
-        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
-        "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
-      }
-    },
-    {
-      $sort: { updatedAt:-1 },
-    },
-  ]);
-   
-  
-  const inactiveDevices = await statusModelV2.aggregate([
-    {
-      $match: {
-        $and:[{ "message":"INACTIVE"},{"type":req.params.projectCode}]
-      }
-    },
-    {
-      $lookup:
-        {
-          from: "registerdevices",
-          localField: "deviceId",
-          foreignField: "DeviceId",
-          as: "deviceInfo"
-        }
-    },
-    filterObj,
-    {
-      $project:{
-        "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
-        "deviceInfo.updatedAt":0,"deviceInfo.Status":0,
-      }
-    },
-    {
-      $sort: { updatedAt:-1 },
-    },
-  ]);
-
-    var finalArr = [...activeDevices, ...inactiveDevices];
-    // console.log(111,finalArr)
-    // remove duplicate recordss
-    var key = "deviceId";
-    let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
-
-    // For pagination
-    const paginateArray = (arrayUniqueByKey, page, limit) => {
-      const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
-      return skip;
-    };
-
-    var allDevices = paginateArray(arrayUniqueByKey, page, limit)
     if (arrayUniqueByKey.length > 0) {
       return res.status(200).json({
         status: 200,
         statusValue: "SUCCESS",
-        message: "Event lists has been retrieved successfully.",
-        data: { data: allDevices, },
+        message: "Event lists have been retrieved successfully.",
+        data: { data: paginatedDevices },
         totalDataCount: arrayUniqueByKey.length,
-        totalPages: Math.ceil((arrayUniqueByKey.length) / limit),
-        currentPage: page,
-        // tempData: allDevices,
-      })
+        totalPages: Math.ceil(arrayUniqueByKey.length / limit),
+        currentPage: page
+      });
     }
+    
     return res.status(400).json({
       status: 400,
       statusValue: "FAIL",
@@ -2731,6 +3237,7 @@ const getAllDeviceIdV2 = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -5763,74 +6270,3 @@ module.exports = {
   getLogsByIdV2,
   getAllDeviceIdForApp
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * Hey Mike, How's it going ?
- * Not bad, John. Just trying to survive another monday, you know ?
- * I hear you. Mondays can be tough. Anyting exciting happening this week?
- * Not really, just the usual work grind. I have got that project deadline on friday. so it's heads 
- * down for me.
- * 
- * Ah, the joy of project deadlines. i have got a meeting with clients tomorrow. they always have last 
- * minute changes.
- * Okay tell me about it. clients seem to have sixth sense for that. How's the family?
- * they are good. the kids are keeping us our toes, as usual. how about yours ?
- * same here. Little league practice, dance classes - it's like running ataxi service sometimes.
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

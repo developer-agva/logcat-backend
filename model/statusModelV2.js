@@ -47,5 +47,9 @@ const statusSchema = mongoose.Schema({
 },
     { timestamps: true })
 
+// Create Indexes for search optimization or fetch records
+statusSchema.index({ message: 1 });
+statusSchema.index({ deviceId: 1 });    
+
 const statusModelV2 = mongoose.model('device_status_v2', statusSchema)
 module.exports = statusModelV2

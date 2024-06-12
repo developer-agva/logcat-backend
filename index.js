@@ -39,9 +39,6 @@ const commonRouter = require("./route/commonRoute.js");
 const accountsRouter = require("./route/accountsRoute.js");
 const salesRouter = require('./route/salesRoute.js');
 
-// var redis = require("redis")
-// redisClient = redis.createClient();
-
 // creating connection with DB
 connectDB();
 
@@ -57,60 +54,6 @@ app.use(morgan("tiny"));
 // }
 
 app.use(cors());
-
-// firebase service start
-// const {initializeApp, applicationDefault} = require("firebase-admin/app");
-// const {getMessaging} = require('firebase-admin/messaging');
-
-
-// process.env.GOOGLE_APPLICATION_CREDENTIALS;
-// // var serviceAccount = require("path/to/serviceAccountKey.json");
-// app.use(function (req, res, next) {
-//   res.setHeader('Content-Type', 'application/json');
-//   next()
-// })
-
-
-// initializeApp({
-//   credential: applicationDefault(),
-//   projectId: 'agvaappp'
-// })
-
-// app.post("/send", function (req, res) {
-//   const receivedToken = req.body.fcmToken;
-//   const message = {
-//     notification: {
-//       title:req.body.title,
-//       body:req.body.description,
-//     },
-//     token:receivedToken,
-//   }
-
-//   getMessaging()
-//   .send(message)
-//   .then((response) => {
-//     res.status(200).json({
-//       message: "Successfully sent message",
-//       token:receivedToken,
-//     });
-//     console.log("Successfully sent message", response)
-//   })
-//   .catch((error) => {
-//     res.status(400);
-//     res.send(error);
-//     console.log("Error sending message", error)
-//   })
-// });
-
-
-// end firebase service
-
-// for mongodb backup
-
-
-
-
-// end mongodb backup
 
 // For session
 app.use(
@@ -265,56 +208,7 @@ io.on('connection', (socket) => {
 
 // Socket end
 
-// send sms api
-
-// fast2sms api code
-// Replace 'YOUR_API_KEY' with your Fast2SMS API Key
-// var unirest = require("unirest");
-
-// var req = unirest("POST", "https://www.fast2sms.com/dev/bulkV2");
-
-// req.headers({
-//   "authorization": "x7oYg4JhultTinv1rEXGmWyCDHMwQf8N6ebB3VqKUS9pkd20Z5Giu8FnrODy7eobVhCWzP3Utcs2JMqw"
-// });
-
-// req.form({
-//   "message": "This is a test message",
-//   "language": "english",
-//   "route": "q",
-//   "numbers": "9289734792,7007587700",
-// });
-
-// req.end(function (res) {
-//   if (res.error) throw new Error(res.error);
-
-//   console.log(res.body);
-// });
-
-
-// var unirest = require("unirest");
-
-// var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
-
-// req.query({
-//   "authorization": "x7oYg4JhultTinv1rEXGmWyCDHMwQf8N6ebB3VqKUS9pkd20Z5Giu8FnrODy7eobVhCWzP3Utcs2JMqw",
-//   "variables_values": `9999` ,
-//   "route": "otp",
-//   "numbers": "9289734792"
-// });
-
-// req.headers({
-//   "cache-control": "no-cache"
-// });
-
-// req.end(function (res) {
-//   if (res.error) throw new Error(res.error);
-
-//   console.log(res.body);
-// });
-
-// end fast2sms api code
-// end sms
-
+// Start code for 
 
 server.listen(PORT, () =>
   logger.error(`Server is running on port : ${PORT}`)

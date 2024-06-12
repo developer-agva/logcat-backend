@@ -141,8 +141,18 @@ router.get('/get-device-access-doct-list', isAuth, deviceController.getDeviceAcc
 router.delete('/delete-access-from-assistant/:_id', isAuth, deviceController.deleteDeviceAccessFromAst);
 router.delete('/delete-access-from-doctor/:_id', isAuth, deviceController.deleteDeviceAccessFromDoctor);
 
-router.get('/adminDashboardDataCount', deviceController.getAdminDashboardDataCount);
-router.get('/getTotalDevicesCount/:filterType', deviceController.getTotalDevicesDataCount);
+router.get('/adminDashboardDataCount', deviceController.getAdminDashboardDataCount);  // for dashboard api
+
+router.get('/agvapro-suction-data-count', deviceController.getAgvaProAndSuctionDataCount); // for dashboard api
+router.get('/device-count-for-agvapro', deviceController.getDeviceCountForAgvaPro); 
+
+router.get('/weekly-monthly-yearly-count-agvapro/:filter', deviceController.getWMYDataCountForAgvaPro);  // done
+router.get('/total-demo-device-count-agvapro/:filter', deviceController.getWMYDemoDataCountForAgvaPro);  // done
+
+router.get('/active-devices-count-agvapro/:filter', deviceController.getActiveDevicesCountForAgvaPro);   // done
+router.get('/active-devices-demo-count-agvapro/:filter', deviceController.getActiveDemoDevicesCountForAgvaPro); // 
+
+router.get('/getTotalDevicesCount/:filterType', deviceController.getTotalDevicesDataCount);  // for dashboard api
 router.get('/getTotalActiveDevicesCount/:filterType', deviceController.getTotalActiveDevicesCount);
 router.get('/getDevicesAttentionCount/:filterType', deviceController.getDevicesNeedingAttention);
 

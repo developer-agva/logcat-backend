@@ -42,6 +42,8 @@
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.2",
     "jwt-redis": "^6.0.0",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.5.45",
     "mongodb-backup": "^1.6.9",
     "mongoose": "^8.2.2",
     "morgan": "^1.10.0",

@@ -2417,6 +2417,7 @@ const addAboutDevice = async (req, res) => {
       )
       // for update shipmentMode
       await productionModel.findOneAndUpdate({ shipmentMode: "inprocess" })
+      await RegisterDevice.findOneAndUpdate({ DeviceId: !!getProduction ? getProduction.deviceId : req.body.deviceId },{Hospital_Name:req.body.hospital_name})
     }
 
     saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
@@ -2458,6 +2459,7 @@ const addAboutDevice = async (req, res) => {
       { upsert: true }
     );
     await productionModel.findOneAndUpdate({ shipmentMode: "inprocess" })
+    await RegisterDevice.findOneAndUpdate({ DeviceId: !!getProduction ? getProduction.deviceId : req.body.deviceId },{Hospital_Name:req.body.hospital_name})
     // console.log(2)
     const checkData = await aboutDeviceModel.findOne({ deviceId: req.body.deviceId });
     if (!!checkData) {
@@ -2581,6 +2583,7 @@ const updateAboutData = async (req, res) => {
       { upsert: true }
     )
     await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{purpose:req.body.purpose})
+    await RegisterDevice.findOneAndUpdate({ DeviceId: req.body.deviceId },{Hospital_Name:!!(req.body.hospital_name) ? req.body.hospital_name : getData[0].hospital_name})
     // const saveDoc = await saveDispatchData.save();
     if (!saveDispatchData) {
       return res.status(400).json({
@@ -2968,6 +2971,10 @@ const s3ReturnPoBucketModel = require('../model/s3BucketReturnPoPdfModel');
 const statusModelV2 = require('../model/statusModelV2');
 const fcmTokenModel = require('../model/fcmTockenModel');
 const { messaging } = require('firebase-admin');
+const { eventNames } = require('../model/event_ventilator_collection');
+const event_ventilator_collection = require('../model/event_ventilator_collection');
+const trends_ventilator_collection = require('../model/trends_ventilator_collection');
+const { registerDevice } = require('./RegisterDevice');
 
 // const jwtr = require("jwtr-redis").default;
 // const jwtr = new jwtrR(redisClient);
@@ -3791,6 +3798,2127 @@ const getAdminDashboardDataCount = async (req, res) => {
   }
 }
 
+// const getAgvaProAndSuctionDataCount = async (req, res) => {
+//   try {
+//     const getAgvaProData = await aboutDeviceModel.find({
+//       $and:[
+//         {product_type:{$in:["Agva Pro","","Agva-Pro"]}},
+//         {purpose:{$ne:" "}},
+//       ]
+//     })
+//     const getAgvaProDemoData =  await aboutDeviceModel.find({
+//       $and:[
+//         {product_type:{$in:["Agva Pro","","Agva-Pro"]}},
+//         {purpose:"Demo"}
+//       ]
+//     })
+//     const getAgvaProSoldData =  await aboutDeviceModel.find({
+//       $and:[
+//         {product_type:{$in:["Agva Pro","","Agva-Pro"]}},
+//         {purpose:"Sold"}
+//       ]
+//     })
+
+//     // console.log(11, getAgvaProData.length)
+//     // console.log(12, getAgvaProDemoData.length)
+//     // console.log(13, getAgvaProSoldData.length)
+
+//     const getSuctionData = await aboutDeviceModel.find({
+//       $and:[
+//         {product_type:{$in:["Suction"]}},
+//         {purpose:{$ne:" "}},
+//       ]
+//     })
+//     const getSuctionDemoData =  await aboutDeviceModel.find({
+//       $and:[
+//         {product_type:{$in:["Suction"]}},
+//         {purpose:"Demo"}
+//       ]
+//     })
+//     const getSuctionSoldData =  await aboutDeviceModel.find({
+//       $and:[
+//         {product_type:{$in:["Suction"]}},
+//         {purpose:"Sold"}
+//       ]
+//     })
+//     // console.log(21, getSuctionData.length)
+//     // console.log(22, getSuctionDemoData.length)
+//     // console.log(23, getSuctionSoldData.length)
+
+//     return res.status(200).json({
+//       statusCode: 200,
+//       statusValue:"SUCCESS",
+//       message:"Data count get successfully.",
+//       agvaProData:[{
+//         "totalCount":!!(getAgvaProData.length) ? getAgvaProData.length : 0,
+//         "demoCount":!!(getAgvaProDemoData.length) ? getAgvaProDemoData.length : 0,
+//         "soldCount":!!(getAgvaProSoldData.length) ? getAgvaProSoldData.length : 0,
+//       }],
+//       suctionData:[{
+//         "totalCount":!!(getSuctionData.length) ? getSuctionData.length : 0,
+//         "demoCount":!!(getSuctionDemoData.length) ? getSuctionDemoData.length : 0,
+//         "soldCount":!!(getSuctionSoldData.length) ? getSuctionSoldData.length : 0,
+//       }]
+//     })
+//   } catch (err) {
+//     res.status(500).json({
+//       statusCode: 500,
+//       statusValue: "FAIL",
+//       message: "Internal server error",
+//       data: {
+//         generatedTime: new Date(),
+//         errMsg: err.stack,
+//       }
+//     })
+//   }
+// }
+const getAgvaProAndSuctionDataCount = async (req, res) => {
+  try {
+         
+    const agvaProData = await aboutDeviceModel.aggregate([
+      {
+        $match: {
+          product_type: { $in: ["Agva Pro", "", "Agva-Pro"] },
+          purpose: { $ne: "" },
+          deviceId: { $ne: "" }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalCount: { $sum: 1 },
+          demoCount: { $sum: { $cond: { if: { $eq: ["$purpose", "Demo"] }, then: 1, else: 0 } } },
+          soldCount: { $sum: { $cond: { if: { $eq: ["$purpose", "Sold"] }, then: 1, else: 0 } } }
+        }
+      },
+      {
+        $project:{
+          "_id":0
+        }
+      }
+    ]);
+
+    const suctionData = await aboutDeviceModel.aggregate([
+      {
+        $match: {
+          product_type: "Suction",
+          purpose: { $ne: "" }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalCount: { $sum: 1 },
+          demoCount: { $sum: { $cond: { if: { $eq: ["$purpose", "Demo"] }, then: 1, else: 0 } } },
+          soldCount: { $sum: { $cond: { if: { $eq: ["$purpose", "Sold"] }, then: 1, else: 0 } } }
+        }
+      },
+      {
+        $project:{
+          "_id":0
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data count retrieved successfully.",
+      agvaProData: agvaProData.length > 0 ? agvaProData : [{ totalCount: 0, demoCount: 0, soldCount: 0 }],
+      suctionData: suctionData.length > 0 ? suctionData : [{ totalCount: 0, demoCount: 0, soldCount: 0 }],
+      // ndata:getAgvaProData1
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+const getWMYDataCountForAgvaPro = async (req, res) => {
+  try {
+    const filter = req.params.filter;
+    const monthNames = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    const productionData = await productionModel.find({$and:[{deviceId:{$ne:""}},{productType:{$ne:"Suction"}}]},{_id:1,deviceId:1,createdAt:1,updatedAt:1,deviceType:1,purpose:1})
+    
+    const statusData = await statusModel.find({deviceId:{$ne:""}})
+    // Step 1: Extract deviceIds from statusData
+    const statusDeviceIds = new Set(statusData.map(status => status.deviceId));
+    const filteredProductionData = productionData.filter(production => statusDeviceIds.has(production.deviceId));
+    // console.log(11, filteredProductionData)
+
+
+    if (req.params.filter == "yearly") {
+        // Step 2: Filter productionData to include only entries with deviceId in statusDeviceIds
+
+      // Step 3: Filter data to include only the last 10 years
+      const tenYearsAgo = new Date();
+      tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+
+      const recentProductionData = filteredProductionData.filter(production => production.createdAt >= tenYearsAgo);
+
+      // Step 4: Group the matched entries by year
+      const groupedByYear = recentProductionData.reduce((acc, production) => {
+        const duration = production.createdAt.getFullYear();
+        if (!acc[duration]) {
+          acc[duration] = [];
+        }
+        acc[duration].push(production);
+        return acc;
+      }, {});
+
+      // Step 5: Count the entries per year
+      const dataCountByYear = Object.keys(groupedByYear).map(duration => ({
+        duration,
+        count: groupedByYear[duration].length
+      }));
+
+
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data count retrieved successfully.",
+        totalDevicesCountYearly:dataCountByYear,
+        maxCount:dataCountByYear[1].count
+      });
+    } else if (req.params.filter == "monthly") {
+      // data2
+      
+      // Step 3: Filter data to include only the last 12 months
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 6);
+
+      const recentProductionData2 = filteredProductionData.filter(production => production.createdAt >= twelveMonthsAgo);
+
+      // Step 4: Group the matched entries by month
+      const groupedByMonth = recentProductionData2.reduce((acc, production) => {
+        const duration = `${production.createdAt.getFullYear()}-${('0' + (production.createdAt.getMonth() + 1)).slice(-2)}`;
+        if (!acc[duration]) {
+          acc[duration] = [];
+        }
+        acc[duration].push(production);
+        return acc;
+      }, {});
+
+      // Step 5: Count the entries per month
+      const dataCountByMonth = Object.keys(groupedByMonth).map(duration => ({
+        duration,
+        count: groupedByMonth[duration].length
+      }));
+
+      // Step 6: Function to convert date format
+      const convertDateFormat = (dataCountByMonth) => {
+        return dataCountByMonth.map(item => {
+          const [year, month] = item.duration.split('-');
+          const monthName = monthNames[parseInt(month) - 1];
+
+          return {
+            ...item,
+            duration:`${year}-${monthName}`
+          }
+        })
+      }
+      const convertedData = convertDateFormat(dataCountByMonth)
+      const maxCount = convertedData.reduce((max, item) => item.count > max ? item.count : max, convertedData[0].count);
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data count retrieved successfully.",
+        // totalDevicesCountYearly:convertedData,
+        totalDevicesCountMonthly:[
+          {
+            "duration": convertedData[0].duration,
+            "count": 0+convertedData[0].count
+          },
+          {
+            "duration": convertedData[1].duration,
+            "count": convertedData[0].count+convertedData[1].count
+          },
+          {
+            "duration": convertedData[2].duration,
+            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count
+          },
+          {
+            "duration": convertedData[3].duration,
+            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count
+          },
+          {
+            "duration": convertedData[4].duration,
+            "count":convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count
+          },
+          {
+            "duration": convertedData[5].duration,
+            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count+convertedData[5].count
+          },
+        ], 
+        maxCount:convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count+convertedData[5].count
+      });
+    } else if (req.params.filter == "weekly") {
+      
+        const now = new Date();
+        const past28Days = new Date();
+        past28Days.setDate(now.getDate() - 28);
+
+        const initialDate = new Date("2023-12-01T00:00:00Z");
+        const endDate2 = past28Days
+      // for testing purpose
+      
+
+      const InitialCount = await productionModel.find({
+        $and:[
+          {deviceId:{$ne:""}},
+          {productType:{$ne:"Suction"}},
+          {createdAt:{$gte:initialDate, $lte:endDate2}}
+        ]
+      },{_id:1,deviceId:1,createdAt:1})
+
+      // console.log(1111,rest.length);
+        const prodData = await productionModel.find({
+          $and:[
+            {deviceId:{$ne:""}},
+            {productType:{$ne:"Suction"}},
+            {createdAt:{$gte:past28Days, $lte:now}}
+          ]
+        })
+        // Prepare week intervals
+        const weeks = [
+          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21) },
+          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14) },
+          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7) },
+          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now }
+        ];
+
+        // Track the latest occurrence of each did
+        const uniqueDidMap = new Map();
+
+        prodData.forEach(event => {
+          const { deviceId, createdAt } = event;
+          if (!uniqueDidMap.has(deviceId) || uniqueDidMap.get(deviceId) < createdAt) {
+            uniqueDidMap.set(deviceId, createdAt);
+          }
+        });
+
+        // Count unique did occurrences per week
+        uniqueDidMap.forEach(createdAt => {
+          weeks.forEach(week => {
+            if (createdAt >= week.start && createdAt <= week.end) {
+              week.count++;
+            }
+          });
+        });
+
+        const result = weeks.map(week => ({ duration: week.duration, count: week.count }));
+
+        // I need format this result
+        const formattedResult = result.map(entry => {
+          const date = new Date(entry.duration)
+          const day = date.getUTCDate();
+          const month = monthNames[date.getUTCMonth()]
+          const formattedDuration = `${day}-${month}`
+          return {
+            duration:formattedDuration,
+            count:entry.count,
+          }
+        })
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Most recent events by device ID retrieved successfully.",
+          totalDevicesCountWeekly:[
+            {
+                "duration": formattedResult[0].duration,
+                "count": 0+InitialCount.length
+            },
+            {
+                "duration": formattedResult[1].duration,
+                "count": InitialCount.length+formattedResult[1].count
+            },
+            {
+                "duration": formattedResult[2].duration,
+                "count": InitialCount.length+formattedResult[1].count+formattedResult[2].count
+            },
+            {
+                "duration": formattedResult[3].duration,
+                "count": InitialCount.length+formattedResult[1].count+formattedResult[2].count+formattedResult[3].count
+            }
+          ],
+          maxCount:InitialCount.length+formattedResult[1].count+formattedResult[2].count+formattedResult[3].count
+        });
+    } else if (req.params.filter == "today") {
+      // Define Inital date time
+      const initialDate = new Date("2023-12-01T00:00:00Z");
+      const endDate2 = new Date();
+      endDate2.setDate(endDate2.getDate() - 1);
+
+      const productionData = await productionModel.find({
+        $and:[
+          {deviceId:{$ne:""}},{productType:{$ne:"Suction"}},
+          {createdAt:{$gte:initialDate, $lte:endDate2}}
+        ]},
+        {_id:1,deviceId:1,createdAt:1,updatedAt:1,deviceType:1,purpose:1})
+      // Extract deviceIds from statusData
+      const statusDeviceIds = new Set(statusData.map(status => status.deviceId));
+      // console.log(12,statusDeviceIds)
+      // Filter productionData to include only entries with deviceId in statusDeviceIds
+      const filteredProductionData = productionData.filter(production => statusDeviceIds.has(production.deviceId));
+
+      const initialCount = filteredProductionData.length;
+      
+      // console.log(111,filteredProductionData.length)
+      const moment = require('moment-timezone');
+      // Get the current date and time in the Asia/Kolkata time zone
+      const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      const currentDate = currentDateInKolkata.toDate();
+
+      // Subtract hours to get different time intervals
+      const timeIntervals = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24].map(hours => ({
+        duration: moment.tz("Asia/Kolkata").subtract(hours, 'hours').format('HH:mm'),
+        date: moment(currentDateInKolkata).subtract(hours, 'hours').toDate()
+      }));
+
+      // Filter data and count occurrences for each interval
+      const tdCount = timeIntervals.map(({ duration, date }) => ({
+        duration,
+        count: filteredProductionData.filter(item => new Date(item.updatedAt) >= date && new Date(item.updatedAt) <= currentDate).length
+      }));
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        todayActiveDeviceCount:[
+          {
+              "duration": tdCount[0].duration,
+              "count": initialCount+tdCount[0].count
+          },
+          {
+              "duration": tdCount[1].duration,
+              "count": initialCount+tdCount[0].count+tdCount[1].count
+          },
+          {
+              "duration": tdCount[2].duration,
+              "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count
+          },
+          {
+              "duration": tdCount[3].duration,
+              "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count
+          },
+          {
+              "duration": tdCount[4].duration,
+              "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+          },
+          {
+              "duration": tdCount[5].duration,
+              "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+              +tdCount[5].count
+          },
+          {
+              "duration": tdCount[6].duration,
+              "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+              +tdCount[5].count+tdCount[6].count
+          },
+          {
+              "duration": tdCount[7].duration,
+              "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+              +tdCount[5].count+tdCount[6].count+tdCount[7].count
+          },
+          {
+              "duration": tdCount[8].duration,
+              "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+              +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count
+          },
+          {
+              "duration": tdCount[9].duration,
+              "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+              +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count+tdCount[9].count
+          },
+          {
+              "duration": tdCount[10].duration,
+              "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+              +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count+tdCount[9].count+tdCount[10].count
+          },
+          {
+              "duration": tdCount[11].duration,
+              "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+              +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count+tdCount[9].count+tdCount[10].count+tdCount[11].count
+          }
+      ],
+      maxCount:initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+      +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count+tdCount[9].count+tdCount[10].count+tdCount[11].count
+      })
+  
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "filter value is required.",
+      // data:filteredProductionData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+const getWMYDemoDataCountForAgvaPro = async (req, res) => {
+  try {
+    // dataCountByWeekLast4Weeks = [{"duration": "May-W2","count": 4},{"duration": "May-W4","count": 4}]
+    const filter = req.params.filter;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun","Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const productionData = await productionModel.find({$and:[{deviceId:{$ne:""}},{productType:{$ne:"Suction"}},{purpose:"Demo"}]})
+    
+    const statusData = await statusModel.find({deviceId:{$ne:""}})
+    // Step 1: Extract deviceIds from statusData
+    const statusDeviceIds = new Set(statusData.map(status => status.deviceId));
+    const filteredProductionData = productionData.filter(production => statusDeviceIds.has(production.deviceId));
+    
+   
+    // for today data count
+    // Step 3: Filter data to include only the last 10 years
+    let dataCountByYear;
+      const tenYearsAgo = new Date();
+      tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+
+      const recentProductionData = filteredProductionData.filter(production => production.createdAt >= tenYearsAgo);
+
+      // Step 4: Group the matched entries by year
+      const groupedByYear = recentProductionData.reduce((acc, production) => {
+        const duration = production.createdAt.getFullYear();
+        if (!acc[duration]) {
+          acc[duration] = [];
+        }
+        acc[duration].push(production);
+        return acc;
+      }, {});
+
+      // Step 5: Count the entries per year
+      dataCountByYear = Object.keys(groupedByYear).map(duration => ({
+        duration,
+        count: groupedByYear[duration].length
+      }));
+
+    // end today data count
+
+    if (req.params.filter == "yearly") {
+        // Step 2: Filter productionData to include only entries with deviceId in statusDeviceIds
+
+      // Step 3: Filter data to include only the last 10 years
+      const tenYearsAgo = new Date();
+      tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+
+      const recentProductionData = filteredProductionData.filter(production => production.createdAt >= tenYearsAgo);
+
+      // Step 4: Group the matched entries by year
+      const groupedByYear = recentProductionData.reduce((acc, production) => {
+        const duration = production.createdAt.getFullYear();
+        if (!acc[duration]) {
+          acc[duration] = [];
+        }
+        acc[duration].push(production);
+        return acc;
+      }, {});
+
+      // Step 5: Count the entries per year
+      dataCountByYear = Object.keys(groupedByYear).map(duration => ({
+        duration,
+        count: groupedByYear[duration].length
+      }));
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data count retrieved successfully.",
+        totalDevicesCountYearly:dataCountByYear,
+        maxCount:dataCountByYear[1].count
+      });
+    } else if (req.params.filter == "monthly") {
+      // Step 3: Filter data to include only the last 12 months
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 6);
+
+      const recentProductionData2 = filteredProductionData.filter(production => production.createdAt >= twelveMonthsAgo);
+
+      // Step 4: Group the matched entries by month
+      const groupedByMonth = recentProductionData2.reduce((acc, production) => {
+        const duration = `${production.createdAt.getFullYear()}-${('0' + (production.createdAt.getMonth() + 1)).slice(-2)}`;
+        if (!acc[duration]) {
+          acc[duration] = [];
+        }
+        acc[duration].push(production);
+        return acc;
+      }, {});
+
+      // Step 5: Count the entries per month
+      const dataCountByMonth = Object.keys(groupedByMonth).map(duration => ({
+        duration,
+        count: groupedByMonth[duration].length
+      }));
+
+      // Step 6: Function to convert date format
+      const convertDateFormat = (dataCountByMonth) => {
+        return dataCountByMonth.map(item => {
+          const [year, month] = item.duration.split('-');
+          const monthName = monthNames[parseInt(month) - 1];
+
+          return {
+            ...item,
+            duration:`${year}-${monthName}`
+          }
+        })
+      }
+      const convertedData = convertDateFormat(dataCountByMonth)
+      // const maxCount = convertedData.reduce((max, item) => item.count > max ? item.count : max, convertedData[0].count);
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data count retrieved successfully.",
+        // totalDevicesCountYearly:convertedData,
+        totalDevicesCountMonthly:[
+          {
+            "duration": convertedData[0].duration,
+            "count": 0+convertedData[0].count
+          },
+          {
+            "duration": convertedData[1].duration,
+            "count": convertedData[0].count+convertedData[1].count
+          },
+          {
+            "duration": convertedData[2].duration,
+            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count
+          },
+          {
+            "duration": convertedData[3].duration,
+            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count
+          },
+          {
+            "duration": convertedData[4].duration,
+            "count":convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count
+          },
+          {
+            "duration": convertedData[5].duration,
+            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count+convertedData[5].count
+          },
+        ], 
+        maxCount:convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count+convertedData[5].count
+      });
+    } else if (req.params.filter == "weekly") {
+
+      const now = new Date();
+        const past28Days = new Date();
+        past28Days.setDate(now.getDate() - 28);
+
+        const initialDate = new Date("2023-12-01T00:00:00Z");
+        const endDate2 = past28Days
+      // for testing purpose
+      
+
+      const InitialCount = await productionModel.find({
+        $and:[
+          {deviceId:{$ne:""}},
+          {productType:{$ne:"Suction"}},
+          {purpose:"Demo"},
+          {createdAt:{$gte:initialDate, $lte:endDate2}}
+        ]
+      },{_id:1,deviceId:1,createdAt:1})
+
+      // console.log(1111,rest.length);
+        const prodData = await productionModel.find({
+          $and:[
+            {deviceId:{$ne:""}},
+            {productType:{$ne:"Suction"}},
+            {purpose:"Demo"},
+            {createdAt:{$gte:past28Days, $lte:now}}
+          ]
+        })
+        // Prepare week intervals
+        const weeks = [
+          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21) },
+          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14) },
+          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7) },
+          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now }
+        ];
+
+        // Track the latest occurrence of each did
+        const uniqueDidMap = new Map();
+
+        prodData.forEach(event => {
+          const { deviceId, createdAt } = event;
+          if (!uniqueDidMap.has(deviceId) || uniqueDidMap.get(deviceId) < createdAt) {
+            uniqueDidMap.set(deviceId, createdAt);
+          }
+        });
+
+        // Count unique did occurrences per week
+        uniqueDidMap.forEach(createdAt => {
+          weeks.forEach(week => {
+            if (createdAt >= week.start && createdAt <= week.end) {
+              week.count++;
+            }
+          });
+        });
+
+        const result = weeks.map(week => ({ duration: week.duration, count: week.count }));
+
+        // I need format this result
+        const formattedResult = result.map(entry => {
+          const date = new Date(entry.duration)
+          const day = date.getUTCDate();
+          const month = monthNames[date.getUTCMonth()]
+          const formattedDuration = `${day}-${month}`
+          return {
+            duration:formattedDuration,
+            count:entry.count,
+          }
+        })
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Most recent events by device ID retrieved successfully.",
+          weeklyDataCount:[
+            {
+                "duration": formattedResult[0].duration,
+                "count": 0+InitialCount.length
+            },
+            {
+                "duration": formattedResult[1].duration,
+                "count": InitialCount.length+formattedResult[1].count
+            },
+            {
+                "duration": formattedResult[2].duration,
+                "count": InitialCount.length+formattedResult[1].count+formattedResult[2].count
+            },
+            {
+                "duration": formattedResult[3].duration,
+                "count": InitialCount.length+formattedResult[1].count+formattedResult[2].count+formattedResult[3].count
+            }
+          ],
+          maxCount:InitialCount.length+formattedResult[1].count+formattedResult[2].count+formattedResult[3].count
+        });
+      
+    } else if (req.params.filter == "today") {
+
+     // Define Inital date time
+     const initialDate = new Date("2023-12-01T00:00:00Z");
+     const endDate2 = new Date();
+     endDate2.setDate(endDate2.getDate() - 1);
+
+     const productionData = await productionModel.find({
+       $and:[
+         {deviceId:{$ne:""}},{productType:{$ne:"Suction"}},
+         {purpose:"Demo"},
+         {createdAt:{$gte:initialDate, $lte:endDate2}}
+       ]},
+       {_id:1,deviceId:1,createdAt:1,updatedAt:1,deviceType:1,purpose:1})
+     // Extract deviceIds from statusData
+     const statusDeviceIds = new Set(statusData.map(status => status.deviceId));
+     // console.log(12,statusDeviceIds)
+     // Filter productionData to include only entries with deviceId in statusDeviceIds
+     const filteredProductionData = productionData.filter(production => statusDeviceIds.has(production.deviceId));
+
+     const initialCount = filteredProductionData.length;
+     
+     // console.log(111,filteredProductionData.length)
+     const moment = require('moment-timezone');
+     // Get the current date and time in the Asia/Kolkata time zone
+     const currentDateInKolkata = moment.tz("Asia/Kolkata");
+     const currentDate = currentDateInKolkata.toDate();
+
+     // Subtract hours to get different time intervals
+     const timeIntervals = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24].map(hours => ({
+       duration: moment.tz("Asia/Kolkata").subtract(hours, 'hours').format('HH:mm'),
+       date: moment(currentDateInKolkata).subtract(hours, 'hours').toDate()
+     }));
+
+     // Filter data and count occurrences for each interval
+     const tdCount = timeIntervals.map(({ duration, date }) => ({
+       duration,
+       count: filteredProductionData.filter(item => new Date(item.updatedAt) >= date && new Date(item.updatedAt) <= currentDate).length
+     }));
+
+     return res.status(200).json({
+       statusCode: 200,
+       statusValue: "SUCCESS",
+       message: "Most recent events by device ID retrieved successfully.",
+       todayActiveDeviceCount:[
+         {
+             "duration": tdCount[0].duration,
+             "count": initialCount+tdCount[0].count
+         },
+         {
+             "duration": tdCount[1].duration,
+             "count": initialCount+tdCount[0].count+tdCount[1].count
+         },
+         {
+             "duration": tdCount[2].duration,
+             "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count
+         },
+         {
+             "duration": tdCount[3].duration,
+             "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count
+         },
+         {
+             "duration": tdCount[4].duration,
+             "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+         },
+         {
+             "duration": tdCount[5].duration,
+             "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+             +tdCount[5].count
+         },
+         {
+             "duration": tdCount[6].duration,
+             "count": initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+             +tdCount[5].count+tdCount[6].count
+         },
+         {
+             "duration": tdCount[7].duration,
+             "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+             +tdCount[5].count+tdCount[6].count+tdCount[7].count
+         },
+         {
+             "duration": tdCount[8].duration,
+             "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+             +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count
+         },
+         {
+             "duration": tdCount[9].duration,
+             "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+             +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count+tdCount[9].count
+         },
+         {
+             "duration": tdCount[10].duration,
+             "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+             +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count+tdCount[9].count+tdCount[10].count
+         },
+         {
+             "duration": tdCount[11].duration,
+             "count":  initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+             +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count+tdCount[9].count+tdCount[10].count+tdCount[11].count
+         }
+     ],
+     maxCount:initialCount+tdCount[0].count+tdCount[1].count+tdCount[2].count+tdCount[3].count+tdCount[4].count
+     +tdCount[5].count+tdCount[6].count+tdCount[7].count+tdCount[8].count+tdCount[9].count+tdCount[10].count+tdCount[11].count
+     })
+    }
+    //   // Extract deviceIds from statusData
+    //   const statusDeviceIds = new Set(statusData.map(status => status.deviceId));
+    //   // console.log(12,statusDeviceIds)
+    //   // Filter productionData to include only entries with deviceId in statusDeviceIds
+    //   const filteredProductionData = productionData.filter(production => statusDeviceIds.has(production.deviceId));
+    //   const moment = require('moment-timezone');
+    //   // Get the current date and time in the Asia/Kolkata time zone
+    //   const currentDateInKolkata = moment.tz("Asia/Kolkata");
+    //   const currentDate = currentDateInKolkata.toDate();
+
+    //   // Subtract hours to get different time intervals
+    //   const timeIntervals = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24].map(hours => ({
+    //     duration: moment.tz("Asia/Kolkata").subtract(hours, 'hours').format('HH:mm'),
+    //     date: moment(currentDateInKolkata).subtract(hours, 'hours').toDate()
+    //   }));
+
+    //   // Filter data and count occurrences for each interval
+    //   const todayActiveDeviceCount = timeIntervals.map(({ duration, date }) => ({
+    //     duration,
+    //     count: filteredProductionData.filter(item => new Date(item.updatedAt) >= date && new Date(item.updatedAt) <= currentDate).length
+    //   }));
+
+    //   return res.status(200).json({
+    //     statusCode: 200,
+    //     statusValue: "SUCCESS",
+    //     message: "Most recent events by device ID retrieved successfully.",
+    //     todayActiveDeviceCount
+    //   })
+    // }
+    // return res.status(400).json({
+    //   statusCode: 400,
+    //   statusValue: "FAIL",
+    //   message: "filter value is required.",
+    // });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+
+const getActiveDevicesCountForAgvaPro = async (req, res) => {
+  try {
+
+      const filter = req.params.filter;
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      // console.log(dataCountArray);
+      if (filter == "today") {
+        // Today data count hourly basis
+        const moment = require('moment-timezone');
+        // Get the current date and time in the Asia/Kolkata time zone
+        const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
+        const currentDateInKolkata = moment.tz("Asia/Kolkata");
+        const twoHourBefore = moment(currentDateInKolkata).subtract(2, 'hours').toDate();
+        // const oneHourBeforee = moment.tz("Asia/Kolkata").subtract(1, 'hours').format('HH:mm');
+        // console.log(13,oneHourBeforee)
+        const fourHourBefore = moment(currentDateInKolkata).subtract(4, 'hours').toDate();  
+        const sixHourBefore = moment(currentDateInKolkata).subtract(6, 'hours').toDate(); 
+        const eightHourBefore = moment(currentDateInKolkata).subtract(8, 'hours').toDate(); 
+        const tenHourBefore = moment(currentDateInKolkata).subtract(10, 'hours').toDate();    
+        const twelHourBefore = moment(currentDateInKolkata).subtract(12, 'hours').toDate();
+        const forteenHourBefore = moment(currentDateInKolkata).subtract(14, 'hours').toDate();
+        const sixteenHourBefore = moment(currentDateInKolkata).subtract(16, 'hours').toDate();
+        const eighteenHourBefore = moment(currentDateInKolkata).subtract(18, 'hours').toDate();
+        const twentyHourBefore = moment(currentDateInKolkata).subtract(20, 'hours').toDate();
+        const twentytwoHourBefore = moment(currentDateInKolkata).subtract(22, 'hours').toDate();
+        const twentyFourHourBefore = moment(currentDateInKolkata).subtract(24, 'hours').toDate();
+  
+        // Define the aggregate pipeline
+
+        
+        const pipeline = [
+          // {},
+          {
+            $facet: {
+              eventsForLast2Hr: [
+                { $match: { updatedAt: { $gte: twoHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast4Hr: [
+                { $match: { updatedAt: { $gte: fourHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast6Hr: [
+                { $match: { updatedAt: { $gte: sixHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast8Hr: [
+                { $match: { updatedAt: { $gte: eightHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast10Hr: [
+                { $match: { updatedAt: { $gte: tenHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast12Hr: [
+                { $match: { updatedAt: { $gte: twelHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast14Hr: [
+                { $match: { updatedAt: { $gte: forteenHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast16Hr: [
+                { $match: { updatedAt: { $gte: sixteenHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast18Hr: [
+                { $match: { updatedAt: { $gte: eighteenHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast20Hr: [
+                { $match: { updatedAt: { $gte: twentyHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast22Hr: [
+                { $match: { updatedAt: { $gte: twentytwoHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast24Hr: [
+                { $match: { updatedAt: { $gte: twentyFourHourBefore, $lte: currentDateInKolkata.toDate() } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ]
+            }
+          }
+        ];
+        
+        const results = await event_ventilator_collection.aggregate(pipeline);
+
+        const todayActiveDeviceCount = [
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(2, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast2Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(4, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast4Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(6, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast6Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(8, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast8Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(10, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast10Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(12, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast12Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(14, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast14Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(16, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast16Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(18, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast18Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(20, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast20Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(22, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast22Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(24, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast24Hr.length,
+          },
+        ]
+
+        let maxCount = -Infinity;
+        for (item of todayActiveDeviceCount) {
+          if (item.count > maxCount) {
+            maxCount = item.count
+          }
+        }
+
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Most recent events by device ID retrieved successfully.",
+          // data:results,
+          todayActiveDeviceCount,
+          maxCount
+        });
+
+      } else if (filter == "weekly") {
+
+        // const now = new Date();
+        // const past28Days = new Date(now);
+        // past28Days.setDate(now.getDate() - 28);
+
+        // // Query to find documents updated in the last 28 days
+        // const query = {
+        //   updatedAt: {
+        //     $gte: past28Days,
+        //     $lte: now
+        //   }
+        // };
+
+        // // Await fetching event data
+        // const eventData = await event_ventilator_collection.find(query);
+
+        // // Prepare week intervals
+        // const weeks = [
+        //   { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), count: 0 },
+        //   { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), count: 0 },
+        //   { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), count: 0 },
+        //   { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now, count: 0 }
+        // ];
+
+        // // Track the latest occurrence of each did
+        // const uniqueDidMap = new Map();
+
+        // eventData.forEach(event => {
+        //   const { did, updatedAt } = event;
+        //   if (!uniqueDidMap.has(did) || uniqueDidMap.get(did) < updatedAt) {
+        //     uniqueDidMap.set(did, updatedAt);
+        //   }
+        // });
+
+        // // Count unique did occurrences per week
+        // uniqueDidMap.forEach(updatedAt => {
+        //   weeks.forEach(week => {
+        //     if (updatedAt >= week.start && updatedAt <= week.end) {
+        //       week.count++;
+        //     }
+        //   });
+        // });
+
+        // const result = weeks.map(week => ({
+        //   duration: week.start,
+        //   count: week.count
+        // }));
+        // // console.log(12,result)
+
+        // // Format the result
+        // const formattedResult = result.map(entry => {
+        //   const date = new Date(entry.duration);
+        //   const day = date.getUTCDate();
+        //   const month = monthNames[date.getUTCMonth()];
+        //   const formattedDuration = `${day}-${month}`;
+        //   return {
+        //     duration: formattedDuration,
+        //     count: entry.count,
+        //   };
+        // })
+
+        const now = new Date();
+        const past28Days = new Date(now);
+        past28Days.setDate(now.getDate() - 28);
+
+        // Prepare week intervals
+        const weekIntervals = Array.from({ length: 4 }, (_, i) => {
+          const end = new Date(now);
+          end.setDate(now.getDate() - i * 7);
+          const start = new Date(end);
+          start.setDate(end.getDate() - 7);
+          return { start, end };
+        }).reverse();
+
+        const aggregationPipeline = [
+          {
+            $match: {
+              updatedAt: {
+                $gte: past28Days,
+                $lte: now
+              }
+            }
+          },
+          {
+            $group: {
+              _id: "$did",
+              latestUpdatedAt: { $max: "$updatedAt" }
+            }
+          },
+          {
+            $project: {
+              _id: 0,
+              did: "$_id",
+              latestUpdatedAt: 1,
+              weekIndex: {
+                $switch: {
+                  branches: weekIntervals.map(({ start, end }, index) => ({
+                    case: {
+                      $and: [
+                        { $gte: ["$latestUpdatedAt", start] },
+                        { $lte: ["$latestUpdatedAt", end] }
+                      ]
+                    },
+                    then: index
+                  })),
+                  default: null
+                }
+              }
+            }
+          },
+          {
+            $match: {
+              weekIndex: { $ne: null }
+            }
+          },
+          {
+            $group: {
+              _id: "$weekIndex",
+              count: { $sum: 1 }
+            }
+          },
+          {
+            $sort: {
+              _id: 1
+            }
+          }
+        ];
+
+        const eventResults = await event_ventilator_collection.aggregate(aggregationPipeline)
+
+        // Format the result
+        // const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const formattedResult = eventResults.map(({ _id, count }) => {
+          const { start } = weekIntervals[_id];
+          const day = start.getUTCDate();
+          const month = monthNames[start.getUTCMonth()];
+          return {
+            duration: `${day}-${month}`,
+            count
+          };
+        });
+
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Most recent events by device ID retrieved successfully.",
+          weeklyDataCount:formattedResult,
+          maxCount:formattedResult[3].count
+        });
+
+      } else if (filter == "monthly") {
+          
+          // const initialDate = new Date("2023-12-01T00:00:00Z");
+          // const endDate2 = new Date();
+          // endDate2.setDate(endDate2.getDate() - 1);
+        
+          // const prodData = await productionModel.find({
+          //   $and:[
+          //     {deviceId:{$ne:""}},
+          //     {deviceType:{$ne:"Suction"}},
+          //     {createdAt:{$gte:initialDate,$lte:endDate2}}
+          //   ]})
+          // const deviceIds = prodData.map((item) => {
+          //   return item.deviceId
+          // })
+          // // console.log(22,deviceIds)
+
+          // const twelveMonthsAgo = new Date();
+          // twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 6);
+          // // console.log(33,twelveMonthsAgo)
+
+          // const result2 = await event_ventilator_collection.find({
+          //   $and: [
+          //     { date: { $gte: twelveMonthsAgo.toISOString() } },
+          //     { did: { $in: deviceIds } }
+          //   ]
+          // },{_id:1,did:1,updatedAt:1})
+
+
+
+          // // Data count From 1 Apr to 30 Apr
+          // const result3 = await event_ventilator_collection.find({
+          //   $and: [
+          //     { createdAt: { $gte: new Date("2024-04-01T00:00:00Z"), $lte:new Date("2024-04-30T23:59:59Z") } },
+          //     { did: { $in: deviceIds } }
+          //   ]
+          // },{_id:1,did:1,updatedAt:1})
+
+          // // console.log(22, result3.length)
+
+          // const uniqueDidsApr = new Map();
+          // result3.forEach(item => {
+          //     if (!uniqueDidsApr.has(item.did)) {
+          //       uniqueDidsApr.set(item.did, item);
+          //     }
+          // });
+
+          // // console.log(44, uniqueDids)
+          // const uniqueDidArrayApr = Array.from(uniqueDidsApr.values());
+          // result3.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+          // // console.log(99, uniqueDidArrayApr.length)
+
+          // // Step 1: Sort the array by updatedAt in descending order
+          // result2.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+          // // Step 2: Filter the array to get the unique did based on the latest updatedAt value
+          // const uniqueDids = new Map();
+          // result2.forEach(item => {
+          //     if (!uniqueDids.has(item.did)) {
+          //         uniqueDids.set(item.did, item);
+          //     }
+          // });
+
+          // // Convert the Map to an array of unique did entries
+          // const uniqueDidArray = Array.from(uniqueDids.values());
+
+          // // Step 3: Group the filtered results by month and year
+          // const groupedByMonthYear = uniqueDidArray.reduce((acc, item) => {
+          //     const date = new Date(item.updatedAt);
+          //     const year = date.getFullYear();
+          //     const month = date.toLocaleString('default', { month: 'short' });
+          //     const duration = `${year}-${month}`;
+
+          //     if (!acc[duration]) {
+          //         acc[duration] = 0;
+          //     }
+          //     acc[duration]++;
+          //     return acc;
+          // }, {});
+
+          // // Step 4: Format the result as requested
+          // const result = Object.keys(groupedByMonthYear).map(duration => ({
+          //     duration,
+          //     count: groupedByMonthYear[duration]
+          // }));
+
+          // // max count 
+          // const maxCount = result.reduce((max, item) => item.count > max ? item.count : max, result[0].count);
+
+          // console.log(maxCount);
+
+          const initialDate = new Date("2023-12-01T00:00:00Z");
+          const endDate2 = new Date();
+          endDate2.setDate(endDate2.getDate() - 1);
+
+          // Define the date range for the last 6 months
+          const sixMonthsAgo = new Date();
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+          // Aggregate production data to get relevant deviceIds
+          const productionPipeline = [
+            {
+              $match: {
+                $and:[
+                  {deviceId: { $ne: "" }},
+                  {deviceType: { $ne: "Suction" }},
+                  {createdAt: { $gte: initialDate, $lte: endDate2 }}
+                ]
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                deviceIds: { $addToSet: "$deviceId" }
+              }
+            }
+          ];
+
+          const productionResult = await productionModel.aggregate(productionPipeline);
+          const deviceIds = productionResult[0]?.deviceIds || [];
+
+          // If no deviceIds found, return early with empty results
+          if (deviceIds.length === 0) {
+            console.log({ result: [], maxCount: 0 });
+            return;
+          }
+
+          // Aggregate event data to get unique DIDs with the latest updatedAt value and group by month/year
+          const eventPipeline = [
+            {
+              $match: {
+                $and:[
+                  {date: { $gte: sixMonthsAgo.toISOString() }},
+                  {did: { $in: deviceIds }}
+                ]
+              }
+            },
+            {
+              $sort: {
+                did: 1,
+                updatedAt: -1
+              }
+            },
+            {
+              $group: {
+                _id: "$did",
+                latestUpdatedAt: { $first: "$updatedAt" }
+              }
+            },
+            {
+              $project: {
+                _id: 0,
+                did: "$_id",
+                updatedAt: "$latestUpdatedAt"
+              }
+            },
+            {
+              $group: {
+                _id: {
+                  year: { $year: "$updatedAt" },
+                  month: { $month: "$updatedAt" }
+                },
+                count: { $sum: 1 }
+              }
+            },
+            {
+              $project: {
+                _id: 0,
+                duration: {
+                  $concat: [
+                    { $toString: "$_id.year" },
+                    "-",
+                    {
+                      $arrayElemAt: [
+                        [
+                          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                        ],
+                        { $subtract: ["$_id.month", 1] }
+                      ]
+                    }
+                  ]
+                },
+                year: "$_id.year",
+                month: "$_id.month",
+                count: 1
+              }
+            },
+            {
+              $sort: {
+                year: 1,
+                month: 1
+              }
+            }
+          ];
+
+          const eventResult = await event_ventilator_collection.aggregate(eventPipeline)
+
+          // Get the max count
+          const maxCount = eventResult.reduce((max, { count }) => Math.max(max, count), 0);
+
+          return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "Most recent events by device ID retrieved successfully.",
+            monthlyDataCount: eventResult,
+            maxCount:maxCount,
+            // data:eventResult
+          });
+          
+        } else if (filter == "yearly") {
+
+          const initialDate = new Date("2023-12-01T00:00:00Z");
+          const endDate2 = new Date();
+          endDate2.setDate(endDate2.getDate()-1);
+
+          // Define the aggregation pipeline
+          const pipeline = [
+            {
+                $match: {
+                  updatedAt: { $gte:initialDate,$lte:endDate2}
+                }
+            },
+            {
+                $addFields: {
+                    year: { $year: { $dateFromString: { dateString: "$date" } } }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: "$year",
+                        did: "$did"
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id.year",
+                    uniqueDidCount: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+          ];
+
+          // Execute the aggregation query
+          const result = await event_ventilator_collection.aggregate(pipeline).exec();
+
+          // Transform the result into the desired format
+          const yearlyData = result.map(item => ({
+              duration: item._id,
+              count: item.uniqueDidCount
+          }));
+         
+          return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "Most recent events by device ID retrieved successfully.",
+            yearlyDataCount: yearlyData,
+            maxCount:yearlyData[1].count
+          });
+        }
+      
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
+  try {
+    const filter = req.params.filter;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    // const prodAndStatus = await productionModel.aggregate([
+    //   {
+    //     $match:{"productType":{$ne:"Suction"} }
+    //   },
+    //   {
+    //     $lookup:
+    //     {
+    //       from: "device_statuses",
+    //       localField: "deviceId",
+    //       foreignField: "deviceId",
+    //       as: "deviceInfo"
+    //     }
+    //   },
+    //   {
+    //     "$set": {
+    //               "deviceInfo": {"$first": "$deviceInfo"},
+    //             }
+    //   },
+    //   // Extract the joined embeded fields into top level fields
+    //   {
+    //     "$set": {"message": "$deviceInfo.message"},
+    //   },
+    //   {$match:{$and:[{purpose:"Demo"},{message:"ACTIVE"}]}},
+    //   {
+    //     $project:{
+    //       "deviceId":1,
+    //       "purpose":1,"productType":1,"message":1,
+    //     }
+    //   }
+    // ])
+
+    // console.log(22,prodAndStatus)
+    
+    // const deviceIds = prodAndStatus.map((item) => {
+    //   return item.deviceId
+    // })
+    // console.log(12,deviceIds)
+      
+    // const eventData = await event_ventilator_collection.aggregate([
+    //   {
+    //       $match: { did: { $in: deviceIds } }
+    //   },
+    //   {
+    //       $addFields: {
+    //           eventDate: {
+    //               $dateFromString: { dateString: "$date" }
+    //           },
+    //           eventDateString: {
+    //               $dateToString: { format: "%Y-%m-%d", date: { $dateFromString: { dateString: "$date" } } }
+    //           }
+    //       }
+    //   },
+    //   {
+    //       $sort: {
+    //           did: 1,
+    //           eventDate: -1
+    //       }
+    //   },
+    //   {
+    //       $group: {
+    //           _id: {
+    //               did: "$did",
+    //               date: "$eventDateString"
+    //           },
+    //           latestEvent: { $first: "$$ROOT" }
+    //       }
+    //   },
+    //   {
+    //       $replaceRoot: {
+    //           newRoot: "$latestEvent"
+    //       }
+    //   }
+    // ])
+
+  // console.log(11, eventData)
+  
+  if (filter == "yearly") {
+
+      // console.log(15, eventData)
+      const prodData = await productionModel.find({$and:[{purpose:"Demo"},{productType:{$ne:"Suction"}}]},{_id:1,purpose:1,deviceId:1})
+      const deviceIds = prodData.map((item) => {
+        return item.deviceId
+      })
+
+      const initialDate = new Date("2023-12-01T00:00:00Z");
+      const endDate2 = new Date();
+      endDate2.setDate(endDate2.getDate()-1);
+
+      // Define the aggregation pipeline
+      const pipeline = [
+        {
+          $match: {$and:[{updatedAt: { $gte:initialDate,$lte:endDate2}},{did:{$in:deviceIds}}]}
+        },
+        {
+          $addFields: {
+            year: { $year: { $dateFromString: { dateString: "$date" } } }
+            }
+        },
+        {
+          $group: {
+            _id: {
+                year: "$year",
+                did: "$did"
+            }
+          }
+        },
+        {
+          $group: {
+            _id: "$_id.year",
+            uniqueDidCount: { $sum: 1 }
+          }
+        },
+        {
+          $sort: { _id: 1 }
+        }
+      ];
+
+      // Execute the aggregation query
+      const result = await event_ventilator_collection.aggregate(pipeline).exec();
+
+      // Transform the result into the desired format
+      const yearlyData = result.map(item => ({
+        duration: item._id,
+        count: item.uniqueDidCount
+      }));
+      
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data count retrieved successfully.",
+        yearlyDataCount:yearlyData,
+        maxCount:yearlyData[1].count
+      })
+
+  }  else if (filter == "monthly") {
+    
+    // const prodData = await productionModel.find({
+    //   deviceId: { $ne: "" },
+    //   deviceType: { $ne: "Suction" },
+    //   purpose: "Demo"
+    // });
+
+    // const deviceIds = prodData.map(item => item.deviceId);
+
+    // const sixMonthsAgo = new Date();
+    // sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    // const result2 = await event_ventilator_collection.find({
+    //   date: { $gte: sixMonthsAgo.toISOString() },
+    //   did: { $in: deviceIds }
+    // }, { _id: 1, did: 1, updatedAt: 1 })
+    // .sort({ updatedAt: -1 })
+
+    // const uniqueDids = new Map();
+    // result2.forEach(item => {
+    //     if (!uniqueDids.has(item.did)) {
+    //         uniqueDids.set(item.did, item);
+    //     }
+    // });
+
+    // const uniqueDidArray = Array.from(uniqueDids.values());
+
+    // const groupedByMonthYear = uniqueDidArray.reduce((acc, item) => {
+    //     const date = new Date(item.updatedAt);
+    //     const year = date.getFullYear();
+    //     const month = date.toLocaleString('default', { month: 'short' });
+    //     const duration = `${year}-${month}`;
+
+    //     if (!acc[duration]) {
+    //         acc[duration] = 0;
+    //     }
+    //     acc[duration]++;
+    //     return acc;
+    // }, {});
+
+    // const result = Object.keys(groupedByMonthYear).map(duration => ({
+    //     duration,
+    //     count: groupedByMonthYear[duration]
+    // }));
+
+    // // max count 
+    // const maxCount = result.reduce((max, item) => item.count > max ? item.count : max, result[0].count);
+
+    
+    const initialDate = new Date("2023-12-01T00:00:00Z");
+    const endDate2 = new Date();
+    endDate2.setDate(endDate2.getDate() - 1);
+
+    // Define the date range for the last 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    // Aggregate production data to get relevant deviceIds
+    const productionPipeline = [
+      {
+        $match: {
+          $and:[
+            { deviceId: { $ne: "" }},
+            { deviceType: { $ne: "Suction" }},
+            { purpose: "Demo"},
+            { createdAt: { $gte: initialDate, $lte: endDate2 }}
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          deviceIds: { $addToSet: "$deviceId" }
+        }
+      }
+    ];
+
+    const productionResult = await productionModel.aggregate(productionPipeline);
+    const deviceIds = productionResult[0]?.deviceIds || [];
+
+    // If no deviceIds found, return early with empty results
+    if (deviceIds.length === 0) {
+      // console.log({ result: [], maxCount: 0 });
+      return;
+    }
+
+    // Aggregate event data to get unique DIDs with the latest updatedAt value and group by month/year
+    const eventPipeline = [
+      {
+        $match: {
+          $and:[
+            {date: { $gte: sixMonthsAgo.toISOString() }},
+            {did: { $in: deviceIds }},
+          ]
+        }
+      },
+      {
+        $sort: {
+          did: 1,
+          updatedAt: -1
+        }
+      },
+      {
+        $group: {
+          _id: "$did",
+          latestUpdatedAt: { $first: "$updatedAt" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          did: "$_id",
+          updatedAt: "$latestUpdatedAt"
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$updatedAt" },
+            month: { $month: "$updatedAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          duration: {
+            $concat: [
+              { $toString: "$_id.year" },
+              "-",
+              {
+                $arrayElemAt: [
+                  [
+                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                  ],
+                  { $subtract: ["$_id.month", 1] }
+                ]
+              }
+            ]
+          },
+          year: "$_id.year",
+          month: "$_id.month",
+          count: 1
+          }
+      },
+      {
+        $sort: {
+          year: 1,
+          month: 1
+          }
+        }
+      ];
+
+      const eventResult = await event_ventilator_collection.aggregate(eventPipeline)
+
+      // Get the max count
+      const maxCount = eventResult.reduce((max, { count }) => Math.max(max, count), 0);
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        monthlyDataCount: eventResult,
+        maxCount:maxCount
+      });
+
+  } else if (filter == "weekly") {
+
+    // const productionData = await productionModel.find({
+    //   $and: [{ "productType": { $ne: "Suction" } }, { "purpose": "Demo" }]
+    // });
+    
+    // const deviceIds = productionData.map(item => item.deviceId);
+    
+    // const now = new Date();
+    // const past28Days = new Date();
+    // past28Days.setDate(now.getDate() - 28);
+    
+    
+    // const eventDataa = await event_ventilator_collection.find({
+    //   $and: [
+    //     { did: { $in: deviceIds } },
+    //     { updatedAt: { $gte: past28Days, $lte: now } }
+    //   ]
+    // });
+
+    
+    // const weeks = [
+    //   { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), count: 0 },
+    //   { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), count: 0 },
+    //   { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), count: 0 },
+    //   { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now, count: 0 }
+    // ];
+
+    // const latestDidUpdates = new Map();
+    // eventDataa.forEach(event => {
+    //   const { did, updatedAt } = event;
+    //   if (!latestDidUpdates.has(did) || latestDidUpdates.get(did) < updatedAt) {
+    //     latestDidUpdates.set(did, updatedAt);
+    //   }
+    // });
+
+    // latestDidUpdates.forEach(updatedAt => {
+    //   weeks.forEach(week => {
+    //     if (updatedAt >= week.start && updatedAt <= week.end) {
+    //       week.count++;
+    //     }
+    //   });
+    // });
+
+    // const formattedResult = weeks.map(week => {
+    //   const start = week.start;
+    //   const day = start.getUTCDate();
+    //   const month = monthNames[start.getUTCMonth()];
+    //   return {
+    //     duration: `${day}-${month}`,
+    //     count: week.count
+    //   };
+    // });
+
+    // const maxCount = Math.max(...formattedResult.map(item => item.count));
+
+    const now = new Date();
+    const past28Days = new Date(now);
+    past28Days.setDate(now.getDate() - 28);
+
+    const weeks = [
+      { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21) },
+      { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14) },
+      { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7) },
+      { start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now }
+    ];
+
+    // const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const productionData = await productionModel.find({
+      $and: [{ "productType": { $ne: "Suction" } }, { "purpose": "Demo" }]
+    }, { deviceId: 1 });  // Only select deviceId to reduce data transfer
+
+
+    const deviceIds = productionData.map(item => item.deviceId);
+
+    const eventAggregation = await event_ventilator_collection.aggregate([
+      { $match: { did: { $in: deviceIds }, updatedAt: { $gte: past28Days, $lte: now } } },
+      { $group: { _id: "$did", latestUpdate: { $max: "$updatedAt" } } },
+      { $project: { _id: 0, did: "$_id", latestUpdate: 1 } }
+    ])
+
+    const weekCounts = weeks.map(week => {
+      return {
+        duration: `${week.start.getUTCDate()}-${monthNames[week.start.getUTCMonth()]}`,
+        count: eventAggregation.filter(event => event.latestUpdate >= week.start && event.latestUpdate <= week.end).length
+      };
+    });
+
+    const maxCount = Math.max(...weekCounts.map(item => item.count));
+
+    // Result
+    const result = {
+      weeks: weekCounts,
+      maxCount: maxCount
+    };
+
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Most recent events by device ID retrieved successfully.",
+      weeklyDataCount:result.weeks,
+      maxCount
+    });
+    
+  } else if (filter == "today") {
+        const prodData = await productionModel.find({$and:[{purpose:"Demo"},{productType:{$ne:"Suction"}}]},{_id:1,purpose:1,deviceId:1})
+        const deviceIds = prodData.map((item) => {
+          return item.deviceId
+        })
+        
+        const moment = require('moment-timezone');
+        // Get the current date and time in the Asia/Kolkata time zone
+        const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
+        const currentDateInKolkata = moment.tz("Asia/Kolkata");
+        const twoHourBefore = moment(currentDateInKolkata).subtract(2, 'hours').toDate();
+        const fourHourBefore = moment(currentDateInKolkata).subtract(4, 'hours').toDate();  
+        const sixHourBefore = moment(currentDateInKolkata).subtract(6, 'hours').toDate(); 
+        const eightHourBefore = moment(currentDateInKolkata).subtract(8, 'hours').toDate(); 
+        const tenHourBefore = moment(currentDateInKolkata).subtract(10, 'hours').toDate();    
+        const twelHourBefore = moment(currentDateInKolkata).subtract(12, 'hours').toDate();
+        const forteenHourBefore = moment(currentDateInKolkata).subtract(14, 'hours').toDate();
+        const sixteenHourBefore = moment(currentDateInKolkata).subtract(16, 'hours').toDate();
+        const eighteenHourBefore = moment(currentDateInKolkata).subtract(18, 'hours').toDate();
+        const twentyHourBefore = moment(currentDateInKolkata).subtract(20, 'hours').toDate();
+        const twentytwoHourBefore = moment(currentDateInKolkata).subtract(22, 'hours').toDate();
+        const twentyFourHourBefore = moment(currentDateInKolkata).subtract(24, 'hours').toDate();
+  
+        // Define the aggregate pipeline
+        const pipeline = [
+          {
+            $match: {
+              did: { $in: deviceIds },
+              updatedAt: { $gte: twentyFourHourBefore, $lte: currentDateInKolkata.toDate() }
+            }
+          },
+          {
+            $facet: {
+              eventsForLast2Hr: [
+                { $match: { updatedAt: { $gte: twoHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast4Hr: [
+                { $match: { updatedAt: { $gte: fourHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast6Hr: [
+                { $match: { updatedAt: { $gte: sixHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast8Hr: [
+                { $match: { updatedAt: { $gte: eightHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast10Hr: [
+                { $match: { updatedAt: { $gte: tenHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast12Hr: [
+                { $match: { updatedAt: { $gte: twelHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast14Hr: [
+                { $match: { updatedAt: { $gte: forteenHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast16Hr: [
+                { $match: { updatedAt: { $gte: sixteenHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast18Hr: [
+                { $match: { updatedAt: { $gte: eighteenHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast20Hr: [
+                { $match: { updatedAt: { $gte: twentyHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast22Hr: [
+                { $match: { updatedAt: { $gte: twentytwoHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+              eventsForLast24Hr: [
+                { $match: { updatedAt: { $gte: twentyFourHourBefore } } },
+                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$latestEvent" } }
+              ],
+            }
+          }
+        ];
+        
+        const results = await event_ventilator_collection.aggregate(pipeline);
+
+        const todayActiveDeviceCount = [
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(2, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast2Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(4, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast4Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(6, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast6Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(8, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast8Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(10, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast10Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(12, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast12Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(14, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast14Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(16, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast16Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(18, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast18Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(20, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast20Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(22, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast22Hr.length,
+          },
+          {
+            duration:moment.tz("Asia/Kolkata").subtract(24, 'hours').format('HH:mm'),
+            count:results[0].eventsForLast24Hr.length,
+          },
+        ]
+        
+        let maxCount = -Infinity
+        for (const item of todayActiveDeviceCount) {
+          if (item.count > maxCount) {
+            maxCount = item.count
+          }
+        }
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Most recent events by device ID retrieved successfully.",
+          todayActiveDeviceCount,
+          maxCount
+        });
+  }  
+      
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+const getDeviceCountForAgvaPro = async (req, res) => {
+  try {
+
+    // device count for agva pro and suction
+    const productionData = await productionModel.find({$and:[{deviceId:{$ne:""}},{productType:{$ne:"Suction"}}]})
+    
+    const statusData = await statusModel.find({deviceId:{$ne:""}})
+ 
+    const productionDeviceIds = productionData.map(device => device.deviceId);
+
+    // Create a dictionary to count ACTIVE and INACTIVE messages
+    const messageCount = {
+      ACTIVE: 0,
+      INACTIVE: 0,
+    };
+
+    // Count of devices with purpose 'Demo' among ACTIVE devices
+    let totalDemoData = 0;
+
+    // Iterate over the statusData array
+    statusData.forEach(status => {
+      // Check if the deviceId exists in the productionDeviceIds array
+      if (productionDeviceIds.includes(status.deviceId)) {
+        // Increment the respective message count
+        if (status.message.trim() === "ACTIVE") {
+          messageCount.ACTIVE++;
+          
+          // Check if the device has purpose 'Demo'
+          const device = productionData.find(device => device.deviceId === status.deviceId);
+          if (device && device.purpose === 'Demo') {
+            totalDemoData++;
+          }
+        } else if (status.message.trim() === 'INACTIVE') {
+          messageCount.INACTIVE++;
+        }
+      }
+    });
+
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data count retrieved successfully.",
+      agvaProData:[{
+        totalDevicesCount:(messageCount.ACTIVE)+(messageCount.INACTIVE),
+        ActiveDevicesCount:messageCount.ACTIVE, 
+        InactiveDevicesCount:messageCount.INACTIVE,
+        totalActiveDemoDevicesCount:totalDemoData,
+        // testData:extraDeviceIds
+      }]
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
+
 /**
  * query {req.params.filterType}
  * GET - /api/logger/logs/getTotalDevicesCount/:filterType
@@ -4264,5 +6392,11 @@ module.exports = {
   addDeviceServiceV2,
   getAllServicesV2,
   getDeviceByIdV2,
-  updatePaymentStatus
+  updatePaymentStatus,
+  getAgvaProAndSuctionDataCount,
+  getDeviceCountForAgvaPro,
+  getWMYDataCountForAgvaPro,
+  getActiveDevicesCountForAgvaPro,
+  getWMYDemoDataCountForAgvaPro,
+  getActiveDemoDevicesCountForAgvaPro
 }

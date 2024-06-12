@@ -1093,7 +1093,9 @@ const getSignleDispatchedData = async (req, res) => {
             ...resData[0], 
             hospitalName:!!dispatchData ? dispatchData.hospital_name : "",
             address:!!dispatchData ? dispatchData.address : "",
-            returnPoFilePdf:!!(resData.returnPoFilePdf) ? resData.returnPoFilePdf : "NA"
+            returnPoFilePdf:!!(resData.returnPoFilePdf) ? resData.returnPoFilePdf : "NA",
+            document_no:!!dispatchData ? dispatchData.document_no : "",
+
         }
         if (resData.length>0) {
             return res.status(200).json({
