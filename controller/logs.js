@@ -427,7 +427,14 @@ const getAlertsById = async (req, res) => {
       },
       priority: item.priority,
     }));
-
+     
+    if (findDeviceById.length<1) {
+      return res.status(400).json({
+        status: "FAIL",
+        statusCode: 400,
+        message: 'Data not found.',
+      });
+    }
     // Send the response
     return res.status(200).json({
       status: 1,
@@ -576,7 +583,14 @@ const getAlertsByIdV2 = async (req, res) => {
       }
       splitedArr.push(objItem)
     })
-
+    
+    if (findDeviceById.length<1) {
+      return res.status(400).json({
+        status: "FAIL",
+        statusCode: 400,
+        message: 'Data not found.',
+      });
+    }
     return res.status(200).json({
       status: 1,
       statusCode: 200,
@@ -908,7 +922,15 @@ const getLogsById = async (req, res) => {
       }
       splitedArr.push(objItem)
     })
-
+    
+    // CheckData empty or not
+    if (findDeviceById.length < 1) {
+      return res.status(400).json({
+        status: "FAIL",
+        statusCode: 400,
+        message: 'Data not found.',
+      });
+    }
     return res.status(200).json({
       status: 1,
       statusCode: 200,
@@ -983,7 +1005,15 @@ const getLogsByIdV2 = async (req, res) => {
       }
       splitedArr.push(objItem)
     })
-
+    
+    // CheckData empty or not
+    if (findDeviceById.length < 1) {
+      return res.status(400).json({
+        status: "FAIL",
+        statusCode: 400,
+        message: 'Data not found.',
+      });
+    }
     return res.status(200).json({
       status: 1,
       statusCode: 200,
@@ -1086,6 +1116,13 @@ const getEventsById = async (req, res) => {
     })
     // console.log(Arr)
     // console.log(modifiedArr)
+    if (findDeviceById.length<1) {
+      return res.status(400).json({
+        status: "FAIL",
+        statusCode: 400,
+        message: 'Data not found.',
+      });
+    }
     return res.status(200).json({
       status: 1,
       statusCode: 200,
@@ -1188,6 +1225,13 @@ const getEventsByIdV2 = async (req, res) => {
     })
     // console.log(Arr)
     // console.log(modifiedArr)
+    if (findDeviceById.length<1) {
+      return res.status(400).json({
+        status: "FAIL",
+        statusCode: 400,
+        message: 'Data not found.',
+      });
+    }
     return res.status(200).json({
       status: 1,
       statusCode: 200,
