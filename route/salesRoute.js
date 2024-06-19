@@ -25,7 +25,9 @@ router.get('/users/get-user-list', salesController.getUserlist);
 
 // Route for Marketing-Admin
 router.get('/sales/dashboard-data', salesController.getTotalDataCount);
+
 router.get('/sales/user-data', salesController.getUserData);
+
 router.get('/sales/get-single-user-data/:userId', salesController.getUserData);
 
 module.exports = router;

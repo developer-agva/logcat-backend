@@ -38,6 +38,10 @@ const statusSchema = mongoose.Schema({
         type: Boolean,
         required:true,
         default: false,
+    },
+    lastActive:{
+        type: String,
+        default:"--"
     }
 },
     { timestamps: true })

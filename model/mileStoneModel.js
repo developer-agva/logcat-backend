@@ -29,6 +29,10 @@ const mileStoneSchema = new mongoose.Schema({
     isExpired: {
         type: Boolean,
         default:false,   
+    },
+    targetStatus:{
+        type: String,
+        default: "Initial"
     }
 },{
     timestamps: true

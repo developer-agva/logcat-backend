@@ -2158,7 +2158,7 @@ const getAllDeviceId = async (req, res) => {
       },
       // Extract the joined embeded fields into top level fields
       {
-        "$set": {"purpose": "$prodDataInfo.purpose", "serialNumber": "$prodDataInfo.serialNumber"},
+        "$set": {"purpose": "$prodDataInfo.purpose", "serialNumber": "$prodDataInfo.serialNumber","dispatchDate":"$prodDataInfo.dispatchDate"},
       },
       {
         $project: {
@@ -3464,6 +3464,9 @@ const createAlertsNew = async (req, res) => {
       
     }
 
+    // Save lastActive in status model
+    // const statusData = await statusModel.find({})
+
     let dbSavePromise = ack.map(async (ac) => {
       const putDataIntoLoggerDb = await new modelReference({
         did: did,
@@ -3777,14 +3780,27 @@ const createEvents = async (req, res, next) => {
     });
 
     console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
-
     const SaveEvents = await events.save(events);
+    
+    // For current date and time
+    const currentDateTime = new Date();
+
+    const year = currentDateTime.getFullYear();
+    const month = String(currentDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDateTime.getDate()).padStart(2, '0');
+
+    const hours = String(currentDateTime.getHours()).padStart(2, '0');
+    const minutes = String(currentDateTime.getMinutes()).padStart(2, '0');
+    const seconds = String(currentDateTime.getSeconds()).padStart(2, '0');
+
+    const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  
     if (SaveEvents) {
+      await statusModel.updateMany({deviceId:did},{$set:{message:"ACTIVE",lastActive:formattedDateTime}})
       res.status(201).json({
         status: 201,
         data: { eventCounts: SaveEvents.length },
         message: 'Event has been added successfully!',
-
       });
     }
     else {
@@ -3867,6 +3883,20 @@ const createEventsV2 = async (req, res, next) => {
     }, {upsert: true});
 
     console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
+    
+    // For current date and time
+    const currentDateTime = new Date();
+
+    const year = currentDateTime.getFullYear();
+    const month = String(currentDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDateTime.getDate()).padStart(2, '0');
+
+    const hours = String(currentDateTime.getHours()).padStart(2, '0');
+    const minutes = String(currentDateTime.getMinutes()).padStart(2, '0');
+    const seconds = String(currentDateTime.getSeconds()).padStart(2, '0');
+
+    const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    await statusModelV2.updateMany({deviceId:did},{$set:{message:"ACTIVE",lastActive:formattedDateTime}})
 
     return res.status(201).json({
       status: 201,
@@ -3970,15 +4000,30 @@ const createTrends = async (req, res, next) => {
        pr:!!pr ? pr : "",
     });
     const SaveTrends = await trends.save(trends);
+
+    // For current date and time
+    const currentDateTime = new Date();
+
+    const year = currentDateTime.getFullYear();
+    const month = String(currentDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDateTime.getDate()).padStart(2, '0');
+
+    const hours = String(currentDateTime.getHours()).padStart(2, '0');
+    const minutes = String(currentDateTime.getMinutes()).padStart(2, '0');
+    const seconds = String(currentDateTime.getSeconds()).padStart(2, '0');
+
+    const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+    await statusModel.updateMany({deviceId:did},{$set:{message:"ACTIVE",lastActive:formattedDateTime}})
     // console.log(11,SaveTrends)
-    // console.log(22,req.body)
+    // console.log('Agva Pro', req.body)
 
     if(deviceIdArr.includes(SaveTrends.did)) {
       console.log(true)
       
     }else{
       deviceIdArr.push(SaveTrends.did)
-      
+    
     }
     if (SaveTrends) {
       return res.status(201).json({
@@ -4110,11 +4155,11 @@ const createTrendsV2 = async (req, res) => {
          pr:!!pr ? pr : "",
       });
       SaveTrends = await trends.save(trends);
+      
     }
     
-    
     // console.log(11,SaveTrends)
-    // console.log(22,req.body)
+    // console.log('Instead of Agva Pro',req.body)
 
     if(deviceIdArr.includes(SaveTrends.did)) {
       console.log(true)
@@ -4124,6 +4169,22 @@ const createTrendsV2 = async (req, res) => {
       
     }
     if (SaveTrends) {
+      
+      // For current date and time
+      const currentDateTime = new Date();
+
+      const year = currentDateTime.getFullYear();
+      const month = String(currentDateTime.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDateTime.getDate()).padStart(2, '0');
+
+      const hours = String(currentDateTime.getHours()).padStart(2, '0');
+      const minutes = String(currentDateTime.getMinutes()).padStart(2, '0');
+      const seconds = String(currentDateTime.getSeconds()).padStart(2, '0');
+
+      const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+      await statusModelV2.updateMany({deviceId:did},{$set:{message:"ACTIVE",lastActive:formattedDateTime}})
+
       return res.status(201).json({
         status: 1,
         data: { eventCounts: SaveTrends.length },

@@ -24,11 +24,15 @@ const expenseSchema = new mongoose.Schema({
     isAvlBill:{
         type: String,
         default: ""
+    },
+    paymentStatus:{
+        type: String,
+        default:"Pending"
     }
 },{
     timestamps: true
 })
 
-const expenseModel = mongoose.model('expense',expenseSchema);
+const expenseModel = mongoose.model('expense', expenseSchema);
 
 module.exports = expenseModel;

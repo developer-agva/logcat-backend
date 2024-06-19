@@ -44,6 +44,10 @@ const statusSchema = mongoose.Schema({
         enum: ["003","004","005"],
         required: [true, "product code is required."]
     },
+    lastActive:{
+        type: String,
+        default:"--"
+    }
 },
     { timestamps: true })
 

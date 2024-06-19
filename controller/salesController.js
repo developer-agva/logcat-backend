@@ -292,6 +292,7 @@ exports.getAllSalesData = async (req, res) => {
         const token = req.headers["authorization"].split(' ')[1];
         const verified = await jwtr.verify(token, process.env.JWT_SECRET);
         const loggedInUser = await User.findById({_id:verified.user});
+        console.log(loggedInUser._id)
         // Get current date
         let demoData;
         if (loggedInUser.userType !== "Marketing-Admin") {
@@ -381,15 +382,15 @@ exports.getTotalDataCount = async (req, res) => {
         const totalDemo = getMilestoneData.reduce((sum, mileStone) => {
             return sum+parseFloat(mileStone.targetDemo)
         }, 0)
-        console.log(11, totalDemo)
+        // console.log(11, totalDemo)
         const totalSales = getMilestoneData.reduce((sum, mileStone) => {
             return sum+parseFloat(mileStone.targetSales)
         }, 0)
-        console.log(12, totalSales)
+        // console.log(12, totalSales)
         const totalExpense = getExpenseData.reduce((sum, expense) => {
             return sum+parseFloat(expense.amount)
         }, 0)
-        console.log(13, totalExpense)
+        // console.log(13, totalExpense)
         // total demo done and total sales done
         const totalDemoDone = (await demoOrSalesModel.find({status:"Closed"}))
         const totalSalesDone = (await demoOrSalesModel.find({status:"Sold"}))
@@ -541,7 +542,26 @@ exports.getUserData = async (req, res) => {
           }
           
           const updatedUserData = addTargetSoldDone(demoResult, salesData);
-          console.log(updatedUserData);  
+          
+          // Calculate expenses of each user
+          const expenseData = await expenseModel.find({},{userId:1,amount:1,paymentStatus:1})
+          
+          // Step 1: Parse amounts and create an expense map
+            const expenseMap = {};
+
+            expenseData.forEach(expense => {
+            const { userId, amount, paymentStatus } = expense;
+            if (!expenseMap[userId]) {
+                expenseMap[userId] = { "Pending": 0, "Received": 0, "Declined": 0 }; // Initialize with 0
+            }
+            expenseMap[userId][paymentStatus] += parseFloat(amount);
+            });
+
+            // Step 2: Merge expense amounts into updatedUserData
+            updatedUserData.forEach(user => {
+            const userIdStr = user.userId.toString();
+            user.expenseAmount = expenseMap[userIdStr] || { "Pending": 0, "Received": 0, "Declined": 0 };
+            });
         
         return res.status(200).json({
             statusCode: 200,
@@ -824,9 +844,20 @@ exports.addMileStone = async (req, res) => {
         // console.log(11, req.body)
         
         // Check data and expire it
+        // const now = new Date();
+        // const year = now.getFullYear();
+        // const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+        // const day = String(now.getDate()).padStart(2, '0');
+        
+        // const formattedDate = `${year}-${month}-${day}`;
+        // const targetDate = new Date(formattedDate);
+
+        // const currentMileStone = await mileStoneModel.findOne({$and:[{isExpired:false},{userId:req.body.userId},{endDate:{$lte:targetDate}}]})
+        // console.log(11,currentMileStone)
+
         const currentMileStone = await mileStoneModel.find({$and:[{isExpired:false},{userId:req.body.userId}]})
         if (!!currentMileStone) {
-            await mileStoneModel.findOneAndUpdate({userId:req.body.userId},{isExpired:true})
+            await mileStoneModel.findOneAndUpdate({userId:req.body.userId},{isExpired:true, targetStatus:"Pending"})
         }
         const saveDoc = new mileStoneModel({
             createdBy:loggedInUser._id,
@@ -877,6 +908,24 @@ exports.getAllMileStone = async (req, res) => {
         let getData = [];
         let expenseData = [];
         let totalAmount;
+        
+        // Check data and expire it
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+        const day = String(now.getDate()).padStart(2, '0');
+        
+        const formattedDate = `${year}-${month}-${day}`;
+        // const targetDate = new Date(formattedDate);
+
+        const currentMileStone = await mileStoneModel.find({$and:[{isExpired:false},{endDate:formattedDate}]})
+        // console.log(currentMileStone)
+        if (!!currentMileStone) {
+            await mileStoneModel.updateMany({endDate:{$lte:formattedDate}},{$set:{isExpired:true, targetStatus:"Pending"}})
+        }
+        // End
+
+
         if (loggedInUser.userType == "Marketing-Admin") {
             // for moileStone count
             // getData = await mileStoneModel.find({createdBy:loggedInUser._id},{__v:0, createdAt:0, updatedAt:0})
@@ -904,7 +953,16 @@ exports.getAllMileStone = async (req, res) => {
             //     data2:[{totalExpenses:totalAmount}]
             // }) 
         } else {
-            getData = await mileStoneModel.find({userId:loggedInUser._id},{__v:0, createdAt:0, updatedAt:0}).sort({createdAt:-1}).limit(1)
+            getData = await mileStoneModel.find({$and:[{userId:loggedInUser._id},{isExpired:false},{targetStatus:"Initial"}]},{__v:0, createdAt:0, updatedAt:0}).sort({createdAt:-1}).limit(1)
+            // console.log(getData)
+            if (getData.length<1) {
+                return res.status(400).json({
+                    statusCode: 400,
+                    statusValue: "FAIL",
+                    message: "Data not found.",
+                    data: [],
+                })
+            }
             expenseData = await expenseModel.find({userId:loggedInUser._id})
             totalAmount = expenseData.reduce((sum, expense) => {
                 return sum+parseFloat(expense.amount);
@@ -913,9 +971,9 @@ exports.getAllMileStone = async (req, res) => {
             const demoData = await demoOrSalesModel.find({$and:[{userId:loggedInUser._id},{status:"Closed"}]})
             const salesData = await demoOrSalesModel.find({$and:[{userId:loggedInUser._id},{status:"Sold"}]})
             const targetDemo = getData[0].targetDemo
-            console.log(12, targetDemo-demoData.length)
+            // console.log(12, targetDemo-demoData.length)
             const targetSales = getData[0].targetSales
-            console.log(13, targetSales-salesData.length)
+            // console.log(13, targetSales-salesData.length)
             const finaData = [
                 {
                     "_id":getData[0]._id,
