@@ -135,11 +135,15 @@ router.get('/get-device-access-list/:deviceId', isAuth, deviceController.getDevi
 router.get('/get-device-access-users', isAuth, deviceController.getDeviceAccessUsers);
 
 router.get('/get-device-access-ast-list', isAuth, deviceController.getDeviceAccessAstList);
-router.get('/get-device-access-doct-list', isAuth, deviceController.getDeviceAccessDoctList);
+router.get('/get-device-access-doct-list/:deviceId', isAuth, deviceController.getDeviceAccessDoctList);
+// router.delete('/users/delete-byid/:id', isAuth, isSuperAdmin, deleteSingleUser);
 
 
 router.delete('/delete-access-from-assistant/:_id', isAuth, deviceController.deleteDeviceAccessFromAst);
+
 router.delete('/delete-access-from-doctor/:_id', isAuth, deviceController.deleteDeviceAccessFromDoctor);
+router.delete('/delete-particular-device-access/:deviceId/:id', isAuth, deviceController.deleteParticularDeviceId);
+
 
 router.get('/adminDashboardDataCount', deviceController.getAdminDashboardDataCount);  // for dashboard api
 

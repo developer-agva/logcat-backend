@@ -27,6 +27,9 @@ const sendDeviceReqModel = require('../model/sendDeviceReqModel.js');
 const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel.js');
 require("dotenv").config({ path: "../.env" });
 var unirest = require("unirest");
+const { IoTEvents } = require('aws-sdk');
+const statusModel = require('../model/statusModel.js');
+const productionModel = require('../model/productionModel.js');
 /**
  * api      POST @/api/logger/register
  * desc     @register for logger access only
@@ -601,7 +604,12 @@ const loginUser = async (req, res) => {
     const token = await jwtr.sign(id, process.env.JWT_SECRET, {
       expiresIn: '15d',
     });
+  //   console.log(123, isUserExist.accessHospital)
+  //   let accessHospital = new Set(isUserExist.accessHospital);
+  // //  console.log(124, dd)
+
     await Users.findByIdAndUpdate({_id:isUserExist._id},{lastLogin:new Date()},{upsert:true});
+    
     // console.log(token)
     // req.session.user = {
     //   name:isUserExist._id
@@ -2037,11 +2045,38 @@ const getAllActiveUSers = async (req, res) => {
     if (checkUser.userType == "Doctor") {
       getUsers = await User.find({
         $and: [
+          // { hospitalName: checkUser.hospitalName },
+          { securityCode: checkUser.securityCode },
+          { userType: "Assistant" },
+          { accountStatus: "Active" }
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // count users
+      count = await User.find({
+        $and: [
+          // { hospitalName: checkUser.hospitalName },
+          { securityCode: checkUser.securityCode },
+          { userType: "Assistant" },
+          { accountStatus: "Active" }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
+
+    } else if (checkUser.userType == "Hospital-Admin") {
+      getUsers = await User.find({
+        $and: [
           { hospitalName: checkUser.hospitalName },
           {
             $or: [
-              { userType: "User" },
-              { userType: "Assistant" }
+              // { userType: "User" },
+              // { userType: "Assistant" },
+              { userType: "Doctor" }
             ]
           },
           { accountStatus: "Active" }
@@ -2055,16 +2090,18 @@ const getAllActiveUSers = async (req, res) => {
       // count users
       count = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },{ $or: [{ userType: "User" },{ userType: "Assistant" }] },{ accountStatus: "Active" }
+          { hospitalName: checkUser.hospitalName }, 
+          { $or: [{ userType: "Doctor" }] },
+          { accountStatus: "Active" }
         ]
       })
         .sort({ createdAt: -1 })
         .countDocuments();
-
-    } else if (checkUser.userType == "Hospital-Admin") {
+    } else if (checkUser.userType == "Super-Admin" || checkUser.userType == "Owner") {
+      
       getUsers = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },
+          // { hospitalName: checkUser.hospitalName },
           {
             $or: [
               { userType: "User" },
@@ -2083,7 +2120,7 @@ const getAllActiveUSers = async (req, res) => {
       // count users
       count = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName }, 
+          // { hospitalName: checkUser.hospitalName }, 
           { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },
           { accountStatus: "Active" }
         ]
@@ -2153,11 +2190,36 @@ const getAllInactiveUsers = async (req, res) => {
     if (checkUser.userType == "Doctor") {
       getUsers = await User.find({
         $and: [
+          { securityCode: checkUser.securityCode },
+          { userType: "Assistant" },
+          { accountStatus: "Inactive" }
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // count users
+      count = await User.find({
+        $and: [
+          { securityCode: checkUser.securityCode },
+          { userType: "Assistant" },
+          { accountStatus: "Inactive" }
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
+
+    } else if (checkUser.userType == "Hospital-Admin") {
+      getUsers = await User.find({
+        $and: [
           { hospitalName: checkUser.hospitalName },
           {
             $or: [
-              { userType: "User" },
-              { userType: "Assistant" }
+              // { userType: "User" },
+              // { userType: "Assistant" },
+              { userType: "Doctor" }
             ]
           },
           { accountStatus: "Inactive" }
@@ -2171,16 +2233,15 @@ const getAllInactiveUsers = async (req, res) => {
       // count users
       count = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },{ $or: [{ userType: "User" },{ userType: "Assistant" }] },{ accountStatus: "Inactive" }
+          { hospitalName: checkUser.hospitalName }, { $or: [{ userType: "Doctor" }] },{ accountStatus: "Inactive" }
         ]
       })
         .sort({ createdAt: -1 })
         .countDocuments();
-
-    } else if (checkUser.userType == "Hospital-Admin") {
+    } else if (checkUser.userType == "Super-Admin" || checkUser.userType == "Owner") {
       getUsers = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },
+          // { hospitalName: checkUser.hospitalName },
           {
             $or: [
               { userType: "User" },
@@ -2199,7 +2260,7 @@ const getAllInactiveUsers = async (req, res) => {
       // count users
       count = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName }, { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },{ accountStatus: "Inactive" }
+         { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },{ accountStatus: "Inactive" }
         ]
       })
         .sort({ createdAt: -1 })
@@ -2331,11 +2392,36 @@ const getAllPendingUsers = async (req, res) => {
     if (checkUser.userType == "Doctor") {
       getUsers = await User.find({
         $and: [
+          { userType: "Assistant" },
+          {accountStatus: "Initial" },
+          {securityCode: checkUser.securityCode}
+        ]
+      })
+        .select({ passwordHash: 0, __v: 0, createdAt: 0, updatedAt: 0, otp: 0 })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // count users
+      count = await User.find({
+        $and: [
+          { userType: "Assistant" },
+          {accountStatus: "Initial" },
+          {securityCode: checkUser.securityCode}
+        ]
+      })
+        .sort({ createdAt: -1 })
+        .countDocuments();
+
+    } else if (checkUser.userType == "Hospital-Admin") {
+      getUsers = await User.find({
+        $and: [
           { hospitalName: checkUser.hospitalName },
           {
             $or: [
-              { userType: "User" },
-              { userType: "Assistant" }
+              // { userType: "User" },
+              // { userType: "Assistant" },
+              { userType: "Doctor" }
             ]
           },
           { accountStatus: "Initial" }
@@ -2350,17 +2436,17 @@ const getAllPendingUsers = async (req, res) => {
       count = await User.find({
         $and: [
           { hospitalName: checkUser.hospitalName },
-          { $or: [{ userType: "User" },{ userType: "Assistant" }] },
+          { $or: [{ userType: "Doctor" }] },
           { accountStatus: "Initial" }
         ]
       })
         .sort({ createdAt: -1 })
         .countDocuments();
+    } else if (checkUser.userType == "Super-Admin" || checkUser.userType == "Owner") {
 
-    } else if (checkUser.userType == "Hospital-Admin") {
       getUsers = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },
+          // { hospitalName: checkUser.hospitalName },
           {
             $or: [
               { userType: "User" },
@@ -2379,14 +2465,15 @@ const getAllPendingUsers = async (req, res) => {
       // count users
       count = await User.find({
         $and: [
-          { hospitalName: checkUser.hospitalName },
-          { $or: [{ userType: "User" },{ userType: "Assistant" },{ userType: "Doctor" }] },
+          // { hospitalName: checkUser.hospitalName },
+          { $or: [{ userType: "Doctor" }, { userType: "User" },{ userType: "Assistant" }] },
           { accountStatus: "Initial" }
         ]
       })
         .sort({ createdAt: -1 })
         .countDocuments();
     }
+
     if (getUsers.length > 0) {
       return res.status(200).json({
         statusCode: 200,
@@ -2755,7 +2842,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-    console.log(33, req.body)
+    // console.log(123, req.body)
     // for loggedin user details
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
@@ -2763,6 +2850,7 @@ const acceptOrRejectdeviceReq = async (req, res) => {
 
     // check already exists
     const checkData = await assignDeviceTouserModel.findOne({ $and:[{deviceId:req.body.deviceId}, {userId:req.body.userId}]});
+    // console.log('check already exists', checkData)
     if (!!checkData) {
       const reqData = await assignDeviceTouserModel.findOneAndUpdate(
         { $and:[{deviceId:req.body.deviceId}, {userId:req.body.userId}]},
@@ -3091,7 +3179,7 @@ const sendReqForDevice = async (req, res) => {
       })
     }
     
-    console.log(44, req.body)
+    // console.log(44, req.body)
     // for loggedin user details
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
@@ -3107,6 +3195,8 @@ const sendReqForDevice = async (req, res) => {
         message: "You have already sent request.",
       })
     }  
+    const prodData = await productionModel.findOne({deviceId:req.body.deviceId})
+    // console.log(11, prodData)
     const reqData = new sendDeviceReqModel({
       requestedBy:!!(loggedInUser.email) ? loggedInUser.email : "",
       userId:loggedInUser._id,
@@ -3115,6 +3205,7 @@ const sendReqForDevice = async (req, res) => {
       deviceType:"Ventilator",
       status:true,
       isAssigned:"Pending",
+      serialNumber:!!(prodData) ? prodData.serialNumber : "NA" 
     })
     const saveDoc = await reqData.save();
     if (!saveDoc) {
@@ -3124,12 +3215,14 @@ const sendReqForDevice = async (req, res) => {
         message: "data not added."
       })
     }
+
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Request sended successfully.",
       data: saveDoc
     })
+
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -3150,12 +3243,104 @@ const getUserDeviceReq = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({_id:verified.user});
-    console.log(33, loggedInUser)    
+    // console.log(33, loggedInUser)    
     const getReqData = await sendDeviceReqModel.find({
-      hospitalName:!!(loggedInUser.hospitalName)?loggedInUser.hospitalName:"KGMU Lucknow"
+      hospitalName:loggedInUser.hospitalName
     })
-    
+    // console.log(123, getReqData)
+
     if (getReqData.length<1) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "data not added."
+      })
+    }
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Request has been get successfully.",
+      data: getReqData,
+    })
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+// get device req list for hospital-admin role
+const getIndividualUserAccessDeviceList = async (req, res) => {
+  try {
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
+    // console.log(33, loggedInUser) 
+    
+    const assignedDeviceList = await assignDeviceTouserModel.find({userId:req.params.id}).sort({updatedAt:-1})
+    const deviceIds = assignedDeviceList.map(item => {
+      return item.deviceId;
+    })
+    // console.log(123, deviceIds) 
+    
+    const getDeviceData =  await statusModel.aggregate([
+      {
+        $match: {deviceId:{$in:deviceIds}}
+      },
+      {
+        $lookup: {
+          from: "registerdevices",
+          localField: "deviceId",
+          foreignField: "DeviceId",
+          as: "deviceInfo"
+        }
+      },
+      {
+        $lookup: {
+          from: "productions",
+          localField: "deviceId",
+          foreignField: "deviceId",
+          as: "prodDataInfo"
+        }
+      },
+      //  For this data model, will always be 1 record in right-side
+      // of join, so take 1st joined array element
+      {
+        "$set": {
+          "prodDataInfo": { "$first": "$prodDataInfo" },
+        }
+      },
+      // Extract the joined embeded fields into top level fields
+      {
+        "$set": { "serialNumber": "$prodDataInfo.serialNumber" },
+      },
+      {
+        $project: {
+          "createdAt": 0,
+          "__v": 0,
+          "deviceInfo.__v": 0,
+          "deviceInfo.createdAt": 0,
+          "deviceInfo.isAssigned": 0,
+          "deviceInfo.updatedAt": 0,
+          "deviceInfo.Status": 0,
+          "prodDataInfo":0,
+        }
+      },
+      {
+        $sort: { updatedAt: -1 }
+      }
+    ])
+  
+    if (getDeviceData.length<1) {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
@@ -3166,7 +3351,7 @@ const getUserDeviceReq = async (req, res) => {
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Request has been get successfully.",
-      data: getReqData,
+      data: getDeviceData,
     })
   } catch (err) {
     return res.status(500).json({
@@ -3223,4 +3408,5 @@ module.exports = {
   getAssistantList,
   removeHospitalAccessFromAst,
   // sendPrintEmail
+  getIndividualUserAccessDeviceList
 };

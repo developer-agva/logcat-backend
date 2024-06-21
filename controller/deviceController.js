@@ -3475,6 +3475,32 @@ const getDeviceAccessDoctList = async (req, res) => {
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user });
     // console.log(11,loggedInUser)
+    if (loggedInUser.userType == "Hospital-Admin" || loggedInUser.userType == "Super-Admin") {
+      const assignedDeviceIds = await assignDeviceTouserModel.find({deviceId:req.params.deviceId})
+      const doctorEmails = assignedDeviceIds.map(item => {
+        return item.userId;
+      })
+      // console.log(123, doctorEmails)
+
+      const doctorList = await User.find({_id:{$in:doctorEmails}},{firstName:1,lastName:1,email:1,contactNumber:1,hospitalName:1,department:1})
+      
+      if (!doctorList.length) {
+        return res.status(404).json({
+          statusCode: 404,
+          statusValue: "FAIL",
+          message: "Data not found.",
+          data: []
+        })
+      }
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Get device access doctor list successfully!",
+        data: doctorList
+      })
+    }
+
     var pipline = [
       // Match
       {
@@ -3675,9 +3701,48 @@ const deleteDeviceAccessFromDoctor = async (req, res) => {
     // const token = req.headers["authorization"].split(' ')[1];
     // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
-    const removeData = await assignDeviceTouserModel.findByIdAndDelete(
-      { _id:req.params._id}
+    const removeData = await assignDeviceTouserModel.findOneAndDelete(
+      { userId:req.params._id}
     )
+    if (!removeData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not deleted.",
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data deleted successfully.",
+    });
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+const deleteParticularDeviceId = async (req, res) => {
+  try {
+    // for logger activity
+    // const token = req.headers["authorization"].split(' ')[1];
+    // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
+    // const loggedInUser = await User.findById({_id:verified.user});
+    console.log(444, req.params.id)
+    console.log(445, req.params.deviceId)
+    const removeData = await assignDeviceTouserModel.findOneAndDelete(
+      {$and:[{ userId:req.params.id},{deviceId:req.params.deviceId}]}
+    )
+    // console.log(444, req.body)
     if (!removeData) {
       return res.status(400).json({
         statusCode: 400,
@@ -5884,5 +5949,6 @@ module.exports = {
   getWMYDataCountForAgvaPro,
   getActiveDevicesCountForAgvaPro,
   getWMYDemoDataCountForAgvaPro,
-  getActiveDemoDevicesCountForAgvaPro
+  getActiveDemoDevicesCountForAgvaPro,
+  deleteParticularDeviceId
 }

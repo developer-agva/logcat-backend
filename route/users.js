@@ -42,6 +42,7 @@ const {
     assignHospitalToAssistant,
     getAssistantList,
     removeHospitalAccessFromAst,
+    getIndividualUserAccessDeviceList
 
 } = require('../controller/users.js')
 
@@ -68,7 +69,7 @@ router.get('/get-user-device-req', getUserDeviceReq); // get device req list for
 router.post('/accept-or-reject-device-req', isAuth, acceptOrRejectdeviceReq);   // hospital admin can accept or reject device req
 router.post('/assign-hospital-to-assistant', isAuth, assignHospitalToAssistant); // done
 router.post('/remove-hospital-access-from-assistant', isAuth, removeHospitalAccessFromAst) // remove hospital access from assistant
-
+router.get('/get-doctor-access-device-list/:id', getIndividualUserAccessDeviceList); 
 
 
 // router.post("/auth/forget", body('email').notEmpty().isEmail(), userForgetPassword);
@@ -105,6 +106,7 @@ router.get('/get-assistant-list', isAuth, getAssistantList);
 
 
 router.get('/inactive-users-list', isAuth, getAllInactiveUsers);
+
 router.get('/active-admin-list', isAuth, getAllActiveAdmin);
 
 router.get('/pending-users-list', isAuth, getAllPendingUsers);  // done

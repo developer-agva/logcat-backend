@@ -49,6 +49,7 @@ const statusModelV2 = require('../model/statusModelV2');
 const logModelV2 = require('../model/logModelV2');
 const fcmNotificationModel = require('../model/fcmNotificationModel');
 const { title } = require('process');
+const sendDeviceReqModel = require('../model/sendDeviceReqModel');
 
 // initializeApp({
 //   credential: applicationDefault(),
@@ -2190,34 +2191,64 @@ const getAllDeviceId = async (req, res) => {
     let updatedArray = []
     let arrayUniqueByKey = [...new Map(finalArr.map(item => [item[key], item])).values()];
 
-
     // show isAssigned key for doctor role or assistant role
     if (!!loggedInUser && (loggedInUser.userType === "Doctor")) {
+       
+      const deviceReqData = await sendDeviceReqModel.find({$and:[{userId: loggedInUser._id},{isAssigned:"Pending"}]})
+      // console.log(12345, deviceReqData)
       const assignDeviceData = await assignDeviceTouserModel.find({ userId: loggedInUser._id })
+      // console.log(12333, assignDeviceData)
 
-      // map data for isAssigned key 
-      function updateIsAssigned(arrayUniqueByKey, assignDeviceData) {
-        // Map deviceId to assignDeviceData for faster lookup
-        const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
-          map[assign.deviceId] = assign;
-          return map;
-        }, {});
+      arrayUniqueByKey.forEach(device => {
+        const assigned = assignDeviceData.find(d => d.deviceId === device.deviceId);
+        const requested = deviceReqData.find(d => d.deviceId === device.deviceId && d.isAssigned === 'Pending');
+    
+        if (assigned) {
+            device.isAssigned = 'Accepted';
+        } else if (requested) {
+            device.isAssigned = 'Pending';
+        } else {
+            device.isAssigned = 'Request';
+        }
+      });
+      
+      arrayUniqueByKey.sort((a, b) => {
+        const order = {'Accepted':1, 'Pending':2, 'Request':3};
+        return order[a.isAssigned] - order[b.isAssigned];
+      })
+      updatedArray = arrayUniqueByKey;
 
-        // Update isAssigned based on matching deviceId
-        return arrayUniqueByKey.map(item => {
-          const assignInfo = assignDeviceMap[item.deviceId];
-          // console.log(11,assignInfo)
-          if (assignInfo && assignInfo.isAssigned === 'Accepted') {
-            item.isAssigned = true;
-          } else {
-            item.isAssigned = false;
-          }
-          return item;
-        });
-      }
 
-      updatedArray = updateIsAssigned(arrayUniqueByKey, assignDeviceData);
-      // console.log(123, updatedArray);
+      // const deviceReqData = await sendDeviceReqModel.find({$and:[{userId: loggedInUser._id},{isAssigned:"Pending"}]})
+      // // console.log(12345, deviceReqData)
+      // const assignDeviceData = await assignDeviceTouserModel.find({ userId: loggedInUser._id })
+      // // console.log(12333, assignDeviceData)
+
+      // // map data for isAssigned key 
+      // function updateIsAssigned(arrayUniqueByKey, assignDeviceData) {
+      //   // Map deviceId to assignDeviceData for faster lookup
+      //   const assignDeviceMap = assignDeviceData.reduce((map, assign) => {
+      //     map[assign.deviceId] = assign;
+      //     return map;
+      //   }, {});
+
+      //   // Update isAssigned based on matching deviceId
+      //   return arrayUniqueByKey.map(item => {
+      //     const assignInfo = assignDeviceMap[item.deviceId];
+      //     // console.log(11,assignInfo)
+      //     if (assignInfo && assignInfo.isAssigned === 'Accepted') {
+      //       item.isAssigned = true;
+      //     } else {
+      //       item.isAssigned = false;
+      //     }
+      //     return item;
+      //   });
+      // }
+
+      // updatedArray = updateIsAssigned(arrayUniqueByKey, assignDeviceData);
+      // // console.log(123, updatedArray);
+
+
 
     } else if (!!loggedInUser && (loggedInUser.userType === "Assistant")) {
       const assignDeviceData = await assignDeviceTouserModel.find({ securityCode: loggedInUser.securityCode })
