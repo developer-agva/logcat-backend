@@ -1,0 +1,7 @@
+dummy.txt
+*.txt
+node_modules
+info.log
+.env
+.md
+agvaapp-firebase-adminsdk-u6pru-1e70064b68.json

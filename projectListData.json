@@ -1,0 +1,48 @@
+{
+    "statusCode":"200",
+    "statusValue":"SUCCESS",
+    "data":[
+        {
+            "_id":"1",
+            "projectName":"AgVa-PRO",
+            "projectCode":"002",
+            "imageUrl": "https://logcat-bucket23.s3.ap-south-1.amazonaws.com/1714630402910_336796040.png"
+        },
+        {
+            "_id":"2",
+            "projectName":"Patient-Monitor",
+            "projectCode":"003",
+            "imageUrl": "https://logcat-bucket23.s3.ap-south-1.amazonaws.com/1714630452281_203424067.png"
+        },
+        {
+            "_id":"3",
+            "projectName":"OxyPlus",
+            "projectCode":"004",
+            "imageUrl": "https://logcat-bucket23.s3.ap-south-1.amazonaws.com/1714630402910_336796040.png"
+        },
+        {
+            "_id":"4",
+            "projectName":"Insulin",
+            "projectCode":"005",
+            "imageUrl": "https://logcat-bucket23.s3.ap-south-1.amazonaws.com/1714630341716_225717485.png"
+        },
+        {
+            "_id":"5",
+            "projectName":"Suction-Pump",
+            "projectCode":"NA",
+            "imageUrl": "https://logcat-bucket23.s3.ap-south-1.amazonaws.com/1714630484743_406546879.png"
+        },
+        {
+            "_id":"6",
+            "projectName":"Sedation",
+            "projectCode":"006",
+            "imageUrl": "https://logcat-bucket23.s3.ap-south-1.amazonaws.com/1714724175200_911379669.png"
+        },
+        {
+            "_id":"7",
+            "projectName":"Emergency",
+            "projectCode":"007",
+            "imageUrl": "https://logcat-bucket23.s3.ap-south-1.amazonaws.com/1714723732480_350276719.png"
+        }
+    ]
+}
