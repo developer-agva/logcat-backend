@@ -16,6 +16,7 @@ router.get('/production-list/v2/:productCode', isAuth, productionController.getP
 
 router.get('/get-byid/:deviceId', isAuth, productionController.getProductionById);
 router.get('/get-by-serialNumber/:serialNumber', isAuth, productionController.getProductionBySrNo);
+
 router.get('/get-production-devices', isAuth, productionController.getProductionDevices);
 
 

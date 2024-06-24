@@ -368,6 +368,75 @@ const getSignleFocusDevice = async (req, res) => {
 }
 
 
+
+/**
+ * api      GET @/devices/get-device-status-with-pincode
+ * desc     @getDevicesStatusWithPincode devices for map API
+ */
+const getDevicesStatusWithPincode = async (req, res) => {
+  try {
+    // Mapped device status with dispatch data
+    const getMappedData = await aboutDeviceModel.aggregate([
+      {
+        $match:{product_type:{$ne:"Suction"}}
+      },
+      {
+        $lookup:{
+          from:"device_statuses",
+          localField:"deviceId",
+          foreignField:"deviceId",
+          as:"statusInfo"
+        }
+      },
+      {
+        $set:{
+          "statusInfo":{"$first":"$statusInfo"}
+        }
+      },
+      // Extract the joined embeded fields into top level fields
+      // {
+      //   $set:{"message":"$statusInfo.message"}
+      // },
+      {
+        $set:{"message":{$ifNull:["$statusInfo.message", "NA"]}}
+      },
+      // Hide or show data
+      {
+        $project:{
+          "deviceId":1,
+          "message":1,
+          "pincode":1
+        }
+      }
+    ])
+
+    if (!!getMappedData) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data get successfully.",
+        data: getMappedData
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "data not found."
+    })
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }  
+}
+
+
 /**
  * api      UPDATE @/devices/update/DeviceId
  * desc     @update devices for logger access only
@@ -824,14 +893,14 @@ const addDeviceService = async (req, res) => {
     }
     priority = "High";
     
-    // check already exists and isVerified
-    const checkIsexistsAndVerfied = await servicesModel.findOne({
-      $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
-    })
+    // // check already exists and isVerified
+    // const checkIsexistsAndVerfied = await servicesModel.findOne({
+    //   $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
+    // })
     
-    let savedServices;
-    if (!!checkIsexistsAndVerfied) {
-      savedServices = await servicesModel.findOneAndUpdate({
+    // let savedServices;
+    // if (!!checkIsexistsAndVerfied) {
+      const savedServices = await servicesModel.findOneAndUpdate({
         $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
       },{
         deviceId: req.body.deviceId,
@@ -848,35 +917,37 @@ const addDeviceService = async (req, res) => {
         remark: "",
         issues: tags,
         priority: priority,
-      })
-    } else {
-      const newServices = new servicesModel({
-        deviceId: req.body.deviceId,
-        message: req.body.message,
-        date: req.body.date,
-        serialNo: otpValue,
-        name: req.body.name,
-        contactNo: req.body.contactNo,
-        hospitalName: req.body.hospitalName,
-        wardNo: req.body.wardNo,
-        email: req.body.email,
-        department: req.body.department,
-        ticketStatus: "Open",
-        remark: "",
-        issues: tags,
-        priority: priority,
-      });
-      // console.log(req.body)
-      savedServices = await newServices.save();
-    }
+      },{upsert:true})
+
+    // } else {
+    //   const newServices = new servicesModel({
+    //     deviceId: req.body.deviceId,
+    //     message: req.body.message,
+    //     date: req.body.date,
+    //     serialNo: otpValue,
+    //     name: req.body.name,
+    //     contactNo: req.body.contactNo,
+    //     hospitalName: req.body.hospitalName,
+    //     wardNo: req.body.wardNo,
+    //     email: req.body.email,
+    //     department: req.body.department,
+    //     ticketStatus: "Open",
+    //     remark: "",
+    //     issues: tags,
+    //     priority: priority,
+    //   });
+    //   // console.log(req.body)
+    //   savedServices = await newServices.save();
+    // }
     
-    const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 });
+    const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 }).limit(1);
     // console.log(11, getLastData) 
-    if (!!savedServices) {
+    if (getLastData) {
+      // console.log('enter', true)
       await servicesModel.findOneAndUpdate(
-        { serialNo: getLastData[0].serialNo },
+        { serialNo: `${otpValue}` },
         {
-          otp: getLastData[0].serialNo,
+          otp: `${otpValue}`,
           isVerified: false,
         },
       )
@@ -915,6 +986,7 @@ const addDeviceService = async (req, res) => {
         data: savedServices
       });
     }
+    // console.log(22, false)
     return res.status(400).json({
       statusCode: 400,
       statusValue: "FAIL",
@@ -5725,6 +5797,82 @@ const getTotalActiveDevicesCount = async (req, res) => {
   }
 }
 
+// replace deviceId by new deviceId
+const replaceDeviceIds = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      deviceId: Joi.string().min(16).max(16).required(),
+      newDeviceId: Joi.string().min(16).max(16).required()
+    })
+    let validationResult = schema.validate(req.body);
+    if (validationResult.error) {
+      return res.status(200).json({
+        statusValue: 0,
+        statusCode: 400,
+        message: validationResult.error.details[0].message,
+      })
+    }
+
+    const aboutData = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
+    const prodData = await productionModel.findOne({deviceId:req.body.deviceId})
+    if (!aboutData || !prodData) {
+      return res.status(200).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "deviceId does not exists."
+      })
+    }
+
+    const updateAbout = await aboutDeviceModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+    const updateProd = await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+    if (updateProd && updateAbout) {
+
+      await accountsHistoryModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await accountsModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await markAsShippedModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await RegisterDevice.findOneAndUpdate({DeviceId:req.body.deviceId},{DeviceId:req.body.newDeviceId})
+      await returnDeviceModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3BucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3BucketInsModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3BucketProdModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3shippingBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3ewayBillBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3invoiceBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3PatientFileModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3poBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3ReturnPoBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await servicesModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      await s3PatientFileModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+      
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "deviceId updated successfully.",
+        data: req.body,
+      })
+    }
+
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Error! while updating deviceId",
+      data: req.body
+    })
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+
 /**
  * data - {req.body, req.params}
  * GET - /api/logger/logs/getDevicesNeedingAttention/:filterType
@@ -5817,7 +5965,7 @@ const getDevicesNeedingAttention = async (req, res) => {
   }
 }
 
-// replace deviceId by new deviceID
+// replace deviceId by new deviceId
 const replaceDeviceId = async (req, res) => {
   try {
     const schema = Joi.object({
@@ -5909,6 +6057,7 @@ module.exports = {
   updateDevices,
   // addDispatchDetails,
   getAboutByDeviceId,
+  replaceDeviceIds,
   sendAndReceiveData,
   assignedDeviceToUser,
   getAssignedDeviceById,
@@ -5950,5 +6099,6 @@ module.exports = {
   getActiveDevicesCountForAgvaPro,
   getWMYDemoDataCountForAgvaPro,
   getActiveDemoDevicesCountForAgvaPro,
-  deleteParticularDeviceId
+  deleteParticularDeviceId,
+  getDevicesStatusWithPincode
 }

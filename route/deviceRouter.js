@@ -25,7 +25,13 @@ router.get('/get-details/:DeviceId', deviceController.getDeviceById);
 router.delete('/delete-byid/:DeviceId', deviceController.deleteSingleDevice);
 router.get('/get-devices-by-hospital/:hospital_name', deviceController.getDevicesByHospital);
 router.put('/update-addtofocus/:deviceId', isAuth, deviceController.updateAddtofocus);    // tested and done
+router.put('/replace-deviceIds', deviceController.replaceDeviceIds)
 router.get('/get-addtofocus/:deviceId', deviceController.getSignleFocusDevice)
+
+// Map deviceIds with pincode and status
+router.get('/get-device-status-with-pincode', deviceController.getDevicesStatusWithPincode)  // For AgVa Pro
+
+
 // router.get()
 
 router.get("/update/devices/new", deviceController.updateDevices)
