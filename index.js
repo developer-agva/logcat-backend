@@ -15,6 +15,7 @@ const {deviceIdArr} = require('./middleware/msgResponse');
 // sendin blue
 const Sib = require("sib-api-v3-sdk");
 require("dotenv").config();
+// const https = require('https')
 
 const client = Sib.ApiClient.instance;
 const apiKey = client.authentications["api-key"];
@@ -130,7 +131,7 @@ const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
       // List of allowed origins
-      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000"];
+      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000", "https://18.144.79.162:3000"];
 
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -207,7 +208,6 @@ io.on('connection', (socket) => {
 });
 
 // Socket end
-
 // Start code for 
 
 server.listen(PORT, () =>

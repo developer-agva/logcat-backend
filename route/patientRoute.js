@@ -7,7 +7,7 @@ const upload = require('../helper/upload.helper');
 const uploadController = require('../controller/upload.controller');
 // Patient routes
 
-router.post('/save-uhid-details', patientController.saveUhid);
+router.post('/save-uhid-detailss', patientController.saveUhid);  //
 router.post('/save-uhid-details/v2/:projectCode', patientController.saveUhidV2);   // v2-version
 // router.get('/get-uhid-details/v2/:projectCode', patientController.saveUhidV2);
 

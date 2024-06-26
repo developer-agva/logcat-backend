@@ -290,7 +290,6 @@ const getAllUhid = async (req, res) => {
     if (req.query.search && req.query.search !== "undefined") {
       search = req.query.search;
     }
-
     // Pagination
     let { page, limit } = req.query;
     if (!page || page === "undefined") {
@@ -307,76 +306,67 @@ const getAllUhid = async (req, res) => {
     // For logger user activity
     const loggedInUser = await User.findById({_id:verified.user});
     // console.log(loggedInUser)
-    // Declare blank object
-    // let filterObj = {};
+
+    // Declare blank array
     let assignDeviceData = []
     if (!!loggedInUser && loggedInUser.userType == "Doctor") {
       assignDeviceData = await assignDeviceTouserModel.find({userId:loggedInUser._id})
       // console.log(assignDeviceData)
     } else if (loggedInUser.userType == "Assistant") {
-      assignDeviceData = await assignDeviceTouserModel.find({assistantId:loggedInUser._id})
+      assignDeviceData = await assignDeviceTouserModel.find({securityCode:loggedInUser.securityCode})
       // console.log(22)
     }
-    // console.log(11,assignDeviceData)
-      // get device list on the basis of user hospital name
-      // const deviceData = await statusModel.aggregate([
-      //   {
-      //     $lookup:
-      //     {
-      //       from: "registerdevices",
-      //       localField: "deviceId",
-      //       foreignField: "DeviceId",
-      //       as: "deviceInfo"
-      //     }
-      //   },
-      //   {
-      //     $match:{"deviceInfo.Hospital_Name":loggedInUser.hospitalName}
-      //   },
-      //   {
-      //     $project:{
-      //       "createdAt":0, "__v":0, "deviceInfo.__v":0,"deviceInfo.createdAt":0,
-      //       "deviceInfo.updatedAt":0, "deviceInfo.Status":0,
-      //     }
-      //   },
-      //   {
-      //     $sort: { updatedAt:-1 },
-      //   },
-      // ])
-
-      // get deviceIds
-      let deviceIds = assignDeviceData.map((item) => item.deviceId)
-      deviceIds = [...new Set(deviceIds)]
+    
+    // Get deviceIds
+    let deviceIds = assignDeviceData.map((item) => item.deviceId)
+    deviceIds = [...new Set(deviceIds)]
       
-      // Get patient list
-      const getList = await patientModel.find({deviceId:{$in:deviceIds}},{__v:0,createdAt:0,updatedAt:0,})
-      .sort({ createdAt: -1 });
+    // Define list of patient list of access deviceIds
+    const getList = await patientModel.aggregate([
+      {
+        $match:{deviceId:{$in:deviceIds}}
+      },
+      {
+        "$match":{
+          "$or":[
+            { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
+            { UHID: { $regex: ".*" + search + ".*", $options: "i" } },
+            { patientName: { $regex: ".*" + search + ".*", $options: "i" } },
+            { hospitalName: { $regex: ".*" + search + ".*", $options: "i" } },
+          ]
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      { $project: { __v: 0, createdAt: 0, updatedAt: 0 } }
+    ])
       
-      // Paginate data array
-      const paginateArray =  (getList, page, limit) => {
-        const skip = getList.slice((page - 1) * limit, page * limit);
-        return skip;
-      };
       
-      var allDevices = paginateArray(getList, page, limit)
+    // Paginate data array
+    const paginateArray =  (getList, page, limit) => {
+      const skip = getList.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
       
-      // Check data length
-      if (!getList) {
-        return res.status(400).json({
-          statusCode: 400,
-          statusValue: "FAIL",
-          message: "Data not found.",
-          data: []
-        })
-      }
-      return res.status(200).json({
-        statusCode: 200,
-        statusValue: "SUCCESS",
-        message: "Patient list get successfully.",
-        data: allDevices,
-        totalDataCount: getList.length,
-        totalPages: Math.ceil( (getList.length)/ limit),
-        currentPage: page,
+    var allDevices = paginateArray(getList, page, limit)
+      
+    // Check data length
+    if (allDevices.length<1) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found.",
+        data: []
       })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Patient list get successfully.",
+      data: allDevices,
+      totalDataCount: getList.length,
+      totalPages: Math.ceil( (getList.length)/ limit),
+      currentPage: page,
+    })
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
