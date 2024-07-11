@@ -288,106 +288,6 @@ const updateAccountDataById = async (req, res) => {
 }
 
 
-
-// /**
-//  * 
-//  * @param {*} req 
-//  * @param {*} res 
-//  * api GET@/api/logger/
-//  */
-// const getAccountsDataa = async (req, res) => {
-//     try {
-//         // Search
-//         var search = "";
-//         if (req.query.search && req.query.search !== "undefined") {
-//         search = req.query.search;
-//         }
-//         // for pagination
-//         let page = req.query.page
-//         let limit = req.query.limit
-//         if (!page || page === "undefined") {
-//         page = 1;
-//         }
-//         if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-//         limit = 999999;
-//         }
-
-//         // aggregate logic
-//         var pipline = [
-//              // Match
-//             // {},
-//             {
-//                 "$lookup":{
-//                   "from":"s3_invoice_buckets",
-//                   "localField":"invoiceNo",
-//                   "foreignField":"invoiceNo",
-//                   "as":"invoiceData"
-//                 }
-//             },
-//             {
-//                 "$lookup":{
-//                   "from":"s3_ewaybill_buckets",
-//                   "localField":"ewaybillNo",
-//                   "foreignField":"ewaybillNo",
-//                   "as":"ewaybillData"
-//                 }
-//             },
-//             {
-//                 "$lookup":{
-//                   "from":"about_devices",
-//                   "localField":"deviceId",
-//                   "foreignField":"deviceId",
-//                   "as":"dispatchData"
-//                 }
-//             },
-
-//             // For this data model, will always be 1 record in right-side
-//             // of join, so take 1st joined array element
-//             {
-//                 "$set": {
-//                   "invoiceData": {"$first": "$invoiceData"},
-//                   "ewaybillData": {"$first": "$ewaybillData"},
-//                   "dispatchData": {"$first": "$dispatchData"},
-//                 }
-//             },
-//             // Extract the joined embeded fields into top level fields
-//             {
-//                 "$set": {"invoicePdf": "$invoiceData.location", "ewaybillPdf": "$ewaybillData.location"},
-//             },
-//             {
-//                 "$unset": [
-//                   "invoiceData",
-//                   "ewaybillData",
-//                   "__v",
-//                   // "createdAt",
-//                   "updatedAt",
-//                   // "otp",
-//                   // "isVerified",
-//                 ]
-//             },
-//         ]
-//         // get data
-//         const resData = await accountsModel.aggregate(pipline);
-//         return res.status(200).json({
-//             statusCode: 200,
-//             statusValue:"SUCCESS",
-//             message:"Location data get successfully.",
-//             data:resData
-//         })
-//     } catch (error) {
-//         return res.status(500).json({
-//             statusCode: 500,
-//             statusValue: "FAIL",
-//             message:"Internal server error",
-//             data:{
-//                 name:"locationCotroller/getLocationByDeviceId",
-//                 error:error
-//             }
-//         })
-//     }
-// }
-
-
 /**
  * 
  * @desc get all dispatch req data 
@@ -640,7 +540,7 @@ const getProductionListV2 = async (req, res) => {
         // aggregate logic
         var pipline = [
             // Match
-           {"$match":{$or:[{shipmentMode:"req_doc"},{shipmentMode:"inprocess"}]}},
+           {"$match":{$or:[{shipmentMode:"req_doc"},{shipmentMode:"inprocess"},{shipmentMode:"retun"}]}},
            // filter data from the above data list
             // search operation
             {

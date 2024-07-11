@@ -278,7 +278,7 @@ exports.uploadPatientFile = async (req, res) => {
     res.json(req.file);
   //   console.log(req.file.fieldname, req.params.deviceId)  
   const newObj = {
-        "deviceId":req.params.deviceId,
+        // "deviceId":req.params.deviceId,
         "UHID":req.params.UHID,
         ...req.file,
     }

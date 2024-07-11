@@ -1,3 +1,4 @@
+const { required } = require('joi')
 const mongoose = require('mongoose')
 // const Schema = mongoose.Schema;
 
@@ -9,6 +10,7 @@ const patientSchema = mongoose.Schema({
     UHID: {
         type: String,
         required: true,
+        unique:true
     },
     age: {
         type: String,
@@ -31,10 +33,10 @@ const patientSchema = mongoose.Schema({
         type: String,
         default: ""
     },
-    dosageProvided: {
-        type: String,
-        default: "",
-    },
+    // dosageProvided: {
+    //     type: String,
+    //     default: "",
+    // },
     ward_no: {
         type: String,
         default: "",
@@ -49,11 +51,13 @@ const patientSchema = mongoose.Schema({
     },
     medicalDiagnosis: [
         {
-            medicine: { type: String, default: "" },
-            procedure: { type: String, default: "" },
-            others: { type: String, default: "" },
-            time: { type: String, default: "" },
-            date: { type: String, default: "" },
+            dateTime: { type: String, default: "" },
+            medication: { type: String, default: "" },
+            report: { type: String, default: "" },
+            stats: [{
+                statsData:{type:String, default:""},
+                statsValue:{type:String, default:""}
+            }],
         },
     ],
     location:{
@@ -68,18 +72,48 @@ const patientSchema = mongoose.Schema({
         type: String,
         default: ""
     },
-    bed_no: {
+    // bed_no: {
+    //     type: String,
+    //     default: ""
+    // },
+    // hypertension: {
+    //     type: Boolean,
+    //     default: false,
+    // },
+    // diabetes: {
+    //     type: Boolean,
+    //     default: false,
+    // },
+    serial_no:{
         type: String,
         default: ""
     },
-    hypertension: {
-        type: Boolean,
-        default: false,
+    bmi:{
+        type: String,
+        default: ""
     },
-    diabetes: {
-        type: Boolean,
-        default: false,
-    }
+    discharge:{
+        startDateTime:{ type: String, default: "" },
+        endDateTime:{ type: String, default: "" },
+        status:{type: Boolean, default: false}
+    },
+    illnessData:[
+        {
+           name:{ type: String, required: true, default: "" },
+           startDate: { type: String, required: true, default:"" },
+           endDate: { type: String, required: true, default:"" },
+           status: { type: Boolean, required: true, default: true },
+        }
+    ],
+    medicineData:[
+        {
+            name:{ type: String, required: true, default: "" },
+            startDate: { type: String, required: true, default:"" },
+            endDate: { type: String, required: true, default:"" },
+            status: { type: Boolean, required: true, default: true },
+        }
+    ]
+    
 },
     { timestamps: true })
 

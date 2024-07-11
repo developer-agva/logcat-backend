@@ -14,6 +14,7 @@ const mongoose = require('mongoose');
 const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel');
 const patientModelV2 = require('../model/patientModelV2');
 const patientDischargeModelV2 = require('../model/patientDischargeModelV2');
+const aboutDeviceModel = require('../model/aboutDeviceModel');
 
 /**
  * api      POST @/patient/save-uhid-details
@@ -23,7 +24,7 @@ const saveUhid = async (req, res) => {
   try {
     const deviceDetails = await RegisterDevice.findOne({DeviceId:req.body.deviceId});
     const patientData = await patientModel.findOneAndUpdate(
-      { UHID:"Agva121" },
+      { UHID:"" },
       { 
         UHID:!!(req.body.UHID) ? req.body.UHID : "",
         deviceId:!!(req.body.deviceId) ? req.body.deviceId : "",
@@ -174,41 +175,82 @@ const savePatientDischargeData = async (req, res) => {
  */
 const saveDiagnose = async (req, res) => {
   try {
+    // Get current date and time in India time zone
+    const indiaTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).formatToParts(new Date());
+
+    // Parse the parts into an object
+    const indiaTimeObj = {};
+    indiaTime.forEach(({ type, value }) => {
+      indiaTimeObj[type] = value;
+    });
+
+    // Format the date and time
+    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`; 
+    //End date time 
+
     const diagnoseData = await patientModel.findOne({UHID:req.params.UHID});
-    const arr1 = diagnoseData.medicalDiagnosis;
-    const {medicine, procedure, others, time, date} = req.body;
-    const arr2 = [{
-      medicine:medicine,
-      procedure:procedure,
-      others:others,
-      time:time,
-      date:date
-      // date:new Date()
-    }];
-    const finalArr = [...arr1,...arr2];
-    
-    const patientData = await patientModel.findOneAndUpdate(
-      {UHID:req.params.UHID},
-      {
-        medicalDiagnosis:finalArr
-      },
-      { upsert: true }
-    );
-  
-    if (!diagnoseData) {
-      return res.status(400).json({
-        statusCode: 400,
-        statusValue: "FAIL",
-        message: "Data not added."
+    const prevDiagnose = diagnoseData.medicalDiagnosis;
+    // console.log(11, prevDiagnose)
+
+    const {medication,stats} = req.body;
+
+    if (prevDiagnose.length>0) {
+      // console.log(true)
+      const arr2 = [{
+        medication:medication,
+        report:!!(diagnoseData.location) ? diagnoseData.location : "NA",
+        dateTime:formattedDate,
+        stats:!!(stats) ? stats : "NA",
+      }];
+      const finalArr = [...prevDiagnose,...arr2];
+      console.log(12,finalArr)
+      
+      const patientData = await patientModel.findOneAndUpdate(
+        {UHID:req.params.UHID},
+        {
+          medicalDiagnosis:finalArr
+        },
+        { upsert: true }
+      ); 
+      res.status(200).json({
+        statusCode: 201,
+        statusValue: "SUCCESS",
+        message: "Data added successfully.",
+      });
+    } else if (prevDiagnose.length<1) {
+      const arr2 = [{
+        medication:medication,
+        report:!!(diagnoseData.location) ? diagnoseData.location : "NA",
+        dateTime:formattedDate,
+        stats:!!(req.body.stats) ? req.body.stats : "NA",
+      }];
+        
+      const patientData = await patientModel.findOneAndUpdate(
+        {UHID:req.params.UHID},{medicalDiagnosis:arr2},{ upsert: true })
+      if (!diagnoseData) {
+        return res.status(400).json({
+          statusCode: 400,
+          statusValue: "FAIL",
+          message: "Data not added."
+        });
+      }
+      res.status(200).json({
+        statusCode: 201,
+        statusValue: "SUCCESS",
+        message: "Data added successfully.",
       });
     }
-    res.status(200).json({
-      statusCode: 201,
-      statusValue: "SUCCESS",
-      message: "Data added successfully.",
-      // data: patientData
-    });
-  } catch (error) {
+    
+  } catch (err) {
     return res.status(500).json({
       statusCode: 500,
       statusValue: "FAIL",
@@ -231,40 +273,385 @@ const updatePatientById = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     // console.log(verified)
+    // console.log(req.body)
     const loggedInUser = await User.findById({_id:verified.user});
-
-    const patientData = await patientModel.findOneAndUpdate(
-      {_id:req.params.id},
-      {
-        UHID:!!(req.body.UHID) ? req.body.UHID : "",
-        age:!!(req.body.age) ? req.body.age : "",
-        deviceId:!!(req.body.deviceId) ? req.body.deviceId : "",
-        weight:!!(req.body.weight) ? req.body.weight : "",
-        height:!!(req.body.height) ? req.body.height : "",
-        patientName:!!(req.body.patientName) ? req.body.patientName : "",
-        hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "",
-        dosageProvided:!!(req.body.dosageProvided) ? req.body.dosageProvided : "",
-        ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
-        doctor_name:!!(req.body.doctor_name) ? req.body.doctor_name : "",
-        bed_no:!!(req.body.bed_no) ? req.body.bed_no : "",
-        hypertension:!!(req.body.hypertension) ? req.body.hypertension : false,
-        diabetes:!!(req.body.diabetes) ? req.body.diabetes : false,
-      },
-      { upsert: true }
-    );
-    if (!patientData) {
+    if (req.body.UHID == "" || req.body.UHID == undefined || req.body.UHID == null) {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "Data not added."
+        message: "Error!! Data not added! empty UHID"
       });
     }
-    res.status(200).json({
+
+    // Get current date and time in India time zone
+    const indiaTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).formatToParts(new Date());
+
+    // Parse the parts into an object
+    const indiaTimeObj = {};
+    indiaTime.forEach(({ type, value }) => {
+      indiaTimeObj[type] = value;
+    });
+
+    // Format the date and time
+    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+    
+    // console.log(123, req.body)
+    const getDispatchData = await aboutDeviceModel.findOne({$or:[{deviceId:req.body.deviceId},{serial_no:req.body.serial_no}]});
+    const patientData = await patientModel.findOneAndUpdate(
+      {UHID:req.body.UHID},
+      {
+        UHID:req.body.UHID,
+        age:!!(req.body.age) ? req.body.age : "",
+        deviceId:!!getDispatchData ? getDispatchData.deviceId : "NA",
+        serial_no:!!req.body.serial_no ? req.body.serial_no : "NA",
+        weight:!!(req.body.weight) ? req.body.weight : "",
+        height:!!(req.body.height) ? req.body.height : "",
+        hospitalName:!!(loggedInUser.hospitalName) ? loggedInUser.hospitalName : "",
+        ward_no:!!(req.body.ward_no) ? req.body.ward_no : "",
+        doctor_name:!!(req.body.doctor_name) ? req.body.doctor_name : "",
+        bmi:!!(req.body.bmi) ? req.body.bmi : "NA",
+        discharge:{startDateTime:!!(req.body.startDateTime) ? req.body.startDateTime : formattedDate},
+
+        illnessData: (req.body.diagnoseData).map( item => ({
+          name:item,
+          startDate:formattedDate,
+          endDate:""
+        }) ),
+        medicineData:(req.body.medicineData).map(item => ({
+          name:item,
+          startDate:formattedDate,
+          endDate:""
+        })),
+        patientName:!!(req.body.patientName) ? req.body.patientName : "",
+        // dosageProvided:!!(req.body.dosageProvided) ? req.body.dosageProvided : "",
+        // bed_no:!!(req.body.bed_no) ? req.body.bed_no : "",
+        // hypertension:!!(req.body.hypertension) ? req.body.hypertension : false,
+        // diabetes:!!(req.body.diabetes) ? req.body.diabetes : false,
+      },
+      { new:true, upsert: true }
+    );
+    return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Data added successfully.",
+      data: patientData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+/**
+ * api      POST @/patient/add-medicineData-and-illnessData
+ * desc     @saveUhid for publickly access
+ */
+const addMedicineAndIllnessDataByUHID = async (req, res) => {
+  try {
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({_id:verified.user});
+
+    const { UHID, diagnoseData, medicineData } = req.body;
+    if (UHID == "" || UHID == undefined || UHID == null) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Data not added! empty UHID"
+      });
+    }
+
+    // Get current date and time in India time zone
+    const indiaTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).formatToParts(new Date());
+
+    // Parse the parts into an object
+    const indiaTimeObj = {};
+    indiaTime.forEach(({ type, value }) => {
+      indiaTimeObj[type] = value;
+    });
+
+    // Format the date and time
+    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+  
+    // Prepare new data to be added
+    const newIllnessData = diagnoseData.map(item => ({
+      name: item,
+      startDate: formattedDate, // Provide appropriate values
+      endDate: "",   // Provide appropriate values
+    }));
+
+    const newMedicineData = medicineData.map(item => ({
+      name: item,
+      startDate: formattedDate, // Provide appropriate values
+      endDate: "",   // Provide appropriate values
+    }));
+
+    const patientData = await patientModel.findOneAndUpdate(
+      {UHID:req.body.UHID},
+      {
+        $push: {
+          illnessData:{$each:newIllnessData},
+          medicineData:{$each:newMedicineData} 
+        }
+      },
+      {new:true, upsert:true}
+    );
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data added successfully.",
+      data: patientData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+/**
+ * api      POST @/patient/remove-medicineData-and-illnessData
+ * desc     @removeMedicineAndIllnessDataByUHID for logger access
+ */
+const removeMedicineAndIllnessDataByUHID = async (req, res) => {
+  try {
+    // console.log('ids', req.body)
+    const { UHID, illnessId} = req.body;
+    if (UHID == "" || UHID == undefined || UHID == null) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Data not added! empty UHID"
+      });
+    }
+    
+    for (const id of illnessId) {
+      await patientModel.findOneAndUpdate(
+        { UHID: UHID },
+        {
+          $pull: {
+            illnessData: { _id: id },
+          }
+        },
+        { new: true }
+      )
+    }
+
+    for (const id of illnessId) {
+      await patientModel.findOneAndUpdate(
+        { UHID: UHID },
+        {
+          $pull: {
+            medicineData: { _id: id },
+          }
+        },
+        { new: true }
+      )
+    }
+    
+    if (!UHID && illnessId.length<1) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Data not removed!. Wrong id"
+      });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data deleted successfully.",
       // data: patientData
     });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+/**
+ * api      POST @/patient/remove-medicineData-and-illnessData
+ * desc     @removeMedicineAndIllnessDataByUHID for logger access
+ */
+const updateMedicineAndIllnessDataByUHID = async (req, res) => {
+  try {
+    
+    const { UHID, illnessId, medicineId, endDate} = req.body;
+    if (UHID == "" || UHID == undefined || UHID == null) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Data not added! empty UHID"
+      });
+    }
+    if ( !!UHID, !!illnessId, !!endDate) {
+      const updateDoc = await patientModel.findOneAndUpdate(
+        {UHID:UHID, "illnessData._id":illnessId},
+        {
+          $set: {
+            "illnessData.$.endDate":endDate,
+            "illnessData.$.status":false
+          },
+        },
+        { new: true }
+      )
+
+      if (!updateDoc) {
+        return res.status(400).json({
+          statusCode: 400,
+          statusValue: "FAIL",
+          message: "Error!! Data not removed!. Wrong id"
+        });
+      }
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data updated successfully.",
+        // data: patientData
+      });
+    }
+    
+    if ( !!UHID, !!medicineId, !!endDate) {
+      const updateDoc = await patientModel.findOneAndUpdate(
+        {UHID:UHID, "medicineData._id":medicineId},
+        {
+          $set: {
+            "medicineData.$.endDate":endDate,
+            "medicineData.$.status":false
+          },
+        },
+        { new: true }
+      )
+      
+      if (!updateDoc) {
+        return res.status(400).json({
+          statusCode: 400,
+          statusValue: "FAIL",
+          message: "Error!! Data not removed!. Wrong id"
+        });
+      }
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data updated successfully.",
+        // data: patientData
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+
+/**
+ * api      POST @/patient/save-uhid-details
+ * desc     @saveUhid for publickly access
+ */
+const updatePatientDischarge = async (req, res) => {
+  try {
+    
+    // Get current date and time in India time zone
+    const indiaTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).formatToParts(new Date());
+
+    // Parse the parts into an object
+    const indiaTimeObj = {};
+    indiaTime.forEach(({ type, value }) => {
+      indiaTimeObj[type] = value;
+    });
+
+    // Format the date and time
+    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+    if (req.body.status == "yes") {
+      const patientData = await patientModel.findOneAndUpdate(
+        {UHID:req.params.UHID},
+        {
+          discharge:{endDateTime:formattedDate,status:true},
+        },
+        { upsert: true }
+      );
+     
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data added successfully.",
+        data: patientData
+      });
+    } else if (req.body.status == "no") {
+      const patientData = await patientModel.findOneAndUpdate(
+        {UHID:req.params.UHID},
+        {
+          discharge:{endDateTime:"",status:false},
+        },
+        { upsert: true }
+      );
+     
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data added successfully.",
+        data: patientData
+      });
+    }
+    
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -324,7 +711,7 @@ const getAllUhid = async (req, res) => {
     // Define list of patient list of access deviceIds
     const getList = await patientModel.aggregate([
       {
-        $match:{deviceId:{$in:deviceIds}}
+        $match:{deviceId:{$in:deviceIds}, UHID:{$ne:""}}
       },
       {
         "$match":{
@@ -707,7 +1094,7 @@ const getAllPatientDischargeData = async (req, res) => {
  */
 const getDataById = async (req, res) => {
   try {
-    const getData = await patientModel.findOne({_id:req.params.id},{__v:0,});
+    const getData = await patientModel.findOne({_id:req.params.id},{__v:0, key:0, location:0, createdAt:0, patientProfile:0});
     
     // check UHID data
     if (!getData) {
@@ -785,9 +1172,10 @@ const getDiagnoseByUhid = async (req, res) => {
   try {
     const UHID = req.params.UHID;
     const getData = await patientModel.findOne({UHID:UHID},{__v:0,});
+    const diagnoseData = getData.medicalDiagnosis
     
     // check UHID data
-    if (!getData) {
+    if (diagnoseData.length<1) {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
@@ -912,5 +1300,9 @@ module.exports = {
   getAllUhidBydeviceIdV2,
   getAllUhidV2,
   getDiagnoseByUhidV2,
-  getAllUhidsV2
+  getAllUhidsV2,
+  updatePatientDischarge,
+  addMedicineAndIllnessDataByUHID,
+  removeMedicineAndIllnessDataByUHID,
+  updateMedicineAndIllnessDataByUHID
 }

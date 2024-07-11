@@ -28,6 +28,11 @@ apiKey.apiKey = process.env.API_KEY;
 const users = require("./route/users.js");
 const projects = require("./route/projects"); 
 const logs = require("./route/logs");
+
+// medicine route data
+const medicine=require("./route/medesionRout.js") 
+
+
 // const RegisterDevice=require('./route/RegisterDevice');
 const deviceRouter = require("./route/deviceRouter.js");
 const patientRouter = require("./route/patientRoute.js");
@@ -39,6 +44,7 @@ var indexRouter = require('./route/index');
 const commonRouter = require("./route/commonRoute.js");
 const accountsRouter = require("./route/accountsRoute.js");
 const salesRouter = require('./route/salesRoute.js');
+const insulRouter = require('./route/insulRoute.js')
 
 // creating connection with DB
 connectDB();
@@ -78,6 +84,7 @@ app.use("/api/logger", users);
 
 // Project Routing
 app.use("/api/logger/projects", projects);
+app.use("/allMedicine",medicine);
 app.use("/registerDev", require("./route/RegisterDevice.js"));
 app.use("/devices", deviceRouter);
 app.use("/patient", patientRouter);
@@ -89,6 +96,7 @@ app.use('/api/s3', indexRouter);
 app.use("/api/common", commonRouter);
 app.use("/api/logger", accountsRouter);
 app.use("/api/marketing", salesRouter);
+app.use('/insul', insulRouter);
 
 
 // Logs Routing

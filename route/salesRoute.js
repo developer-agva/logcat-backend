@@ -6,6 +6,7 @@ const salesController = require('../controller/salesController');
 router.post('/expense/add', salesController.addExpense);
 router.get('/expense/get-all', salesController.getAllExpenses);
 router.put('/expense/update/:id', salesController.updateExpenseById);
+router.delete('/expense/delete/:id', salesController.deleteExpenseById);
 
 // Route for Sales or Demo
 

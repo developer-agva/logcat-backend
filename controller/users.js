@@ -2996,114 +2996,6 @@ const assignHospitalToAssistant = async (req, res) => {
 // remove access from assistant
 const removeHospitalAccessFromAst = async (req, res) => {
   try {
-    // // for loggedin user details
-    // const token = req.headers["authorization"].split(' ')[1];
-    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-    // const loggedInUser = await User.findById({_id:verified.user});
-    
-    // const totalDeviceData = 
-    // [
-    // {
-    //     "deviceId": '3a77a7d5197dbb6a',
-    //     "addTofocus": true,
-    //     "deviceInfo": [
-    //                     {
-    //                         "_id": "652179593cf0fea97f09b8b9",
-    //                         "DeviceId": "3a77a7d5197dbb6a",
-    //                         "Hospital_Name": "KGMU Lucknow",
-    //                         "isAssigned": true,
-    //                         "addTofocus": false
-    //                     }
-    //                 ]
-    //   },
-    //   {
-    //     "deviceId": '746ec924d3845797',
-    //     "addTofocus": false,
-    //     "deviceInfo": [
-    //                     {
-    //                         "_id": "65eff595b5bccf2599bb5bad",
-    //                         "DeviceId": "746ec924d3845797",
-    //                         "Hospital_Name": "AIIMS DELHI",
-    //                         "addTofocus": false,
-    //                         "isAssigned": false
-    //                     }
-    //                 ]
-    //   }
-    // ]
-
-    // let assignDeviceData = 
-    // [
-    //   {
-    //     "userId": "65f03f9bc176567af5200042",
-    //     "assignedBy": 'kgmu-admin@gmail.com',
-    //     "deviceId": '3a77a7d5197dbb6a',
-    //     "status": true,
-    //     "isAssigned": 'Accepted',
-    //     "hospitalName": 'KGMU Lucknow'
-    //   },
-    //   {
-    //     "userId": "65f03f9bc176567af5200042",
-    //     "assignedBy": 'kgmu-admin@gmail.com',
-    //     "deviceId": '3a77a7d5197dbb64',
-    //     "status": true,
-    //     "isAssigned": 'Accepted',
-    //     "hospitalName": 'KGMU Lucknow'
-    //   },
-    //   {
-    //     "userId": "65f03f9bc176567af5200042",
-    //     "assignedBy": 'kgmu-admin@gmail.com',
-    //     "deviceId": '3a77a7d5197dbb64',
-    //     "status": true,
-    //     "isAssigned": 'Accepted',
-    //     "hospitalName": 'KGMU Lucknow'
-    //   }
-    // ]
-    
-    // // Map data for isAssigned key
-    // function updateisAssigned(totalDeviceData, assignDeviceData) {
-    //   // Map deviceId to assignDeviceData for faster lookup
-    //   const assignDeviceMap = assignDeviceData.reduce((acc, cur) =>{
-    //     acc[cur.deviceId] = cur
-    //     return acc
-    //   }, {})
-    //   console.log(12,assignDeviceMap)
-    //   // Update isAssigned based on matching deviceId
-    //   return totalDeviceData.map(item => {
-    //     // assignDeviceMap this is single {} with deviceId value key
-    //     const assignInfo = assignDeviceMap[item.deviceId];
-    //     console.log(14,assignInfo)
-    //     if (assignInfo && assignInfo.isAssigned === 'Accepted') {
-    //       item.isAssigned = true;
-    //     }  else {
-    //       item.isAssigned = false;
-    //     }
-    //     return item; 
-    //   })
-    // }
-
-    // updatedArray = updateisAssigned(totalDeviceData, assignDeviceData);
-    // console.log(13,updatedArray)
-
-    // let prodData = await aboutDeviceModel.find({},{deviceId:1, address:1})
-
-    // Create an object to store unique records based on deviceId
-    // let uniqueRecords = {}
-
-    // // Filter the array to keep only unique records based on deviceId
-    // assignDeviceData.forEach(item => {
-    //   uniqueRecords[item.deviceId] = item
-    // })
-    // console.log(12,uniqueRecords)
-    // let uniqueArray = Object.values(uniqueRecords);
-    // // console.log()
-    
-    // return res.status(200).json({
-    //   statusCode: 200,
-    //   statusValue: "SUCCESS",
-    //   message: "Data added successfully.",
-    //   data: uniqueArray
-    // })
-
     const schema = Joi.object({
       hospitalName: Joi.string().required(),
       assistantId: Joi.string().required(),
@@ -3186,7 +3078,7 @@ const sendReqForDevice = async (req, res) => {
     const loggedInUser = await User.findById({_id:verified.user}); 
     // check data
     // console.log(22, loggedInUser.hospitalName);
-    const checkData = await sendDeviceReqModel.findOne({$and:[{userId:loggedInUser._id},
+    const checkData = await sendDeviceReqModel.findOne({$and:[{securityCode:loggedInUser.securityCode},
       {deviceId:req.body.deviceId}]});
     if (!!checkData) {
       return res.status(400).json({
@@ -3205,7 +3097,8 @@ const sendReqForDevice = async (req, res) => {
       deviceType:"Ventilator",
       status:true,
       isAssigned:"Pending",
-      serialNumber:!!(prodData) ? prodData.serialNumber : "NA" 
+      serialNumber:!!(prodData) ? prodData.serialNumber : "NA",
+      securityCode:loggedInUser.securityCode 
     })
     const saveDoc = await reqData.save();
     if (!saveDoc) {

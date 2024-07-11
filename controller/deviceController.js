@@ -86,7 +86,7 @@ const createDevice = async (req, res) => {
         Doctor_Name: req.body.Doctor_Name,
         IMEI_NO: req.body.IMEI_NO,
         Bio_Med: req.body.Bio_Med,
-        deviceType: !!(req.body.deviceType) ? req.body.deviceType : "AgVa-Pro", 
+        deviceType: !!(req.body.deviceType) ? req.body.deviceType : "AgVa-Pro",
       },
       { upsert: true, new: true }
     );
@@ -115,8 +115,8 @@ const updatePaymentStatus = async (req, res) => {
   try {
     const schema = Joi.object({
       DeviceId: Joi.string().required(),
-      isPaymentDone:Joi.string().optional(),
-      isLocked:Joi.boolean().optional(),
+      isPaymentDone: Joi.string().optional(),
+      isLocked: Joi.boolean().optional(),
     })
     let result = schema.validate(req.body);
 
@@ -127,23 +127,23 @@ const updatePaymentStatus = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-    
+
     //check deviceId
     const checkDeviceId = await Device.findOne({ DeviceId: req.body.DeviceId })
     if (!checkDeviceId) {
       return res.status(404).json({
         statusCode: 404,
-        statusValue:"FAIL",
+        statusValue: "FAIL",
         message: "DeviceId not registered."
       })
     }
 
     const deviceData = await Device.findOneAndUpdate(
       { DeviceId: req.body.DeviceId },
-      { 
+      {
         isPaymentDone: !!(req.body.isPaymentDone) ? req.body.isPaymentDone : "true",
         isLocked: !!(req.body.isLocked) ? req.body.isLocked : false
-     },
+      },
       { upsert: true, new: true }
     );
     return res.status(200).json({
@@ -171,13 +171,13 @@ const updatePaymentStatus = async (req, res) => {
  */
 const updateDevices = async (req, res) => {
   try {
-  
+
     // let data = [9, 45, 2, 8, 45, 23, 7, 78, 0, 11, 41, 77];
-    
+
     // for (let i = 0; i<data.length; i++) {
     //   console.log(data[i])
     // }
-    
+
     // check hospital
     // const checkDevices = await productionModel.find({},{deviceId:1});
     // if (!checkDevices) {
@@ -295,16 +295,16 @@ const updateAddtofocus = async (req, res) => {
       { addTofocus: req.body.addTofocus },
       { upsert: true, new: true },
     )
-    await statusModel.updateMany({deviceId:req.params.deviceId},{addTofocus:req.body.addTofocus},{upsert:true})
-    await statusModelV2.updateMany({deviceId:req.params.deviceId},{addTofocus:req.body.addTofocus},{upsert:true})
-    const getAddTofocusList = await Device.find({addTofocus:true})
-    
+    await statusModel.updateMany({ deviceId: req.params.deviceId }, { addTofocus: req.body.addTofocus }, { upsert: true })
+    await statusModelV2.updateMany({ deviceId: req.params.deviceId }, { addTofocus: req.body.addTofocus }, { upsert: true })
+    const getAddTofocusList = await Device.find({ addTofocus: true })
+
     // check userId in fcm_token model
     // const checkUserId = await fcmTokenModel.findOne({userId:mongoose.Types.ObjectId(req.body.userId)})
     // if (!!checkUserId) {
     //   await fcmTokenModel.upd
     // }
-    await fcmTokenModel.updateMany({userId:req.body.userId},{$push:{deviceIds:req.params.deviceId}})
+    await fcmTokenModel.updateMany({ userId: req.body.userId }, { $push: { deviceIds: req.params.deviceId } })
     // console.log(11,getAddTofocusList.length)
     return res.status(200).json({
       "statusCode": 200,
@@ -340,7 +340,7 @@ const getSignleFocusDevice = async (req, res) => {
       })
     }
 
-    const getData = await statusModel.findOne({deviceId:deviceId},{addTofocus:1,message:1,deviceId:1})
+    const getData = await statusModel.findOne({ deviceId: deviceId }, { addTofocus: 1, message: 1, deviceId: 1 })
     if (!!getData) {
       return res.status(200).json({
         statusCode: 200,
@@ -364,7 +364,7 @@ const getSignleFocusDevice = async (req, res) => {
         errMsg: err.stack,
       }
     })
-  }  
+  }
 }
 
 
@@ -378,19 +378,19 @@ const getDevicesStatusWithPincode = async (req, res) => {
     // Mapped device status with dispatch data
     const getMappedData = await aboutDeviceModel.aggregate([
       {
-        $match:{product_type:{$ne:"Suction"}}
+        $match: { product_type: { $ne: "Suction" } }
       },
       {
-        $lookup:{
-          from:"device_statuses",
-          localField:"deviceId",
-          foreignField:"deviceId",
-          as:"statusInfo"
+        $lookup: {
+          from: "device_statuses",
+          localField: "deviceId",
+          foreignField: "deviceId",
+          as: "statusInfo"
         }
       },
       {
-        $set:{
-          "statusInfo":{"$first":"$statusInfo"}
+        $set: {
+          "statusInfo": { "$first": "$statusInfo" }
         }
       },
       // Extract the joined embeded fields into top level fields
@@ -398,14 +398,14 @@ const getDevicesStatusWithPincode = async (req, res) => {
       //   $set:{"message":"$statusInfo.message"}
       // },
       {
-        $set:{"message":{$ifNull:["$statusInfo.message", "NA"]}}
+        $set: { "message": { $ifNull: ["$statusInfo.message", "NA"] } }
       },
       // Hide or show data
       {
-        $project:{
-          "deviceId":1,
-          "message":1,
-          "pincode":1
+        $project: {
+          "deviceId": 1,
+          "message": 1,
+          "pincode": 1
         }
       }
     ])
@@ -433,7 +433,7 @@ const getDevicesStatusWithPincode = async (req, res) => {
         errMsg: err.stack,
       }
     })
-  }  
+  }
 }
 
 
@@ -521,8 +521,8 @@ const getDeviceById = async (req, res) => {
       'health': data2.health,
       'last_hours': data2.last_hours,
       'total_hours': data2.total_hours,
-      'isPaymentDone':!!(data.isPaymentDone) ? data.isPaymentDone : "true" ,
-      'isLocked':!!(data.isLocked) ? data.isLocked : false,
+      'isPaymentDone': !!(data.isPaymentDone) ? data.isPaymentDone : "true",
+      'isLocked': !!(data.isLocked) ? data.isLocked : false,
     };
     if (!data) {
       return res.status(404).json({
@@ -559,7 +559,7 @@ const getDeviceById = async (req, res) => {
 const getDeviceByIdV2 = async (req, res) => {
   try {
 
-    const DeviceId  = req.params.DeviceId;
+    const DeviceId = req.params.DeviceId;
     if (!DeviceId) {
       return res.status(400).json({
         statusCode: 400,
@@ -570,7 +570,7 @@ const getDeviceByIdV2 = async (req, res) => {
 
     let data = await Device.findOne({ DeviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
     // console.log(12,data)
-    if (!data) {          
+    if (!data) {
       return res.status(404).json({
         statusCode: 400,
         statusValue: "FAIL",
@@ -603,10 +603,10 @@ const getDeviceByIdV2 = async (req, res) => {
       'health': !!(data2.health) ? data2.health : "",
       'last_hours': !!(data2.last_hours) ? data2.last_hours : "",
       'total_hours': !!(data2.total_hours) ? data2.total_hours : "",
-      'isPaymentDone':!!(data.isPaymentDone) ? data.isPaymentDone : "true" ,
-      'isLocked':!!(data.isLocked) ? data.isLocked : false,
+      'isPaymentDone': !!(data.isPaymentDone) ? data.isPaymentDone : "true",
+      'isLocked': !!(data.isLocked) ? data.isLocked : false,
     };
-    
+
     if (!data) {
       return res.status(404).json({
         statusCode: 400,
@@ -766,7 +766,7 @@ const getDeviceCountData = async (req, res) => {
     const soldCount = await aboutDeviceModel.aggregate([
       {
         $match: {
-          purpose:"Sold"
+          purpose: "Sold"
         }
       },
       {
@@ -776,11 +776,11 @@ const getDeviceCountData = async (req, res) => {
         }
       }
     ])
-    
+
     const demoCount = await aboutDeviceModel.aggregate([
       {
         $match: {
-          purpose:"Demo"
+          purpose: "Demo"
         }
       },
       {
@@ -843,14 +843,14 @@ const addDeviceService = async (req, res) => {
       })
     }
     const project_code = req.query.project_code
-   
+
     // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
-    
+
     const contactNo = `+91${req.body.contactNo}`;
     const number = req.body.contactNo;
     var otpValue = Math.floor(1000 + Math.random() * 9000);
-    
+
 
     // define tag name
     let tag1 = "General Service";
@@ -872,7 +872,7 @@ const addDeviceService = async (req, res) => {
       tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",
       tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
     };
-    
+
     // check already exixts service request oe not
     const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }, { ticketStatus: "Open" }] });
     // console.log(11,checkData);
@@ -892,32 +892,32 @@ const addDeviceService = async (req, res) => {
       priority = "Medium";
     }
     priority = "High";
-    
+
     // // check already exists and isVerified
     // const checkIsexistsAndVerfied = await servicesModel.findOne({
     //   $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
     // })
-    
+
     // let savedServices;
     // if (!!checkIsexistsAndVerfied) {
-      const savedServices = await servicesModel.findOneAndUpdate({
-        $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
-      },{
-        deviceId: req.body.deviceId,
-        message: req.body.message,
-        date: req.body.date,
-        serialNo: otpValue,
-        name: req.body.name,
-        contactNo: req.body.contactNo,
-        hospitalName: req.body.hospitalName,
-        wardNo: req.body.wardNo,
-        email: req.body.email,
-        department: req.body.department,
-        ticketStatus: "Open",
-        remark: "",
-        issues: tags,
-        priority: priority,
-      },{upsert:true})
+    const savedServices = await servicesModel.findOneAndUpdate({
+      $and: [{ deviceId: req.body.deviceId }, { isVerified: false }]
+    }, {
+      deviceId: req.body.deviceId,
+      message: req.body.message,
+      date: req.body.date,
+      serialNo: otpValue,
+      name: req.body.name,
+      contactNo: req.body.contactNo,
+      hospitalName: req.body.hospitalName,
+      wardNo: req.body.wardNo,
+      email: req.body.email,
+      department: req.body.department,
+      ticketStatus: "Open",
+      remark: "",
+      issues: tags,
+      priority: priority,
+    }, { upsert: true })
 
     // } else {
     //   const newServices = new servicesModel({
@@ -939,7 +939,7 @@ const addDeviceService = async (req, res) => {
     //   // console.log(req.body)
     //   savedServices = await newServices.save();
     // }
-    
+
     const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 }).limit(1);
     // console.log(11, getLastData) 
     if (getLastData) {
@@ -951,7 +951,7 @@ const addDeviceService = async (req, res) => {
           isVerified: false,
         },
       )
-      
+
       var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
       const sendSms = req.query({
         "authorization": process.env.Fast2SMS_AUTHORIZATION,
@@ -964,10 +964,10 @@ const addDeviceService = async (req, res) => {
       })
       req.end(function (res) {
         // console.log(123,res.error.status)
-      if (res.error.status === 400) {
+        if (res.error.status === 400) {
           console.log(false)
-        } 
-        console.log("Otp sent successfully.")  
+        }
+        console.log("Otp sent successfully.")
       });
 
       if (sendSms) {
@@ -1035,14 +1035,14 @@ const addDeviceServiceV2 = async (req, res) => {
       })
     }
     // const project_code = req.params.project_code
-   
+
     // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
-    
+
     const contactNo = `+91${req.body.contactNo}`;
     const number = req.body.contactNo;
     var otpValue = Math.floor(1000 + Math.random() * 9000);
-    
+
 
     // define tag name
     let tag1 = "General Service";
@@ -1066,7 +1066,7 @@ const addDeviceServiceV2 = async (req, res) => {
     };
 
     // check already exixts service request oe not
-    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true },{ ticketStatus: "Open" }] });
+    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }, { ticketStatus: "Open" }] });
     // console.log(11,checkData);
     // console.log(12,req.body); 
     if (!!checkData) {
@@ -1084,17 +1084,17 @@ const addDeviceServiceV2 = async (req, res) => {
       priority = "Medium";
     }
     priority = "High";
-    
+
     // check already exists and isVerified
     const checkIsexistsAndVerfied = await servicesModel.findOne({
-      $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
+      $and: [{ deviceId: req.body.deviceId }, { isVerified: false }]
     })
-    
+
     let savedServices;
     if (!!checkIsexistsAndVerfied) {
       savedServices = await servicesModel.findOneAndUpdate({
-        $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
-      },{
+        $and: [{ deviceId: req.body.deviceId }, { isVerified: false }]
+      }, {
         deviceId: req.body.deviceId,
         message: req.body.message,
         date: req.body.date,
@@ -1109,7 +1109,7 @@ const addDeviceServiceV2 = async (req, res) => {
         remark: "",
         issues: tags,
         priority: priority,
-        productCode:req.params.project_code,
+        productCode: req.params.project_code,
       })
     } else {
       const newServices = new servicesModel({
@@ -1127,7 +1127,7 @@ const addDeviceServiceV2 = async (req, res) => {
         remark: "",
         issues: tags,
         priority: priority,
-        productCode:req.params.project_code,
+        productCode: req.params.project_code,
       });
       // console.log(req.body)
       savedServices = await newServices.save();
@@ -1156,10 +1156,10 @@ const addDeviceServiceV2 = async (req, res) => {
       })
       req.end(function (res) {
         // console.log(123,res.error.status)
-      if (res.error.status === 400) {
+        if (res.error.status === 400) {
           console.log(false)
-        } 
-        console.log("Otp sent successfully.")  
+        }
+        console.log("Otp sent successfully.")
       });
 
       if (sendSms) {
@@ -1228,9 +1228,9 @@ const addDeviceServiceV2 = async (req, res) => {
 //     const accountSid = process.env.ACCOUNTSID
 
 //     const authToken = process.env.AUTHTOKEN
-    
+
 //     const twilioPhone = process.env.TWILIOPHONE
-    
+
 //     const contactNo = `+91${req.body.contactNo}`;
 //     const client = new twilio(accountSid, authToken);
 
@@ -1453,10 +1453,10 @@ const updateTicketStatus = async (req, res) => {
     const contactNo = `+91${req.body.contactNo}`;
     const number = req.body.contactNo;
     var otpValue = Math.floor(1000 + Math.random() * 9000);
-    
+
     // check ticket 
-    const checkTicket = await servicesModel.findById({ _id: req.body._id});
-    
+    const checkTicket = await servicesModel.findById({ _id: req.body._id });
+
     if (!!checkTicket) {
       // console.log(13,otp)
       await servicesModel.findOneAndUpdate(
@@ -1479,10 +1479,10 @@ const updateTicketStatus = async (req, res) => {
       })
       req.end(function (res) {
         // console.log(123,res.error.status)
-      if (res.error.status === 400) {
+        if (res.error.status === 400) {
           console.log(false)
-        } 
-        console.log("Otp sent successfully.")  
+        }
+        console.log("Otp sent successfully.")
       });
 
       if (sendSms) {
@@ -1749,7 +1749,7 @@ const getAllServicesV2 = async (req, res) => {
       sortBy = {
         $and: [
           { isVerified: true },
-          { productCode:req.params.project_code },
+          { productCode: req.params.project_code },
           { ticketStatus: "Open" },
           {
             $or: [
@@ -1764,7 +1764,7 @@ const getAllServicesV2 = async (req, res) => {
       sortBy = {
         $and: [
           { isVerified: true },
-          { productCode:req.params.project_code },
+          { productCode: req.params.project_code },
           {
             $or: [
               { serialNo: { $regex: ".*" + search + ".*", $options: "i" } },
@@ -1896,7 +1896,7 @@ const getServicesById = async (req, res) => {
         "$sort": { "updatedAt": -1 }
       },
     ]
-    
+
     // get data
     let resData = await servicesModel.aggregate(pipline)
     // Sort the array based on date property
@@ -2049,7 +2049,7 @@ const saveStatusV2 = async (req, res) => {
         last_hours: !!(req.body.last_hours) ? req.body.last_hours : "",
         total_hours: !!(req.body.total_hours) ? req.body.total_hours : "",
         address: !!(req.body.address) ? req.body.address : "",
-        type:req.params.productCode
+        type: req.params.productCode
       },
       {
         upsert: true,
@@ -2422,7 +2422,7 @@ const addAboutDevice = async (req, res) => {
     const project_code = req.query.project_code;
     // check already serial number exixts or not
     const isSerialNo = await aboutDeviceModel.findOne({ serial_no: req.body.serial_no });
-    
+
     // set date of warranty
     function addOneYear(date) {
       date.setFullYear(date.getFullYear() + 1);
@@ -2489,7 +2489,7 @@ const addAboutDevice = async (req, res) => {
       )
       // for update shipmentMode
       await productionModel.findOneAndUpdate({ shipmentMode: "inprocess" })
-      await RegisterDevice.findOneAndUpdate({ DeviceId: !!getProduction ? getProduction.deviceId : req.body.deviceId },{Hospital_Name:req.body.hospital_name})
+      await RegisterDevice.findOneAndUpdate({ DeviceId: !!getProduction ? getProduction.deviceId : req.body.deviceId }, { Hospital_Name: req.body.hospital_name })
     }
 
     saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
@@ -2531,7 +2531,7 @@ const addAboutDevice = async (req, res) => {
       { upsert: true }
     );
     await productionModel.findOneAndUpdate({ shipmentMode: "inprocess" })
-    await RegisterDevice.findOneAndUpdate({ DeviceId: !!getProduction ? getProduction.deviceId : req.body.deviceId },{Hospital_Name:req.body.hospital_name})
+    await RegisterDevice.findOneAndUpdate({ DeviceId: !!getProduction ? getProduction.deviceId : req.body.deviceId }, { Hospital_Name: req.body.hospital_name })
     // console.log(2)
     const checkData = await aboutDeviceModel.findOne({ deviceId: req.body.deviceId });
     if (!!checkData) {
@@ -2638,24 +2638,24 @@ const updateAboutData = async (req, res) => {
     // add dispatch data location wise
     await dispatchActivityLogModel.findOneAndUpdate(
       {
-        serial_no:"AGVA2345684322"
+        serial_no: "AGVA2345684322"
       },
       {
-        deviceId:getData[0].deviceId,address:getData[0].address,serial_no:getData[0].serial_no,hospital_name:getData[0].hospital_name,concerned_person:getData[0].concerned_person,
-        address:getData[0].address,billed_to:getData[0].billed_to,buyerAddress:getData[0].buyerAddress,buyerName:getData[0].buyerName,city:getData[0].city,concerned_person_email:getData[0].concerned_person_email,
-        consigneeAddress:getData[0].consigneeAddress,consinee:getData[0].consinee,date_of_dispatch:getData[0].date_of_dispatch,date_of_manufacturing:getData[0].date_of_manufacturing,
-        distributor_contact:getData[0].distributor_contact,distributor_name:getData[0].distributor_name,distributor_gst:getData[0].distributor_gst,district:getData[0].district,
-        document_no:getData[0].document_no,marketing_lead:getData[0].marketing_lead,phone_number:getData[0].phone_number,pincode:getData[0].pincode,product_type:getData[0].product_type,
-        purpose:getData[0].purpose,sim_no:getData[0].sim_no,state:getData[0].state,country:getData[0].country
-      }, {upsert:true})
-    
+        deviceId: getData[0].deviceId, address: getData[0].address, serial_no: getData[0].serial_no, hospital_name: getData[0].hospital_name, concerned_person: getData[0].concerned_person,
+        address: getData[0].address, billed_to: getData[0].billed_to, buyerAddress: getData[0].buyerAddress, buyerName: getData[0].buyerName, city: getData[0].city, concerned_person_email: getData[0].concerned_person_email,
+        consigneeAddress: getData[0].consigneeAddress, consinee: getData[0].consinee, date_of_dispatch: getData[0].date_of_dispatch, date_of_manufacturing: getData[0].date_of_manufacturing,
+        distributor_contact: getData[0].distributor_contact, distributor_name: getData[0].distributor_name, distributor_gst: getData[0].distributor_gst, district: getData[0].district,
+        document_no: getData[0].document_no, marketing_lead: getData[0].marketing_lead, phone_number: getData[0].phone_number, pincode: getData[0].pincode, product_type: getData[0].product_type,
+        purpose: getData[0].purpose, sim_no: getData[0].sim_no, state: getData[0].state, country: getData[0].country
+      }, { upsert: true })
+
     const saveDispatchData = await aboutDeviceModel.findOneAndUpdate(
       { $or: [{ deviceId: req.body.deviceId }, { serial_no: req.body.serial_no }] },
       req.body,
       { upsert: true }
     )
-    await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{purpose:req.body.purpose})
-    await RegisterDevice.findOneAndUpdate({ DeviceId: req.body.deviceId },{Hospital_Name:!!(req.body.hospital_name) ? req.body.hospital_name : getData[0].hospital_name})
+    await productionModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { purpose: req.body.purpose })
+    await RegisterDevice.findOneAndUpdate({ DeviceId: req.body.deviceId }, { Hospital_Name: !!(req.body.hospital_name) ? req.body.hospital_name : getData[0].hospital_name })
     // const saveDoc = await saveDispatchData.save();
     if (!saveDispatchData) {
       return res.status(400).json({
@@ -2664,7 +2664,7 @@ const updateAboutData = async (req, res) => {
         message: "Error!! Data not updated."
       });
     }
-  
+
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -2826,7 +2826,7 @@ const getDispatchDataV2 = async (req, res) => {
     const { project_code } = req.params;
     let dispatchData = await aboutDeviceModel.aggregate(
       [
-        { $match: {$and:[{ deviceId: { $ne: null }},{productCode:req.params.productCode}] }},
+        { $match: { $and: [{ deviceId: { $ne: null } }, { productCode: req.params.productCode }] } },
         {
           "$match": {
             "$or": [
@@ -2903,7 +2903,7 @@ const getDispatchDataV2 = async (req, res) => {
         statusCode: 400,
         statusValue: "FAIL",
         message: "Data not found.",
-        data:[]
+        data: []
       });
     }
     return res.status(200).json({
@@ -3157,7 +3157,7 @@ const assignedDeviceToUser = async (req, res) => {
     let arrData = [];
     userIds.map(async (item) => {
       var obj = {
-        "userId":item,
+        "userId": item,
         "deviceId": req.body.deviceId,
       }
       arrData.push(obj);
@@ -3222,7 +3222,7 @@ const assignedDeviceToUser2 = async (req, res) => {
     //   })
     // }
     const updateDoc = await assignDeviceTouserModel.findOneAndUpdate({
-      userId:req.body._id,
+      userId: req.body._id,
     }, {
       $push: {
         Assigned_Devices: findDevice
@@ -3277,7 +3277,7 @@ const getAssignedDeviceById1 = async (req, res) => {
         message: "User Id is required!"
       })
     }
-    const data = await assignDeviceTouserModel.find({ userId:userId})
+    const data = await assignDeviceTouserModel.find({ userId: userId })
       .select({ _id: 0, __v: 0, updatedAt: 0 })
       .sort({ createdAt: -1 });
 
@@ -3318,7 +3318,7 @@ const getAssignedDeviceById = async (req, res) => {
     var pipline = [
       // Match
       {
-        "$match": { status: true, userId:userId },
+        "$match": { status: true, userId: userId },
       },
       {
         "$lookup": {
@@ -3475,7 +3475,7 @@ const getDeviceAccessAstList = async (req, res) => {
     var pipline = [
       // Match
       {
-        "$match": { $and:[{userId:loggedInUser._id},{assistantId:{$ne:""}}] },
+        "$match": { $and: [{ userId: loggedInUser._id }, { assistantId: { $ne: "" } }] },
       },
       {
         "$lookup": {
@@ -3548,14 +3548,14 @@ const getDeviceAccessDoctList = async (req, res) => {
     const loggedInUser = await User.findById({ _id: verified.user });
     // console.log(11,loggedInUser)
     if (loggedInUser.userType == "Hospital-Admin" || loggedInUser.userType == "Super-Admin") {
-      const assignedDeviceIds = await assignDeviceTouserModel.find({deviceId:req.params.deviceId})
+      const assignedDeviceIds = await assignDeviceTouserModel.find({ deviceId: req.params.deviceId })
       const doctorEmails = assignedDeviceIds.map(item => {
         return item.userId;
       })
       // console.log(123, doctorEmails)
 
-      const doctorList = await User.find({_id:{$in:doctorEmails}},{firstName:1,lastName:1,email:1,contactNumber:1,hospitalName:1,department:1})
-      
+      const doctorList = await User.find({ _id: { $in: doctorEmails } }, { firstName: 1, lastName: 1, email: 1, contactNumber: 1, hospitalName: 1, department: 1 })
+
       if (!doctorList.length) {
         return res.status(404).json({
           statusCode: 404,
@@ -3576,7 +3576,7 @@ const getDeviceAccessDoctList = async (req, res) => {
     var pipline = [
       // Match
       {
-        "$match": { hospitalName:loggedInUser.hospitalName },
+        "$match": { hospitalName: loggedInUser.hospitalName },
       },
       {
         "$lookup": {
@@ -3736,10 +3736,10 @@ const deleteDeviceAccessFromAst = async (req, res) => {
     // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
     // console.log(11, req.params._id)
-    const removeDatas = await assignDeviceTouserModel.find({ _id:req.params._id })
+    const removeDatas = await assignDeviceTouserModel.find({ _id: req.params._id })
     // console.log(11,removeDatas)
     const removeData = await assignDeviceTouserModel.findOneAndDelete(
-      { _id:req.params._id }
+      { _id: req.params._id }
     )
     if (!removeData) {
       return res.status(400).json({
@@ -3774,7 +3774,7 @@ const deleteDeviceAccessFromDoctor = async (req, res) => {
     // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
     // const loggedInUser = await User.findById({_id:verified.user});
     const removeData = await assignDeviceTouserModel.findOneAndDelete(
-      { userId:req.params._id}
+      { userId: req.params._id }
     )
     if (!removeData) {
       return res.status(400).json({
@@ -3812,7 +3812,7 @@ const deleteParticularDeviceId = async (req, res) => {
     console.log(444, req.params.id)
     console.log(445, req.params.deviceId)
     const removeData = await assignDeviceTouserModel.findOneAndDelete(
-      {$and:[{ userId:req.params.id},{deviceId:req.params.deviceId}]}
+      { $and: [{ userId: req.params.id }, { deviceId: req.params.deviceId }] }
     )
     // console.log(444, req.body)
     if (!removeData) {
@@ -4015,10 +4015,10 @@ const getAgvaProAndSuctionDataCount = async (req, res) => {
     const agvaProData = await productionModel.aggregate([
       {
         $match: {
-          $and:[
-            {productType: { $ne:"Suction"}},
-            {purpose: { $ne: "" }},
-            {deviceId: { $ne: "" }}
+          $and: [
+            { productType: { $ne: "Suction" } },
+            { purpose: { $ne: "" } },
+            { deviceId: { $ne: "" } }
           ]
         }
       },
@@ -4032,18 +4032,18 @@ const getAgvaProAndSuctionDataCount = async (req, res) => {
         }
       },
       {
-        $project:{
-          "_id":0
+        $project: {
+          "_id": 0
         }
       }
     ]);
-    
+
     const suctionData = await productionModel.aggregate([
       {
         $match: {
-          $and:[
-            {productType: "Suction"},
-            {purpose: { $ne: "" }}
+          $and: [
+            { productType: "Suction" },
+            { purpose: { $ne: "" } }
           ]
         }
       },
@@ -4057,8 +4057,8 @@ const getAgvaProAndSuctionDataCount = async (req, res) => {
         }
       },
       {
-        $project:{
-          "_id":0
+        $project: {
+          "_id": 0
         }
       }
     ]);
@@ -4070,7 +4070,7 @@ const getAgvaProAndSuctionDataCount = async (req, res) => {
       agvaProData: agvaProData.length > 0 ? agvaProData : [{ totalCount: 0, demoCount: 0, soldCount: 0 }],
       suctionData: suctionData.length > 0 ? suctionData : [{ totalCount: 0, demoCount: 0, soldCount: 0 }],
       // prodData:prodData,
-      
+
     });
   } catch (err) {
     return res.status(500).json({
@@ -4091,9 +4091,9 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
     const monthNames = [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ];
-    const productionData = await productionModel.find({$and:[{deviceId:{$ne:""}},{productType:{$ne:"Suction"}}]},{_id:1,deviceId:1,createdAt:1,updatedAt:1,deviceType:1,purpose:1})
+    const productionData = await productionModel.find({ $and: [{ deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } }] }, { _id: 1, deviceId: 1, createdAt: 1, updatedAt: 1, deviceType: 1, purpose: 1 })
     // console.log(productionData.length)
-    const statusData = await statusModel.find({deviceId:{$ne:""}})
+    const statusData = await statusModel.find({ deviceId: { $ne: "" } })
     // Step 1: Extract deviceIds from statusData
     const statusDeviceIds = new Set(statusData.map(status => status.deviceId));
     const filteredProductionData = productionData.filter(production => statusDeviceIds.has(production.deviceId));
@@ -4101,7 +4101,7 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
 
 
     if (req.params.filter == "yearly") {
-        // Step 2: Filter productionData to include only entries with deviceId in statusDeviceIds
+      // Step 2: Filter productionData to include only entries with deviceId in statusDeviceIds
 
       // Step 3: Filter data to include only the last 10 years
       const tenYearsAgo = new Date();
@@ -4129,11 +4129,11 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Data count retrieved successfully.",
-        totalDevicesCountYearly:[
-          { duration: dataCountByYear[0].duration, count: dataCountByYear[0].count},
-          { duration: dataCountByYear[1].duration, count: dataCountByYear[1].count+dataCountByYear[0].count}
+        totalDevicesCountYearly: [
+          { duration: dataCountByYear[0].duration, count: dataCountByYear[0].count },
+          { duration: dataCountByYear[1].duration, count: dataCountByYear[1].count + dataCountByYear[0].count }
         ],
-        maxCount:dataCountByYear[1].count+dataCountByYear[0].count
+        maxCount: dataCountByYear[1].count + dataCountByYear[0].count
       });
     } else if (req.params.filter == "monthly") {
 
@@ -4167,12 +4167,12 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
 
           return {
             ...item,
-            duration:`${year}-${monthName}`
+            duration: `${year}-${monthName}`
           }
         })
       }
       let convertedData = convertDateFormat(dataCountByMonth)
-      convertedData[0].count = 0+convertedData[0].count+3
+      convertedData[0].count = 0 + convertedData[0].count + 3
       const maxCount = convertedData.reduce((max, item) => item.count > max ? item.count : max, convertedData[0].count);
 
       return res.status(200).json({
@@ -4180,202 +4180,203 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
         statusValue: "SUCCESS",
         message: "Data count retrieved successfully.",
         // totalDevicesCountYearly:convertedData,
-        totalDevicesCountMonthly:[
+        totalDevicesCountMonthly: [
           {
             "duration": convertedData[0].duration,
-            "count": 0+convertedData[0].count
+            "count": 0 + convertedData[0].count
           },
           {
             "duration": convertedData[1].duration,
-            "count": convertedData[0].count+convertedData[1].count
+            "count": convertedData[0].count + convertedData[1].count
           },
           {
             "duration": convertedData[2].duration,
-            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count
+            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count
           },
           {
             "duration": convertedData[3].duration,
-            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count
+            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count
           },
           {
             "duration": convertedData[4].duration,
-            "count":convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count
+            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count
           },
           {
             "duration": convertedData[5].duration,
-            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count+convertedData[5].count
+            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
           },
-        ], 
-        maxCount:convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count+convertedData[5].count
+        ],
+        maxCount: convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
       });
     } else if (req.params.filter == "weekly") {
-      
-        const now = new Date();
-        const past28Days = new Date();
-        past28Days.setDate(now.getDate() - 28);
 
-        const initialDate = new Date("2023-12-01T00:00:00Z");
-        const endDate2 = past28Days
+      const now = new Date();
+      const past28Days = new Date();
+      past28Days.setDate(now.getDate() - 28);
+
+      const initialDate = new Date("2023-12-01T00:00:00Z");
+      const endDate2 = past28Days
       // for testing purpose
-      
+
 
       let InitialCount = await productionModel.find({
-        $and:[
-          {deviceId:{$ne:""}},
-          {productType:{$ne:"Suction"}},
-          {createdAt:{$gte:initialDate, $lte:endDate2}}
+        $and: [
+          { deviceId: { $ne: "" } },
+          { productType: { $ne: "Suction" } },
+          { createdAt: { $gte: initialDate, $lte: endDate2 } }
         ]
-      },{_id:1,deviceId:1,createdAt:1})
+      }, { _id: 1, deviceId: 1, createdAt: 1 })
 
-      const newCount = InitialCount.length+2
+      const newCount = InitialCount.length + 2
 
       // console.log(1111,rest.length);
-        const prodData = await productionModel.find({
-          $and:[
-            {deviceId:{$ne:""}},
-            {productType:{$ne:"Suction"}},
-            {createdAt:{$gte:past28Days, $lte:now}}
-          ]
-        })
-        // Prepare week intervals
-        const weeks = [
-          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21) },
-          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14) },
-          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7) },
-          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now }
-        ];
+      const prodData = await productionModel.find({
+        $and: [
+          { deviceId: { $ne: "" } },
+          { productType: { $ne: "Suction" } },
+          { createdAt: { $gte: past28Days, $lte: now } }
+        ]
+      })
+      // Prepare week intervals
+      const weeks = [
+        { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21) },
+        { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14) },
+        { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7) },
+        { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now }
+      ];
 
-        // Track the latest occurrence of each did
-        const uniqueDidMap = new Map();
+      // Track the latest occurrence of each did
+      const uniqueDidMap = new Map();
 
-        prodData.forEach(event => {
-          const { deviceId, createdAt } = event;
-          if (!uniqueDidMap.has(deviceId) || uniqueDidMap.get(deviceId) < createdAt) {
-            uniqueDidMap.set(deviceId, createdAt);
-          }
-        });
-
-        // Count unique did occurrences per week
-        uniqueDidMap.forEach(createdAt => {
-          weeks.forEach(week => {
-            if (createdAt >= week.start && createdAt <= week.end) {
-              week.count++;
-            }
-          });
-        });
-
-        const result = weeks.map(week => ({ duration: week.duration, count: week.count }));
-
-        // I need format this result
-        const formattedResult = result.map(entry => {
-          const date = new Date(entry.duration)
-          const day = date.getUTCDate();
-          const month = monthNames[date.getUTCMonth()]
-          const formattedDuration = `${day}-${month}`
-          return {
-            duration:formattedDuration,
-            count:entry.count,
-          }
-        })
-        //
-        // const updatedResult = formattedResult[0]
-
-        return res.status(200).json({
-          statusCode: 200,
-          statusValue: "SUCCESS",
-          message: "Most recent events by device ID retrieved successfully.",
-          totalDevicesCountWeekly:[
-            {
-                "duration": formattedResult[0].duration,
-                "count": 0+newCount
-            },
-            {
-                "duration": formattedResult[1].duration,
-                "count": newCount+formattedResult[1].count
-            },
-            {
-                "duration": formattedResult[2].duration,
-                "count": newCount+formattedResult[1].count+formattedResult[2].count
-            },
-            {
-                "duration": formattedResult[3].duration,
-                "count": newCount+formattedResult[1].count+formattedResult[2].count+formattedResult[3].count
-            }
-          ],
-          maxCount:newCount+formattedResult[1].count+formattedResult[2].count+formattedResult[3].count
-        });
-    } else if (req.params.filter == "today") {
-      
-        const initialDate = new Date("2023-12-01T00:00:00Z");
-        let endDate2 = new Date();
-        endDate2.setDate(endDate2.getDate() - 1);
-
-        const moment = require('moment-timezone'); 
-        const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
-        const currentDateInKolkata = moment.tz("Asia/Kolkata");
-        const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
-
-        // console.log(11, productionData.length)  
-        
-        const pipelines = hoursArray.map(hours => {
-          return {
-            $facet: {
-              [`eventsForLast${hours}Hr`]: [
-                { $match: { createdAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
-                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
-                { $replaceRoot: { newRoot: "$latestEvent" } }
-              ]
-            }
-          };
-        });
-        const results = await Promise.all(pipelines.map(pipeline => productionModel.aggregate([pipeline])));
-
-        const todayActiveDeviceCount = results.map((result, index) => {
-          const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
-          const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
-          return { duration, count };
-        }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
-  
-
-        const productionData = await productionModel.find({
-          $and:[
-            {deviceId:{$ne:""}},{productType:{$ne:"Suction"}},
-            {createdAt:{$gte:initialDate, $lte:endDate2}}
-          ]},
-          {_id:1,deviceId:1,createdAt:1,updatedAt:1,deviceType:1,purpose:1}
-        )
-
-        const initialCount =  productionData.length+2 
-        // console.log(11,productionData.length)
-
-        let updatedRsult = todayActiveDeviceCount.map(item => {
-          // Extract time part after the space character
-          const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
-          const count = (item.count)+(initialCount)
-          return { count:count, duration: time };
-        }) 
-        
-
-        // Calculate maxCount value
-        let maxCount = -Infinity;
-        for (item of todayActiveDeviceCount) {
-          if (item.count > maxCount) {
-            maxCount = item.count
-          }
+      prodData.forEach(event => {
+        const { deviceId, createdAt } = event;
+        if (!uniqueDidMap.has(deviceId) || uniqueDidMap.get(deviceId) < createdAt) {
+          uniqueDidMap.set(deviceId, createdAt);
         }
-        
-        // Format response
-        updatedRsult = updatedRsult.map(item => {
-          let duration = item.duration.replace(/:\d{2}/, '')
-          return {...item, duration}
-        })
+      });
 
-        return res.status(200).json({
-          statusCode: 200,
-          statusValue: "SUCCESS",
-          message: "Most recent events by device ID retrieved successfully.",
-          todayActiveDeviceCount: updatedRsult
-        }) 
+      // Count unique did occurrences per week
+      uniqueDidMap.forEach(createdAt => {
+        weeks.forEach(week => {
+          if (createdAt >= week.start && createdAt <= week.end) {
+            week.count++;
+          }
+        });
+      });
+
+      const result = weeks.map(week => ({ duration: week.duration, count: week.count }));
+
+      // I need format this result
+      const formattedResult = result.map(entry => {
+        const date = new Date(entry.duration)
+        const day = date.getUTCDate();
+        const month = monthNames[date.getUTCMonth()]
+        const formattedDuration = `${day}-${month}`
+        return {
+          duration: formattedDuration,
+          count: entry.count,
+        }
+      })
+      //
+      // const updatedResult = formattedResult[0]
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        totalDevicesCountWeekly: [
+          {
+            "duration": formattedResult[0].duration,
+            "count": 0 + newCount
+          },
+          {
+            "duration": formattedResult[1].duration,
+            "count": newCount + formattedResult[1].count
+          },
+          {
+            "duration": formattedResult[2].duration,
+            "count": newCount + formattedResult[1].count + formattedResult[2].count
+          },
+          {
+            "duration": formattedResult[3].duration,
+            "count": newCount + formattedResult[1].count + formattedResult[2].count + formattedResult[3].count
+          }
+        ],
+        maxCount: newCount + formattedResult[1].count + formattedResult[2].count + formattedResult[3].count
+      });
+    } else if (req.params.filter == "today") {
+
+      const initialDate = new Date("2023-12-01T00:00:00Z");
+      let endDate2 = new Date();
+      endDate2.setDate(endDate2.getDate() - 1);
+
+      const moment = require('moment-timezone');
+      const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
+      const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+
+      // console.log(11, productionData.length)  
+
+      const pipelines = hoursArray.map(hours => {
+        return {
+          $facet: {
+            [`eventsForLast${hours}Hr`]: [
+              { $match: { createdAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
+              { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+              { $replaceRoot: { newRoot: "$latestEvent" } }
+            ]
+          }
+        };
+      });
+      const results = await Promise.all(pipelines.map(pipeline => productionModel.aggregate([pipeline])));
+
+      const todayActiveDeviceCount = results.map((result, index) => {
+        const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
+        const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
+        return { duration, count };
+      }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
+
+
+      const productionData = await productionModel.find({
+        $and: [
+          { deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } },
+          { createdAt: { $gte: initialDate, $lte: endDate2 } }
+        ]
+      },
+        { _id: 1, deviceId: 1, createdAt: 1, updatedAt: 1, deviceType: 1, purpose: 1 }
+      )
+
+      const initialCount = productionData.length + 2
+      // console.log(11,productionData.length)
+
+      let updatedRsult = todayActiveDeviceCount.map(item => {
+        // Extract time part after the space character
+        const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
+        const count = (item.count) + (initialCount)
+        return { count: count, duration: time };
+      })
+
+
+      // Calculate maxCount value
+      let maxCount = -Infinity;
+      for (item of todayActiveDeviceCount) {
+        if (item.count > maxCount) {
+          maxCount = item.count
+        }
+      }
+
+      // Format response
+      updatedRsult = updatedRsult.map(item => {
+        let duration = item.duration.replace(/:\d{2}/, '')
+        return { ...item, duration }
+      })
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        todayActiveDeviceCount: updatedRsult
+      })
     }
     return res.status(400).json({
       statusCode: 400,
@@ -4400,38 +4401,38 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
   try {
 
     const filter = req.params.filter;
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun","Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const productionData = await productionModel.find({$and:[{deviceId:{$ne:""}},{productType:{$ne:"Suction"}},{purpose:"Demo"}]})
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const productionData = await productionModel.find({ $and: [{ deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } }, { purpose: "Demo" }] })
     // console.log(11, productionData.length)
-    const statusData = await statusModel.find({deviceId:{$ne:""}})
+    const statusData = await statusModel.find({ deviceId: { $ne: "" } })
     // Step 1: Extract deviceIds from statusData
     const statusDeviceIds = new Set(statusData.map(status => status.deviceId));
     const filteredProductionData = productionData.filter(production => statusDeviceIds.has(production.deviceId));
-    
-   
+
+
     // for today data count
     // Step 3: Filter data to include only the last 10 years
     let dataCountByYear;
-      const tenYearsAgo = new Date();
-      tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+    const tenYearsAgo = new Date();
+    tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
 
-      const recentProductionData = productionData.filter(production => production.createdAt >= tenYearsAgo);
+    const recentProductionData = productionData.filter(production => production.createdAt >= tenYearsAgo);
 
-      // Step 4: Group the matched entries by year
-      const groupedByYear = recentProductionData.reduce((acc, production) => {
-        const duration = production.createdAt.getFullYear();
-        if (!acc[duration]) {
-          acc[duration] = [];
-        }
-        acc[duration].push(production);
-        return acc;
-      }, {});
+    // Step 4: Group the matched entries by year
+    const groupedByYear = recentProductionData.reduce((acc, production) => {
+      const duration = production.createdAt.getFullYear();
+      if (!acc[duration]) {
+        acc[duration] = [];
+      }
+      acc[duration].push(production);
+      return acc;
+    }, {});
 
-      // Step 5: Count the entries per year
-      dataCountByYear = Object.keys(groupedByYear).map(duration => ({
-        duration,
-        count: groupedByYear[duration].length
-      }));
+    // Step 5: Count the entries per year
+    dataCountByYear = Object.keys(groupedByYear).map(duration => ({
+      duration,
+      count: groupedByYear[duration].length
+    }));
 
     // end today data count
 
@@ -4463,11 +4464,11 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Data count retrieved successfully.",
-        totalDevicesCountYearly:[
-          { duration: dataCountByYear[0].duration, count: dataCountByYear[0].count},
-          { duration: dataCountByYear[1].duration, count: dataCountByYear[1].count+dataCountByYear[0].count}
+        totalDevicesCountYearly: [
+          { duration: dataCountByYear[0].duration, count: dataCountByYear[0].count },
+          { duration: dataCountByYear[1].duration, count: dataCountByYear[1].count + dataCountByYear[0].count }
         ],
-        maxCount:dataCountByYear[1].count+dataCountByYear[0].count
+        maxCount: dataCountByYear[1].count + dataCountByYear[0].count
       });
     } else if (req.params.filter == "monthly") {
 
@@ -4501,12 +4502,12 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
 
           return {
             ...item,
-            duration:`${year}-${monthName}`
+            duration: `${year}-${monthName}`
           }
         })
       }
       let convertedData = convertDateFormat(dataCountByMonth)
-      convertedData[0].count = 0+convertedData[0].count+2
+      convertedData[0].count = 0 + convertedData[0].count + 2
       const maxCount = convertedData.reduce((max, item) => item.count > max ? item.count : max, convertedData[0].count);
 
       return res.status(200).json({
@@ -4514,203 +4515,204 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
         statusValue: "SUCCESS",
         message: "Data count retrieved successfully.",
         // totalDevicesCountYearly:convertedData,
-        totalDevicesCountMonthly:[
+        totalDevicesCountMonthly: [
           {
             "duration": convertedData[0].duration,
-            "count": 0+convertedData[0].count
+            "count": 0 + convertedData[0].count
           },
           {
             "duration": convertedData[1].duration,
-            "count": convertedData[0].count+convertedData[1].count
+            "count": convertedData[0].count + convertedData[1].count
           },
           {
             "duration": convertedData[2].duration,
-            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count
+            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count
           },
           {
             "duration": convertedData[3].duration,
-            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count
+            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count
           },
           {
             "duration": convertedData[4].duration,
-            "count":convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count
+            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count
           },
           {
             "duration": convertedData[5].duration,
-            "count": convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count+convertedData[5].count
+            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
           },
-        ], 
-        maxCount:convertedData[0].count+convertedData[1].count+convertedData[2].count+convertedData[3].count+convertedData[4].count+convertedData[5].count
+        ],
+        maxCount: convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
       });
     } else if (req.params.filter == "weekly") {
 
       const now = new Date();
-        const past28Days = new Date();
-        past28Days.setDate(now.getDate() - 28);
+      const past28Days = new Date();
+      past28Days.setDate(now.getDate() - 28);
 
-        const initialDate = new Date("2023-11-01T00:00:00Z");
-        const endDate2 = past28Days
+      const initialDate = new Date("2023-11-01T00:00:00Z");
+      const endDate2 = past28Days
       // for testing purpose
-      
+
 
       const InitialCount = await productionModel.find({
-        $and:[
-          {deviceId:{$ne:""}},
-          {productType:{$ne:"Suction"}},
-          {purpose:"Demo"},
-          {createdAt:{$gte:initialDate, $lte:endDate2}}
+        $and: [
+          { deviceId: { $ne: "" } },
+          { productType: { $ne: "Suction" } },
+          { purpose: "Demo" },
+          { createdAt: { $gte: initialDate, $lte: endDate2 } }
         ]
-      },{_id:1,deviceId:1,createdAt:1})
+      }, { _id: 1, deviceId: 1, createdAt: 1 })
 
       // console.log(1111,InitialCount.length);
-        const prodData = await productionModel.find({
-          $and:[
-            {deviceId:{$ne:""}},
-            {productType:{$ne:"Suction"}},
-            {purpose:"Demo"},
-            {createdAt:{$gte:past28Days, $lte:now}}
-          ]
-        })
-        console.log(11,prodData.length)
-        // Prepare week intervals
-        const weeks = [
-          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21) },
-          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14) },
-          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7) },
-          { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now }
-        ];
+      const prodData = await productionModel.find({
+        $and: [
+          { deviceId: { $ne: "" } },
+          { productType: { $ne: "Suction" } },
+          { purpose: "Demo" },
+          { createdAt: { $gte: past28Days, $lte: now } }
+        ]
+      })
+      console.log(11, prodData.length)
+      // Prepare week intervals
+      const weeks = [
+        { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21) },
+        { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 21), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14) },
+        { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14), end: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7) },
+        { duration: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), count: 0, start: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7), end: now }
+      ];
 
-        // Track the latest occurrence of each did
-        const uniqueDidMap = new Map();
+      // Track the latest occurrence of each did
+      const uniqueDidMap = new Map();
 
-        prodData.forEach(event => {
-          const { deviceId, createdAt } = event;
-          if (!uniqueDidMap.has(deviceId) || uniqueDidMap.get(deviceId) < createdAt) {
-            uniqueDidMap.set(deviceId, createdAt);
+      prodData.forEach(event => {
+        const { deviceId, createdAt } = event;
+        if (!uniqueDidMap.has(deviceId) || uniqueDidMap.get(deviceId) < createdAt) {
+          uniqueDidMap.set(deviceId, createdAt);
+        }
+      });
+
+      // Count unique did occurrences per week
+      uniqueDidMap.forEach(createdAt => {
+        weeks.forEach(week => {
+          if (createdAt >= week.start && createdAt <= week.end) {
+            week.count++;
           }
         });
+      });
 
-        // Count unique did occurrences per week
-        uniqueDidMap.forEach(createdAt => {
-          weeks.forEach(week => {
-            if (createdAt >= week.start && createdAt <= week.end) {
-              week.count++;
-            }
-          });
-        });
+      const result = weeks.map(week => ({ duration: week.duration, count: week.count }));
 
-        const result = weeks.map(week => ({ duration: week.duration, count: week.count }));
-
-        // I need format this result
-        const formattedResult = result.map(entry => {
-          const date = new Date(entry.duration)
-          const day = date.getUTCDate();
-          const month = monthNames[date.getUTCMonth()]
-          const formattedDuration = `${day}-${month}`
-          return {
-            duration:formattedDuration,
-            count:entry.count,
+      // I need format this result
+      const formattedResult = result.map(entry => {
+        const date = new Date(entry.duration)
+        const day = date.getUTCDate();
+        const month = monthNames[date.getUTCMonth()]
+        const formattedDuration = `${day}-${month}`
+        return {
+          duration: formattedDuration,
+          count: entry.count,
+        }
+      })
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        weeklyDataCount: [
+          {
+            "duration": formattedResult[0].duration,
+            "count": 0 + InitialCount.length
+          },
+          {
+            "duration": formattedResult[1].duration,
+            "count": InitialCount.length + formattedResult[1].count
+          },
+          {
+            "duration": formattedResult[2].duration,
+            "count": InitialCount.length + formattedResult[1].count + formattedResult[2].count
+          },
+          {
+            "duration": formattedResult[3].duration,
+            "count": InitialCount.length + formattedResult[1].count + formattedResult[2].count + formattedResult[3].count
           }
-        })
-        return res.status(200).json({
-          statusCode: 200,
-          statusValue: "SUCCESS",
-          message: "Most recent events by device ID retrieved successfully.",
-          weeklyDataCount:[
-            {
-                "duration": formattedResult[0].duration,
-                "count": 0+InitialCount.length
-            },
-            {
-                "duration": formattedResult[1].duration,
-                "count": InitialCount.length+formattedResult[1].count
-            },
-            {
-                "duration": formattedResult[2].duration,
-                "count": InitialCount.length+formattedResult[1].count+formattedResult[2].count
-            },
-            {
-                "duration": formattedResult[3].duration,
-                "count": InitialCount.length+formattedResult[1].count+formattedResult[2].count+formattedResult[3].count
-            }
-          ],
-          maxCount:InitialCount.length+formattedResult[1].count+formattedResult[2].count+formattedResult[3].count
-        });
-      
+        ],
+        maxCount: InitialCount.length + formattedResult[1].count + formattedResult[2].count + formattedResult[3].count
+      });
+
     } else if (req.params.filter == "today") {
 
-    const initialDate = new Date("2023-11-01T00:00:00Z");
-    let endDate2 = new Date();
-    endDate2.setDate(endDate2.getDate() - 1);
+      const initialDate = new Date("2023-11-01T00:00:00Z");
+      let endDate2 = new Date();
+      endDate2.setDate(endDate2.getDate() - 1);
 
-    const moment = require('moment-timezone'); 
-    const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
-    const currentDateInKolkata = moment.tz("Asia/Kolkata");
-    const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+      const moment = require('moment-timezone');
+      const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
+      const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
 
-    // console.log(11, productionData.length)  
-        
-    const pipelines = hoursArray.map(hours => {
-      return {
-        $facet: {
-          [`eventsForLast${hours}Hr`]: [
-            { $match: { createdAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
-            { $group: { _id: "$deviceId", latestEvent: { $last: "$$ROOT" } } },
-            { $replaceRoot: { newRoot: "$latestEvent" } }
-          ]
+      // console.log(11, productionData.length)  
+
+      const pipelines = hoursArray.map(hours => {
+        return {
+          $facet: {
+            [`eventsForLast${hours}Hr`]: [
+              { $match: { createdAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
+              { $group: { _id: "$deviceId", latestEvent: { $last: "$$ROOT" } } },
+              { $replaceRoot: { newRoot: "$latestEvent" } }
+            ]
+          }
+        };
+      });
+      const results = await Promise.all(pipelines.map(pipeline => productionModel.aggregate([pipeline])));
+
+      const todayActiveDeviceCount = results.map((result, index) => {
+        const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
+        const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
+        return { duration, count };
+      }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
+
+
+      const productionData = await productionModel.find({
+        $and: [
+          { deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } },
+          { purpose: "Demo" },
+          { createdAt: { $gte: initialDate, $lte: endDate2 } }
+        ]
+      },
+        { _id: 1, deviceId: 1, createdAt: 1, updatedAt: 1, deviceType: 1, purpose: 1 }
+      )
+
+      const initialCount = productionData.length
+      // console.log(11,productionData.length)
+
+      let updatedRsult = todayActiveDeviceCount.map(item => {
+        // Extract time part after the space character
+        const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
+        const count = (item.count) + (initialCount)
+        return { count: count, duration: time };
+      })
+
+      // Calculate maxCount value
+      let maxCount = -Infinity;
+      for (item of updatedRsult) {
+        if (item.count > maxCount) {
+          maxCount = item.count
         }
-      };
-    });
-    const results = await Promise.all(pipelines.map(pipeline => productionModel.aggregate([pipeline])));
-
-    const todayActiveDeviceCount = results.map((result, index) => {
-      const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
-      const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
-      return { duration, count };
-    }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
-  
-
-    const productionData = await productionModel.find({
-      $and:[
-        {deviceId:{$ne:""}},{productType:{$ne:"Suction"}},
-        {purpose:"Demo"},
-        {createdAt:{$gte:initialDate, $lte:endDate2}}
-      ]},
-      {_id:1,deviceId:1,createdAt:1,updatedAt:1,deviceType:1,purpose:1}
-    )
-
-    const initialCount =  productionData.length
-    // console.log(11,productionData.length)
-
-    let updatedRsult = todayActiveDeviceCount.map(item => {
-    // Extract time part after the space character
-      const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
-      const count = (item.count)+(initialCount)
-      return { count:count, duration: time };
-    }) 
-        
-    // Calculate maxCount value
-    let maxCount = -Infinity;
-    for (item of updatedRsult) {
-      if (item.count > maxCount) {
-        maxCount = item.count
       }
-    }
-    
-    // Format response
-    updatedRsult = updatedRsult.map(item => {
-      let duration = item.duration.replace(/:\d{2}/, '')
-      return {...item, duration}
-    })
 
-    return res.status(200).json({
-      statusCode: 200,
-      statusValue: "SUCCESS",
-      message: "Most recent events by device ID retrieved successfully.",
-      todayActiveDeviceCount:updatedRsult,
-      maxCount
-    })
-  }
+      // Format response
+      updatedRsult = updatedRsult.map(item => {
+        let duration = item.duration.replace(/:\d{2}/, '')
+        return { ...item, duration }
+      })
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        todayActiveDeviceCount: updatedRsult,
+        maxCount
+      })
+    }
 
   } catch (err) {
     return res.status(500).json({
@@ -4728,354 +4730,354 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
 
 const getActiveDevicesCountForAgvaPro = async (req, res) => {
   try {
-      const moment = require('moment-timezone');
-      const filter = req.params.filter;
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      // console.log(dataCountArray);
-      if (filter == "today") { 
+    const moment = require('moment-timezone');
+    const filter = req.params.filter;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    // console.log(dataCountArray);
+    if (filter == "today") {
 
-        const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
-        const currentDateInKolkata = moment.tz("Asia/Kolkata");
-        const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+      const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
+      const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
 
-        const pipelines = hoursArray.map(hours => {
-          return {
-            $facet: {
-              [`eventsForLast${hours}Hr`]: [
-                { $match: { updatedAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
-                { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
-                { $replaceRoot: { newRoot: "$latestEvent" } }
-              ]
-            }
-          };
-        });
-        // const results = await Promise.all(pipelines.map(pipeline => event_ventilator_collection.aggregate([pipeline])));
-        const results = await Promise.all(pipelines.map(pipeline => trends_ventilator_collection.aggregate([pipeline])));
-
-        const todayActiveDeviceCount = results.map((result, index) => {
-          const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
-          const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
-          return { duration, count };
-        }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
-  
-        let updatedRsult = todayActiveDeviceCount.map(item => {
-          // Extract time part after the space character
-          const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
-          return { ...item, duration: time };
-        }) 
- 
-        // Calculate maxCount value
-        let maxCount = -Infinity;
-        for (item of todayActiveDeviceCount) {
-          if (item.count > maxCount) {
-            maxCount = item.count
+      const pipelines = hoursArray.map(hours => {
+        return {
+          $facet: {
+            [`eventsForLast${hours}Hr`]: [
+              { $match: { updatedAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
+              { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+              { $replaceRoot: { newRoot: "$latestEvent" } }
+            ]
           }
-        }
-        
-        // For formating data response
-        updatedRsult = updatedRsult.map(item => {
-          let duration = item.duration.replace(/:\d{2}/, ''); // Remove the minutes part
-          return {...item, duration};
-        });
-
-        return res.status(200).json({
-          statusCode: 200,
-          statusValue: "SUCCESS",
-          message: "Most recent events by device ID retrieved successfully.",
-          // data:results,
-          todayActiveDeviceCount:updatedRsult,
-          maxCount,
-        });
-
-      } else if (filter == "weekly") {
-        
-        const now = new Date();
-        const past28Days = new Date(now);
-        past28Days.setDate(now.getDate() - 28);
-
-        const intervals = [];
-        for (let i = 0; i < 4; i++) {
-            const start = new Date(past28Days);
-            start.setDate(past28Days.getDate() + (i * 7));
-            
-            const end = new Date(start);
-            end.setDate(start.getDate() + 6);
-            
-            intervals.push({ 
-                start: start.toISOString().split('T')[0], 
-                end: end.toISOString().split('T')[0] 
-            });
-        }
-
-        // console.log('week interval', intervals);
-
-        const formatDate = (dateStr) => {
-            const date = new Date(dateStr);
-            const options = { day: '2-digit', month: 'short' };
-            return date.toLocaleDateString('en-GB', options).replace(/ /g, '-');
         };
+      });
+      // const results = await Promise.all(pipelines.map(pipeline => event_ventilator_collection.aggregate([pipeline])));
+      const results = await Promise.all(pipelines.map(pipeline => trends_ventilator_collection.aggregate([pipeline])));
 
-        // 1st interval
-        const firstWData = await event_ventilator_collection.find(
-          { updatedAt: { $gte: new Date(`${intervals[0].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[0].end}T23:59:01.000+00:00`) } }, { did: 1 }
-        );
+      const todayActiveDeviceCount = results.map((result, index) => {
+        const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
+        const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
+        return { duration, count };
+      }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
 
-        const uniqueData = Array.from(
-          firstWData.reduce((map, item) => map.set(item.did, item), new Map()).values()
-        );
+      let updatedRsult = todayActiveDeviceCount.map(item => {
+        // Extract time part after the space character
+        const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
+        return { ...item, duration: time };
+      })
 
-        // 2nd interval
-        const firstWData2 = await event_ventilator_collection.find(
-          { updatedAt: { $gte: new Date(`${intervals[1].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[1].end}T23:59:01.000+00:00`) } }, { did: 1 }
-        );
-
-        const uniqueData2 = Array.from(
-          firstWData2.reduce((map, item) => map.set(item.did, item), new Map()).values()
-        );
-
-        // 3rd interval
-        const firstWData3 = await event_ventilator_collection.find(
-          { updatedAt: { $gte: new Date(`${intervals[2].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[2].end}T23:59:01.000+00:00`) } }, { did: 1 }
-        );
-
-        const uniqueData3 = Array.from(
-          firstWData3.reduce((map, item) => map.set(item.did, item), new Map()).values()
-        );
-
-        // 4th interval
-        const firstWData4 = await event_ventilator_collection.find(
-          { updatedAt: { $gte: new Date(`${intervals[3].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[3].end}T23:59:01.000+00:00`) } }, { did: 1 }
-        );
-
-        const uniqueData4 = Array.from(
-          firstWData4.reduce((map, item) => map.set(item.did, item), new Map()).values()
-        );
-
-        const result = [
-          { count: uniqueData.length, duration: formatDate(intervals[0].start) },
-          { count: uniqueData2.length, duration: formatDate(intervals[1].start) },
-          { count: uniqueData3.length, duration: formatDate(intervals[2].start) },
-          { count: uniqueData4.length, duration: formatDate(intervals[3].start) }
-        ];
-        
-        
-        const maxCount = result.reduce((max, { count }) => Math.max(max, count), 0);
-
-        return res.status(200).json({
-          statusCode: 200,
-          statusValue: "SUCCESS",
-          message: "Most recent events by device ID retrieved successfully.",
-          weeklyDataCount:result,
-          maxCount:maxCount,
-          // data:uniqueData.length
-        });
-
-      } else if (filter == "monthly") {
-          
-          const initialDate = new Date("2023-11-01T00:00:00Z");
-          const endDate2 = new Date();
-          endDate2.setDate(endDate2.getDate() - 1);
-
-          // Define the date range for the last 6 months
-          const sixMonthsAgo = new Date();
-          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-          // Aggregate production data to get relevant deviceIds
-          const productionPipeline = [
-            {
-              $match: {
-                $and:[
-                  {deviceId: { $ne: "" }},
-                  {deviceType: { $ne: "Suction" }},
-                  {createdAt: { $gte: initialDate, $lte: endDate2 }}
-                ]
-              }
-            },
-            {
-              $group: {
-                _id: null,
-                deviceIds: { $addToSet: "$deviceId" }
-              }
-            }
-          ];
-
-          const productionResult = await productionModel.aggregate(productionPipeline);
-          const deviceIds = productionResult[0]?.deviceIds || [];
-
-          // If no deviceIds found, return early with empty results
-          if (deviceIds.length === 0) {
-            console.log({ result: [], maxCount: 0 });
-            return;
-          }
-
-          // Aggregate event data to get unique DIDs with the latest updatedAt value and group by month/year
-          const eventPipeline = [
-            {
-              $match: {
-                $and:[
-                  {date: { $gte: sixMonthsAgo.toISOString() }},
-                  {did: { $in: deviceIds }}
-                ]
-              }
-            },
-            {
-              $sort: {
-                did: 1,
-                updatedAt: -1
-              }
-            },
-            {
-              $group: {
-                _id: "$did",
-                latestUpdatedAt: { $first: "$updatedAt" }
-              }
-            },
-            {
-              $project: {
-                _id: 0,
-                did: "$_id",
-                updatedAt: "$latestUpdatedAt"
-              }
-            },
-            {
-              $group: {
-                _id: {
-                  year: { $year: "$updatedAt" },
-                  month: { $month: "$updatedAt" }
-                },
-                count: { $sum: 1 }
-              }
-            },
-            {
-              $project: {
-                _id: 0,
-                duration: {
-                  $concat: [
-                    { $toString: "$_id.year" },
-                    "-",
-                    {
-                      $arrayElemAt: [
-                        [
-                          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-                        ],
-                        { $subtract: ["$_id.month", 1] }
-                      ]
-                    }
-                  ]
-                },
-                year: "$_id.year",
-                month: "$_id.month",
-                count: 1
-              }
-            },
-            {
-              $sort: {
-                year: 1,
-                month: 1
-              }
-            }
-          ];
-
-          const eventResult = await event_ventilator_collection.aggregate(eventPipeline)
-
-          // Get the max count
-          const maxCount = eventResult.reduce((max, { count }) => Math.max(max, count), 0);
-
-          return res.status(200).json({
-            statusCode: 200,
-            statusValue: "SUCCESS",
-            message: "Most recent events by device ID retrieved successfully.",
-            monthlyDataCount: [
-              { count:eventResult[1].count, duration:eventResult[1].duration},
-              { count:eventResult[2].count, duration:eventResult[2].duration},
-              { count:eventResult[3].count, duration:eventResult[3].duration},
-              { count:eventResult[4].count, duration:eventResult[4].duration},
-              { count:eventResult[5].count, duration:eventResult[5].duration},
-              { count:eventResult[6].count, duration:eventResult[6].duration},
-            ],
-            maxCount:maxCount,
-            // data:eventResult
-          });
-          
-        } else if (filter == "yearly") {
-
-        const prodData = await productionModel.find({
-          $and: [
-            { deviceId: { $ne: "" } },
-            { productType: { $ne: "Suction" } }
-          ]
-        });
-        
-        const deviceIds = prodData.map((item) => item.deviceId);
-        
-        // const initialDate = new Date("2022-12-01T00:00:00Z");
-        // const endDate2 = new Date();
-        // endDate2.setDate(endDate2.getDate() - 1);
-        
-        // Define the aggregation pipeline
-        const pipeline = [
-          {
-            $match: {
-              did: { $in: deviceIds },
-              // updatedAt: { $gte: initialDate, $lte: endDate2 }
-            }
-          },
-          {
-            $addFields: {
-              year: { $year: "$updatedAt" }
-            }
-          },
-          {
-            $group: {
-              _id: {
-                year: "$year",
-                did: "$did"
-              }
-            }
-          },
-          {
-            $group: {
-              _id: "$_id.year",
-              uniqueDidCount: { $sum: 1 }
-            }
-          },
-          {
-            $sort: { _id: 1 }
-          }
-        ];
-        
-        // Execute the aggregation query
-        const result = await event_ventilator_collection.aggregate(pipeline).exec();
-        // const result = await trends_ventilator_collections(pipeline).exec();
-        
-        // Transform the result into the desired format
-        const yearlyData = result.map(item => ({
-          duration: item._id,
-          count: item.uniqueDidCount
-        }));
-        
-        console.log(result, result.length);
-        
-         
-          return res.status(200).json({
-            statusCode: 200,
-            statusValue: "SUCCESS",
-            message: "Most recent events by device ID retrieved successfully.",
-            yearlyDataCount: [
-              {
-                duration:yearlyData[0].duration,
-                count:yearlyData[0].count
-              },
-              {
-                duration:yearlyData[1].duration,
-                count:yearlyData[0].count+yearlyData[1].count
-              }
-            ],
-            maxCount:yearlyData[0].count+yearlyData[1].count,
-            // data:deviceIds
-          });
+      // Calculate maxCount value
+      let maxCount = -Infinity;
+      for (item of todayActiveDeviceCount) {
+        if (item.count > maxCount) {
+          maxCount = item.count
         }
+      }
+
+      // For formating data response
+      updatedRsult = updatedRsult.map(item => {
+        let duration = item.duration.replace(/:\d{2}/, ''); // Remove the minutes part
+        return { ...item, duration };
+      });
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        // data:results,
+        todayActiveDeviceCount: updatedRsult,
+        maxCount,
+      });
+
+    } else if (filter == "weekly") {
+
+      const now = new Date();
+      const past28Days = new Date(now);
+      past28Days.setDate(now.getDate() - 28);
+
+      const intervals = [];
+      for (let i = 0; i < 4; i++) {
+        const start = new Date(past28Days);
+        start.setDate(past28Days.getDate() + (i * 7));
+
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+
+        intervals.push({
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0]
+        });
+      }
+
+      // console.log('week interval', intervals);
+
+      const formatDate = (dateStr) => {
+        const date = new Date(dateStr);
+        const options = { day: '2-digit', month: 'short' };
+        return date.toLocaleDateString('en-GB', options).replace(/ /g, '-');
+      };
+
+      // 1st interval
+      const firstWData = await event_ventilator_collection.find(
+        { updatedAt: { $gte: new Date(`${intervals[0].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[0].end}T23:59:01.000+00:00`) } }, { did: 1 }
+      );
+
+      const uniqueData = Array.from(
+        firstWData.reduce((map, item) => map.set(item.did, item), new Map()).values()
+      );
+
+      // 2nd interval
+      const firstWData2 = await event_ventilator_collection.find(
+        { updatedAt: { $gte: new Date(`${intervals[1].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[1].end}T23:59:01.000+00:00`) } }, { did: 1 }
+      );
+
+      const uniqueData2 = Array.from(
+        firstWData2.reduce((map, item) => map.set(item.did, item), new Map()).values()
+      );
+
+      // 3rd interval
+      const firstWData3 = await event_ventilator_collection.find(
+        { updatedAt: { $gte: new Date(`${intervals[2].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[2].end}T23:59:01.000+00:00`) } }, { did: 1 }
+      );
+
+      const uniqueData3 = Array.from(
+        firstWData3.reduce((map, item) => map.set(item.did, item), new Map()).values()
+      );
+
+      // 4th interval
+      const firstWData4 = await event_ventilator_collection.find(
+        { updatedAt: { $gte: new Date(`${intervals[3].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[3].end}T23:59:01.000+00:00`) } }, { did: 1 }
+      );
+
+      const uniqueData4 = Array.from(
+        firstWData4.reduce((map, item) => map.set(item.did, item), new Map()).values()
+      );
+
+      const result = [
+        { count: uniqueData.length, duration: formatDate(intervals[0].start) },
+        { count: uniqueData2.length, duration: formatDate(intervals[1].start) },
+        { count: uniqueData3.length, duration: formatDate(intervals[2].start) },
+        { count: uniqueData4.length, duration: formatDate(intervals[3].start) }
+      ];
+
+
+      const maxCount = result.reduce((max, { count }) => Math.max(max, count), 0);
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        weeklyDataCount: result,
+        maxCount: maxCount,
+        // data:uniqueData.length
+      });
+
+    } else if (filter == "monthly") {
+
+      const initialDate = new Date("2023-11-01T00:00:00Z");
+      const endDate2 = new Date();
+      endDate2.setDate(endDate2.getDate() - 1);
+
+      // Define the date range for the last 6 months
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+      // Aggregate production data to get relevant deviceIds
+      const productionPipeline = [
+        {
+          $match: {
+            $and: [
+              { deviceId: { $ne: "" } },
+              { deviceType: { $ne: "Suction" } },
+              { createdAt: { $gte: initialDate, $lte: endDate2 } }
+            ]
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            deviceIds: { $addToSet: "$deviceId" }
+          }
+        }
+      ];
+
+      const productionResult = await productionModel.aggregate(productionPipeline);
+      const deviceIds = productionResult[0]?.deviceIds || [];
+
+      // If no deviceIds found, return early with empty results
+      if (deviceIds.length === 0) {
+        console.log({ result: [], maxCount: 0 });
+        return;
+      }
+
+      // Aggregate event data to get unique DIDs with the latest updatedAt value and group by month/year
+      const eventPipeline = [
+        {
+          $match: {
+            $and: [
+              { date: { $gte: sixMonthsAgo.toISOString() } },
+              { did: { $in: deviceIds } }
+            ]
+          }
+        },
+        {
+          $sort: {
+            did: 1,
+            updatedAt: -1
+          }
+        },
+        {
+          $group: {
+            _id: "$did",
+            latestUpdatedAt: { $first: "$updatedAt" }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            did: "$_id",
+            updatedAt: "$latestUpdatedAt"
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$updatedAt" },
+              month: { $month: "$updatedAt" }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            duration: {
+              $concat: [
+                { $toString: "$_id.year" },
+                "-",
+                {
+                  $arrayElemAt: [
+                    [
+                      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                    ],
+                    { $subtract: ["$_id.month", 1] }
+                  ]
+                }
+              ]
+            },
+            year: "$_id.year",
+            month: "$_id.month",
+            count: 1
+          }
+        },
+        {
+          $sort: {
+            year: 1,
+            month: 1
+          }
+        }
+      ];
+
+      const eventResult = await event_ventilator_collection.aggregate(eventPipeline)
+
+      // Get the max count
+      const maxCount = eventResult.reduce((max, { count }) => Math.max(max, count), 0);
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        monthlyDataCount: [
+          { count: eventResult[1].count, duration: eventResult[1].duration },
+          { count: eventResult[2].count, duration: eventResult[2].duration },
+          { count: eventResult[3].count, duration: eventResult[3].duration },
+          { count: eventResult[4].count, duration: eventResult[4].duration },
+          { count: eventResult[5].count, duration: eventResult[5].duration },
+          { count: eventResult[6].count, duration: eventResult[6].duration },
+        ],
+        maxCount: maxCount,
+        // data:eventResult
+      });
+
+    } else if (filter == "yearly") {
+
+      const prodData = await productionModel.find({
+        $and: [
+          { deviceId: { $ne: "" } },
+          { productType: { $ne: "Suction" } }
+        ]
+      });
+
+      const deviceIds = prodData.map((item) => item.deviceId);
+
+      // const initialDate = new Date("2022-12-01T00:00:00Z");
+      // const endDate2 = new Date();
+      // endDate2.setDate(endDate2.getDate() - 1);
+
+      // Define the aggregation pipeline
+      const pipeline = [
+        {
+          $match: {
+            did: { $in: deviceIds },
+            // updatedAt: { $gte: initialDate, $lte: endDate2 }
+          }
+        },
+        {
+          $addFields: {
+            year: { $year: "$updatedAt" }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: "$year",
+              did: "$did"
+            }
+          }
+        },
+        {
+          $group: {
+            _id: "$_id.year",
+            uniqueDidCount: { $sum: 1 }
+          }
+        },
+        {
+          $sort: { _id: 1 }
+        }
+      ];
+
+      // Execute the aggregation query
+      const result = await event_ventilator_collection.aggregate(pipeline).exec();
+      // const result = await trends_ventilator_collections(pipeline).exec();
+
+      // Transform the result into the desired format
+      const yearlyData = result.map(item => ({
+        duration: item._id,
+        count: item.uniqueDidCount
+      }));
+
+      console.log(result, result.length);
+
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        yearlyDataCount: [
+          {
+            duration: yearlyData[0].duration,
+            count: yearlyData[0].count
+          },
+          {
+            duration: yearlyData[1].duration,
+            count: yearlyData[0].count + yearlyData[1].count
+          }
+        ],
+        maxCount: yearlyData[0].count + yearlyData[1].count,
+        // data:deviceIds
+      });
+    }
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -5094,37 +5096,39 @@ const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
   try {
     const filter = req.params.filter;
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
-  if (filter == "yearly") {
+
+    if (filter == "yearly") {
 
       // console.log(15, eventData)
-      const prodData = await productionModel.find({$and:[{purpose:"Demo"},{productType:{$ne:"Suction"}}]},{_id:1,purpose:1,deviceId:1})
+      const prodData = await productionModel.find({ $and: [{ purpose: "Demo" }, { productType: { $ne: "Suction" } }] }, { _id: 1, purpose: 1, deviceId: 1 })
       const deviceIds = prodData.map((item) => {
         return item.deviceId
       })
 
       const initialDate = new Date("2023-12-01T00:00:00Z");
       const endDate2 = new Date();
-      endDate2.setDate(endDate2.getDate()-1);
+      endDate2.setDate(endDate2.getDate() - 1);
 
       // Define the aggregation pipeline
       const pipeline = [
         {
-          $match: {$and:[
-            // {updatedAt: { $gte:initialDate,$lte:endDate2}},
-            {did:{$in:deviceIds}}
-          ]}
+          $match: {
+            $and: [
+              // {updatedAt: { $gte:initialDate,$lte:endDate2}},
+              { did: { $in: deviceIds } }
+            ]
+          }
         },
         {
           $addFields: {
             year: { $year: { $dateFromString: { dateString: "$date" } } }
-            }
+          }
         },
         {
           $group: {
             _id: {
-                year: "$year",
-                did: "$did"
+              year: "$year",
+              did: "$did"
             }
           }
         },
@@ -5149,127 +5153,127 @@ const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
       }));
 
       // console.log(11, yearlyData)
-      
+
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Data count retrieved successfully.",
-        yearlyDataCount:[
+        yearlyDataCount: [
           {
-            duration:2023,
-            count:1+yearlyData[0].count,
+            duration: 2023,
+            count: 1 + yearlyData[0].count,
           },
           {
-            duration:2024,
-            count:yearlyData[0].count+yearlyData[1].count,
+            duration: 2024,
+            count: yearlyData[0].count + yearlyData[1].count,
           }
         ],
-        maxCount:yearlyData[0].count+yearlyData[1].count
+        maxCount: yearlyData[0].count + yearlyData[1].count
       })
-  }  else if (filter == "monthly") {
-    
-    const initialDate = new Date("2023-11-01T00:00:00Z");
-    const endDate2 = new Date();
-    endDate2.setDate(endDate2.getDate() - 1);
+    } else if (filter == "monthly") {
 
-    // Define the date range for the last 6 months
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const initialDate = new Date("2023-11-01T00:00:00Z");
+      const endDate2 = new Date();
+      endDate2.setDate(endDate2.getDate() - 1);
 
-    // Aggregate production data to get relevant deviceIds
-    const productionPipeline = [
-      {
-        $match: {
-          $and:[
-            { deviceId: { $ne: "" }},
-            { deviceType: { $ne: "Suction" }},
-            { purpose: "Demo"},
-            { createdAt: { $gte: initialDate, $lte: endDate2 }}
-          ]
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          deviceIds: { $addToSet: "$deviceId" }
-        }
-      }
-    ];
+      // Define the date range for the last 6 months
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const productionResult = await productionModel.aggregate(productionPipeline);
-    const deviceIds = productionResult[0]?.deviceIds || [];
-
-    // If no deviceIds found, return early with empty results
-    if (deviceIds.length === 0) {
-      // console.log({ result: [], maxCount: 0 });
-      return;
-    }
-
-    // Aggregate event data to get unique DIDs with the latest updatedAt value and group by month/year
-    const eventPipeline = [
-      {
-        $match: {
-          $and:[
-            {date: { $gte: sixMonthsAgo.toISOString() }},
-            {did: { $in: deviceIds }},
-          ]
-        }
-      },
-      {
-        $sort: {
-          did: 1,
-          updatedAt: -1
-        }
-      },
-      {
-        $group: {
-          _id: "$did",
-          latestUpdatedAt: { $first: "$updatedAt" }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          did: "$_id",
-          updatedAt: "$latestUpdatedAt"
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$updatedAt" },
-            month: { $month: "$updatedAt" }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          duration: {
-            $concat: [
-              { $toString: "$_id.year" },
-              "-",
-              {
-                $arrayElemAt: [
-                  [
-                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-                  ],
-                  { $subtract: ["$_id.month", 1] }
-                ]
-              }
+      // Aggregate production data to get relevant deviceIds
+      const productionPipeline = [
+        {
+          $match: {
+            $and: [
+              { deviceId: { $ne: "" } },
+              { deviceType: { $ne: "Suction" } },
+              { purpose: "Demo" },
+              { createdAt: { $gte: initialDate, $lte: endDate2 } }
             ]
-          },
-          year: "$_id.year",
-          month: "$_id.month",
-          count: 1
           }
-      },
-      {
-        $sort: {
-          year: 1,
-          month: 1
+        },
+        {
+          $group: {
+            _id: null,
+            deviceIds: { $addToSet: "$deviceId" }
+          }
+        }
+      ];
+
+      const productionResult = await productionModel.aggregate(productionPipeline);
+      const deviceIds = productionResult[0]?.deviceIds || [];
+
+      // If no deviceIds found, return early with empty results
+      if (deviceIds.length === 0) {
+        // console.log({ result: [], maxCount: 0 });
+        return;
+      }
+
+      // Aggregate event data to get unique DIDs with the latest updatedAt value and group by month/year
+      const eventPipeline = [
+        {
+          $match: {
+            $and: [
+              { date: { $gte: sixMonthsAgo.toISOString() } },
+              { did: { $in: deviceIds } },
+            ]
+          }
+        },
+        {
+          $sort: {
+            did: 1,
+            updatedAt: -1
+          }
+        },
+        {
+          $group: {
+            _id: "$did",
+            latestUpdatedAt: { $first: "$updatedAt" }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            did: "$_id",
+            updatedAt: "$latestUpdatedAt"
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$updatedAt" },
+              month: { $month: "$updatedAt" }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            duration: {
+              $concat: [
+                { $toString: "$_id.year" },
+                "-",
+                {
+                  $arrayElemAt: [
+                    [
+                      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                    ],
+                    { $subtract: ["$_id.month", 1] }
+                  ]
+                }
+              ]
+            },
+            year: "$_id.year",
+            month: "$_id.month",
+            count: 1
+          }
+        },
+        {
+          $sort: {
+            year: 1,
+            month: 1
           }
         }
       ];
@@ -5284,185 +5288,185 @@ const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
         statusValue: "SUCCESS",
         message: "Most recent events by device ID retrieved successfully.",
         monthlyDataCount: [
-          { count:eventResult[1].count, duration:eventResult[1].duration},
-          { count:eventResult[2].count, duration:eventResult[2].duration},
-          { count:eventResult[3].count, duration:eventResult[3].duration},
-          { count:1, duration:'2024-Apr'},
-          { count:eventResult[4].count, duration:eventResult[4].duration},
-          { count:eventResult[5].count, duration:eventResult[5].duration},
+          { count: eventResult[1].count, duration: eventResult[1].duration },
+          { count: eventResult[2].count, duration: eventResult[2].duration },
+          { count: eventResult[3].count, duration: eventResult[3].duration },
+          { count: 1, duration: '2024-Apr' },
+          { count: eventResult[4].count, duration: eventResult[4].duration },
+          { count: eventResult[5].count, duration: eventResult[5].duration },
         ],
-        maxCount:maxCount
+        maxCount: maxCount
       });
 
-  } else if (filter == "weekly") {
+    } else if (filter == "weekly") {
 
-        const now = new Date();
-        const past28Days = new Date(now);
-        past28Days.setDate(now.getDate() - 28);
+      const now = new Date();
+      const past28Days = new Date(now);
+      past28Days.setDate(now.getDate() - 28);
 
-        const intervals = [];
-        for (let i = 0; i < 4; i++) {
-            const start = new Date(past28Days);
-            start.setDate(past28Days.getDate() + (i * 7));
-            
-            const end = new Date(start);
-            end.setDate(start.getDate() + 6);
-            
-            intervals.push({ 
-                start: start.toISOString().split('T')[0], 
-                end: end.toISOString().split('T')[0] 
-            });
-        }
+      const intervals = [];
+      for (let i = 0; i < 4; i++) {
+        const start = new Date(past28Days);
+        start.setDate(past28Days.getDate() + (i * 7));
 
-        // console.log('week interval', intervals);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
 
-        const formatDate = (dateStr) => {
-            const date = new Date(dateStr);
-            const options = { day: '2-digit', month: 'short' };
-            return date.toLocaleDateString('en-GB', options).replace(/ /g, '-');
-        };
+        intervals.push({
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0]
+        });
+      }
 
-        // Only select deviceId to reduce data transfer
-        const productionData = await productionModel.find({
-          $and: [{ "productType": {$ne:"Suction"}}, { "purpose": "Demo" }]
-        }, { deviceId: 1 });  
+      // console.log('week interval', intervals);
 
-        const deviceIds = productionData.map(item => item.deviceId);
+      const formatDate = (dateStr) => {
+        const date = new Date(dateStr);
+        const options = { day: '2-digit', month: 'short' };
+        return date.toLocaleDateString('en-GB', options).replace(/ /g, '-');
+      };
 
-        // 1st interval
-        const firstWData = await event_ventilator_collection.find(
-          {$and:[{ updatedAt: { $gte: new Date(`${intervals[0].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[0].end}T23:59:01.000+00:00`) } },{did:{$in:deviceIds}}]}, { did: 1 }
-        );
+      // Only select deviceId to reduce data transfer
+      const productionData = await productionModel.find({
+        $and: [{ "productType": { $ne: "Suction" } }, { "purpose": "Demo" }]
+      }, { deviceId: 1 });
 
-        const uniqueData = Array.from(
-          firstWData.reduce((map, item) => map.set(item.did, item), new Map()).values()
-        );
+      const deviceIds = productionData.map(item => item.deviceId);
 
-        // 2nd interval
-        const firstWData2 = await event_ventilator_collection.find(
-          {$and:[{ updatedAt: { $gte: new Date(`${intervals[1].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[1].end}T23:59:01.000+00:00`) } },{did:{$in:deviceIds}}]}, { did: 1 }
-        );
+      // 1st interval
+      const firstWData = await event_ventilator_collection.find(
+        { $and: [{ updatedAt: { $gte: new Date(`${intervals[0].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[0].end}T23:59:01.000+00:00`) } }, { did: { $in: deviceIds } }] }, { did: 1 }
+      );
 
-        const uniqueData2 = Array.from(
-          firstWData2.reduce((map, item) => map.set(item.did, item), new Map()).values()
-        );
+      const uniqueData = Array.from(
+        firstWData.reduce((map, item) => map.set(item.did, item), new Map()).values()
+      );
 
-        // 3rd interval
-        const firstWData3 = await event_ventilator_collection.find(
-          {$and:[{ updatedAt: { $gte: new Date(`${intervals[2].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[2].end}T23:59:01.000+00:00`) } },{did:{$in:deviceIds}}]}, { did: 1 }
-        );
+      // 2nd interval
+      const firstWData2 = await event_ventilator_collection.find(
+        { $and: [{ updatedAt: { $gte: new Date(`${intervals[1].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[1].end}T23:59:01.000+00:00`) } }, { did: { $in: deviceIds } }] }, { did: 1 }
+      );
 
-        const uniqueData3 = Array.from(
-          firstWData3.reduce((map, item) => map.set(item.did, item), new Map()).values()
-        );
+      const uniqueData2 = Array.from(
+        firstWData2.reduce((map, item) => map.set(item.did, item), new Map()).values()
+      );
 
-        // 4th interval
-        const firstWData4 = await event_ventilator_collection.find(
-          {$and:[{ updatedAt: { $gte: new Date(`${intervals[3].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[3].end}T23:59:01.000+00:00`) } },{did:{$in:deviceIds}}]}, { did: 1 }
-        );
+      // 3rd interval
+      const firstWData3 = await event_ventilator_collection.find(
+        { $and: [{ updatedAt: { $gte: new Date(`${intervals[2].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[2].end}T23:59:01.000+00:00`) } }, { did: { $in: deviceIds } }] }, { did: 1 }
+      );
 
-        const uniqueData4 = Array.from(
-          firstWData4.reduce((map, item) => map.set(item.did, item), new Map()).values()
-        );
+      const uniqueData3 = Array.from(
+        firstWData3.reduce((map, item) => map.set(item.did, item), new Map()).values()
+      );
 
-        const result = [
-          { count: uniqueData.length, duration: formatDate(intervals[0].start) },
-          { count: uniqueData2.length, duration: formatDate(intervals[1].start) },
-          { count: uniqueData3.length, duration: formatDate(intervals[2].start) },
-          { count: uniqueData4.length, duration: formatDate(intervals[3].start) }
-        ];
-        
-        
-        const maxCount = result.reduce((max, { count }) => Math.max(max, count), 0);
+      // 4th interval
+      const firstWData4 = await event_ventilator_collection.find(
+        { $and: [{ updatedAt: { $gte: new Date(`${intervals[3].start}T00:00:01.974+00:00`), $lte: new Date(`${intervals[3].end}T23:59:01.000+00:00`) } }, { did: { $in: deviceIds } }] }, { did: 1 }
+      );
+
+      const uniqueData4 = Array.from(
+        firstWData4.reduce((map, item) => map.set(item.did, item), new Map()).values()
+      );
+
+      const result = [
+        { count: uniqueData.length, duration: formatDate(intervals[0].start) },
+        { count: uniqueData2.length, duration: formatDate(intervals[1].start) },
+        { count: uniqueData3.length, duration: formatDate(intervals[2].start) },
+        { count: uniqueData4.length, duration: formatDate(intervals[3].start) }
+      ];
 
 
-    return res.status(200).json({
-      statusCode: 200,
-      statusValue: "SUCCESS",
-      message: "Most recent events by device ID retrieved successfully.",
-      weeklyDataCount:result,
-      maxCount
-    });
-    
-  } else if (filter == "today") {
+      const maxCount = result.reduce((max, { count }) => Math.max(max, count), 0);
 
-        const moment = require('moment-timezone');
-        const prodData = await productionModel.find({$and:[{purpose:"Demo"},{productType:{$ne:"Suction"}}]},{_id:1,purpose:1,deviceId:1})
-        const deviceIds = prodData.map((item) => {
-          return item.deviceId
-        })
 
-        const currentDateInKolkata = moment.tz("Asia/Kolkata");
-        // console.log(34,currentDateInKolkata)
-        const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        weeklyDataCount: result,
+        maxCount
+      });
 
-        const pipelines = hoursArray.map(hours => {
-          return {
-            $facet: {
-              [`eventsForLast${hours}Hr`]: [
-                {
-                  $match: {
-                    updatedAt: {
-                      $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(),
-                      $lte: currentDateInKolkata.toDate()
-                    },
-                    did: { $in: deviceIds } // Add this line to filter by deviceIds
-                  }
-                },
-                {
-                  $group: {
-                    _id: "$did",
-                    latestEvent: { $last: "$$ROOT" }
-                  }
-                },
-                {
-                  $replaceRoot: { newRoot: "$latestEvent" }
+    } else if (filter == "today") {
+
+      const moment = require('moment-timezone');
+      const prodData = await productionModel.find({ $and: [{ purpose: "Demo" }, { productType: { $ne: "Suction" } }] }, { _id: 1, purpose: 1, deviceId: 1 })
+      const deviceIds = prodData.map((item) => {
+        return item.deviceId
+      })
+
+      const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      // console.log(34,currentDateInKolkata)
+      const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+
+      const pipelines = hoursArray.map(hours => {
+        return {
+          $facet: {
+            [`eventsForLast${hours}Hr`]: [
+              {
+                $match: {
+                  updatedAt: {
+                    $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(),
+                    $lte: currentDateInKolkata.toDate()
+                  },
+                  did: { $in: deviceIds } // Add this line to filter by deviceIds
                 }
-              ]
-            }
-          };
-        });
-        
-        const results = await Promise.all(
-          // pipelines.map(pipeline => event_ventilator_collection.aggregate([pipeline]))
-          pipelines.map(pipeline => trends_ventilator_collection.aggregate([pipeline]))
-        );
-
-        const todayActiveDeviceCount = results.map((result, index) => {
-          const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
-          const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
-          return { duration, count };
-        }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
-        
-        let updatedResult = todayActiveDeviceCount.map(item => {
-          // Extract time part after the space character
-          const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
-          return { ...item, duration: time };
-        });
- 
-        // Calculate maxCount value
-        let maxCount = -Infinity;
-        for (item of todayActiveDeviceCount) {
-          if (item.count > maxCount) {
-            maxCount = item.count
+              },
+              {
+                $group: {
+                  _id: "$did",
+                  latestEvent: { $last: "$$ROOT" }
+                }
+              },
+              {
+                $replaceRoot: { newRoot: "$latestEvent" }
+              }
+            ]
           }
-        }
-        
-        // Formating data response
-        updatedResult = updatedResult.map(item => {
-          let duration = item.duration.replace(/:\d{2}/, ''); // Remove the minutes part
-          return {...item, duration};
-        });
+        };
+      });
 
-        return res.status(200).json({
-          statusCode: 200,
-          statusValue: "SUCCESS",
-          message: "Most recent events by device ID retrieved successfully.",
-          todayActiveDeviceCount:updatedResult,
-          maxCount
-        });
-  }  
-      
+      const results = await Promise.all(
+        // pipelines.map(pipeline => event_ventilator_collection.aggregate([pipeline]))
+        pipelines.map(pipeline => trends_ventilator_collection.aggregate([pipeline]))
+      );
+
+      const todayActiveDeviceCount = results.map((result, index) => {
+        const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
+        const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
+        return { duration, count };
+      }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
+
+      let updatedResult = todayActiveDeviceCount.map(item => {
+        // Extract time part after the space character
+        const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
+        return { ...item, duration: time };
+      });
+
+      // Calculate maxCount value
+      let maxCount = -Infinity;
+      for (item of todayActiveDeviceCount) {
+        if (item.count > maxCount) {
+          maxCount = item.count
+        }
+      }
+
+      // Formating data response
+      updatedResult = updatedResult.map(item => {
+        let duration = item.duration.replace(/:\d{2}/, ''); // Remove the minutes part
+        return { ...item, duration };
+      });
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Most recent events by device ID retrieved successfully.",
+        todayActiveDeviceCount: updatedResult,
+        maxCount
+      });
+    }
+
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -5480,10 +5484,10 @@ const getDeviceCountForAgvaPro = async (req, res) => {
   try {
 
     // device count for agva pro and suction
-    const productionData = await productionModel.find({$and:[{deviceId:{$ne:""}},{productType:{$ne:"Suction"}}]})
-    
-    const statusData = await statusModel.find({deviceId:{$ne:""}})
- 
+    const productionData = await productionModel.find({ $and: [{ deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } }] })
+
+    const statusData = await statusModel.find({ deviceId: { $ne: "" } })
+
     const productionDeviceIds = productionData.map(device => device.deviceId);
 
     // Create a dictionary to count ACTIVE and INACTIVE messages
@@ -5502,7 +5506,7 @@ const getDeviceCountForAgvaPro = async (req, res) => {
         // Increment the respective message count
         if (status.message.trim() === "ACTIVE") {
           messageCount.ACTIVE++;
-          
+
           // Check if the device has purpose 'Demo'
           const device = productionData.find(device => device.deviceId === status.deviceId);
           if (device && device.purpose === 'Demo') {
@@ -5519,11 +5523,11 @@ const getDeviceCountForAgvaPro = async (req, res) => {
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Data count retrieved successfully.",
-      agvaProData:[{
-        totalDevicesCount:(messageCount.ACTIVE)+(messageCount.INACTIVE),
-        ActiveDevicesCount:messageCount.ACTIVE, 
-        InactiveDevicesCount:messageCount.INACTIVE,
-        totalActiveDemoDevicesCount:totalDemoData,
+      agvaProData: [{
+        totalDevicesCount: (messageCount.ACTIVE) + (messageCount.INACTIVE),
+        ActiveDevicesCount: messageCount.ACTIVE,
+        InactiveDevicesCount: messageCount.INACTIVE,
+        totalActiveDemoDevicesCount: totalDemoData,
         // testData:extraDeviceIds
       }]
     });
@@ -5813,8 +5817,8 @@ const replaceDeviceIds = async (req, res) => {
       })
     }
 
-    const aboutData = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
-    const prodData = await productionModel.findOne({deviceId:req.body.deviceId})
+    const aboutData = await aboutDeviceModel.findOne({ deviceId: req.body.deviceId })
+    const prodData = await productionModel.findOne({ deviceId: req.body.deviceId })
     if (!aboutData || !prodData) {
       return res.status(200).json({
         statusCode: 400,
@@ -5823,27 +5827,27 @@ const replaceDeviceIds = async (req, res) => {
       })
     }
 
-    const updateAbout = await aboutDeviceModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-    const updateProd = await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+    const updateAbout = await aboutDeviceModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+    const updateProd = await productionModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
     if (updateProd && updateAbout) {
 
-      await accountsHistoryModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await accountsModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await markAsShippedModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await RegisterDevice.findOneAndUpdate({DeviceId:req.body.deviceId},{DeviceId:req.body.newDeviceId})
-      await returnDeviceModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3BucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3BucketInsModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3BucketProdModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3shippingBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3ewayBillBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3invoiceBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3PatientFileModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3poBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3ReturnPoBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await servicesModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3PatientFileModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      
+      await accountsHistoryModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await accountsModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await markAsShippedModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await RegisterDevice.findOneAndUpdate({ DeviceId: req.body.deviceId }, { DeviceId: req.body.newDeviceId })
+      await returnDeviceModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3BucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3BucketInsModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3BucketProdModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3shippingBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3ewayBillBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3invoiceBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3PatientFileModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3poBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3ReturnPoBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await servicesModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3PatientFileModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
@@ -5981,8 +5985,8 @@ const replaceDeviceId = async (req, res) => {
       })
     }
 
-    const aboutData = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
-    const prodData = await productionModel.findOne({deviceId:req.body.deviceId})
+    const aboutData = await aboutDeviceModel.findOne({ deviceId: req.body.deviceId })
+    const prodData = await productionModel.findOne({ deviceId: req.body.deviceId })
     if (!aboutData || !prodData) {
       return res.status(200).json({
         statusCode: 400,
@@ -5991,27 +5995,27 @@ const replaceDeviceId = async (req, res) => {
       })
     }
 
-    const updateAbout = await aboutDeviceModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-    const updateProd = await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
+    const updateAbout = await aboutDeviceModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+    const updateProd = await productionModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
     if (updateProd && updateAbout) {
 
-      await accountsHistoryModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await accountsModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await markAsShippedModel.findOneAndUpdate({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await RegisterDevice.findOneAndUpdate({DeviceId:req.body.deviceId},{DeviceId:req.body.newDeviceId})
-      await returnDeviceModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3BucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3BucketInsModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3BucketProdModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3shippingBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3ewayBillBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3invoiceBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3PatientFileModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3poBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3ReturnPoBucketModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await servicesModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      await s3PatientFileModel.updateMany({deviceId:req.body.deviceId},{deviceId:req.body.newDeviceId})
-      
+      await accountsHistoryModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await accountsModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await markAsShippedModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await RegisterDevice.findOneAndUpdate({ DeviceId: req.body.deviceId }, { DeviceId: req.body.newDeviceId })
+      await returnDeviceModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3BucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3BucketInsModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3BucketProdModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3shippingBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3ewayBillBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3invoiceBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3PatientFileModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3poBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3ReturnPoBucketModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await servicesModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+      await s3PatientFileModel.updateMany({ deviceId: req.body.deviceId }, { deviceId: req.body.newDeviceId })
+
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",

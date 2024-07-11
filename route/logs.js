@@ -263,6 +263,8 @@ router.get("/v2/deviceAlerts/:did", getAlertsByIdV2);   // v2-version
 
 router.get("/deviceEvents/:did", getEventsById);
 router.get("/v2/deviceEvents/:did", getEventsByIdV2);    // v2-version
+router.get("/deviceEvents/get-events-by-date", getEventsById)
+
 
 
 router.get("/deviceLogs/:device", getLogsById);

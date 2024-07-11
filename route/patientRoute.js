@@ -33,9 +33,15 @@ router.get('/get-Uhids',isAuth, patientController.getAllUhids);
 router.get('/get-Uhids',isAuth, patientController.getAllUhidsV2);  // v2-version
 
 router.post('/add-medical-diagnose/:UHID', isAuth, patientController.saveDiagnose);
-router.put('/update-patient/:id', isAuth, patientController.updatePatientById);
+router.put('/update-patient', isAuth, patientController.updatePatientById);
+router.put('/add-medicineData-and-illnessData', isAuth, patientController.addMedicineAndIllnessDataByUHID);
+router.put('/remove-medicineData-and-illnessData', isAuth, patientController.removeMedicineAndIllnessDataByUHID);
+router.put('/update-illness-and-medicine-date', isAuth, patientController.updateMedicineAndIllnessDataByUHID);
 
-router.post('/upload-patient-file/:deviceId/:UHID', upload.single('file'), uploadController.uploadPatientFile);
+
+router.put('/patient-discharge/:UHID', isAuth, patientController.updatePatientDischarge);
+
+router.post('/upload-patient-file/:UHID', upload.single('file'), uploadController.uploadPatientFile);
 router.delete('/delete-file/:key', isAuth, uploadController.deletePatientFile);
 router.delete('/delete-patient/:id', isAuth, patientController.deletePatientById);
 

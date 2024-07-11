@@ -1,3 +1,4 @@
+const { required } = require('joi');
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema;
 
@@ -31,6 +32,10 @@ const sendDeviceReqSchema = mongoose.Schema({
         required: true,
         default: "",
     },
+    securityCode:{
+        type: String,
+        required:true,
+    }
     
 }, { timestamps: true })
 
