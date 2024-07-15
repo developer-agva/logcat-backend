@@ -540,7 +540,7 @@ const getProductionListV2 = async (req, res) => {
         // aggregate logic
         var pipline = [
             // Match
-           {"$match":{$or:[{shipmentMode:"req_doc"},{shipmentMode:"inprocess"},{shipmentMode:"retun"}]}},
+           {"$match":{$or:[{shipmentMode:"req_doc"},{shipmentMode:"inprocess"}]}},
            // filter data from the above data list
             // search operation
             {

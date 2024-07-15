@@ -302,9 +302,10 @@ const updatePatientById = async (req, res) => {
     });
 
     // Format the date and time
-    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+    // const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day}`;
     
-    // console.log(123, req.body)
+    console.log(123, req.body)
     const getDispatchData = await aboutDeviceModel.findOne({$or:[{deviceId:req.body.deviceId},{serial_no:req.body.serial_no}]});
     const patientData = await patientModel.findOneAndUpdate(
       {UHID:req.body.UHID},
@@ -398,7 +399,8 @@ const addMedicineAndIllnessDataByUHID = async (req, res) => {
     });
 
     // Format the date and time
-    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+    // const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day}`;
   
     // Prepare new data to be added
     const newIllnessData = diagnoseData.map(item => ({

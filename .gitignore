@@ -4,3 +4,5 @@ info.log
 *.env.example
 *.env.local
 *.env.staging
+*.txt
+*.zip

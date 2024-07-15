@@ -2654,8 +2654,13 @@ const updateAboutData = async (req, res) => {
       req.body,
       { upsert: true }
     )
+    
     await productionModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { purpose: req.body.purpose })
     await RegisterDevice.findOneAndUpdate({ DeviceId: req.body.deviceId }, { Hospital_Name: !!(req.body.hospital_name) ? req.body.hospital_name : getData[0].hospital_name })
+    // For return device
+    if (req.body.purpose == "return" || req.body.purpose === "return") {
+      await productionModel.findOneAndUpdate({ deviceId: req.body.deviceId }, { shipmentMode:"req_doc" })
+    }
     // const saveDoc = await saveDispatchData.save();
     if (!saveDispatchData) {
       return res.status(400).json({
@@ -3047,6 +3052,7 @@ const { eventNames } = require('../model/event_ventilator_collection');
 const event_ventilator_collection = require('../model/event_ventilator_collection');
 const trends_ventilator_collection = require('../model/trends_ventilator_collection');
 const { registerDevice } = require('./RegisterDevice');
+// const { ConfigurationServicePlaceholders } = require('aws-sdk/lib/config_service_placeholders');
 
 // const jwtr = require("jwtr-redis").default;
 // const jwtr = new jwtrR(redisClient);
@@ -4172,6 +4178,7 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
         })
       }
       let convertedData = convertDateFormat(dataCountByMonth)
+      console.log(convertedData)
       convertedData[0].count = 0 + convertedData[0].count + 3
       const maxCount = convertedData.reduce((max, item) => item.count > max ? item.count : max, convertedData[0].count);
 
@@ -4980,21 +4987,24 @@ const getActiveDevicesCountForAgvaPro = async (req, res) => {
       ];
 
       const eventResult = await event_ventilator_collection.aggregate(eventPipeline)
+      // console.log('result-data',eventResult)
 
       // Get the max count
       const maxCount = eventResult.reduce((max, { count }) => Math.max(max, count), 0);
+      // console.log(maxCount)
 
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Most recent events by device ID retrieved successfully.",
         monthlyDataCount: [
+          { count: eventResult[0].count, duration: eventResult[0].duration },
           { count: eventResult[1].count, duration: eventResult[1].duration },
           { count: eventResult[2].count, duration: eventResult[2].duration },
           { count: eventResult[3].count, duration: eventResult[3].duration },
           { count: eventResult[4].count, duration: eventResult[4].duration },
           { count: eventResult[5].count, duration: eventResult[5].duration },
-          { count: eventResult[6].count, duration: eventResult[6].duration },
+          // { count: eventResult[6].count, duration: eventResult[6].duration },
         ],
         maxCount: maxCount,
         // data:eventResult
@@ -5279,7 +5289,7 @@ const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
       ];
 
       const eventResult = await event_ventilator_collection.aggregate(eventPipeline)
-      // console.log(11, eventResult) 
+      console.log(11, eventResult) 
       // Get the max count
       const maxCount = eventResult.reduce((max, { count }) => Math.max(max, count), 0);
 
@@ -5288,12 +5298,13 @@ const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
         statusValue: "SUCCESS",
         message: "Most recent events by device ID retrieved successfully.",
         monthlyDataCount: [
+          { count: eventResult[0].count, duration: eventResult[0].duration },
           { count: eventResult[1].count, duration: eventResult[1].duration },
+          { count: 1, duration: '2024-Apr' },
           { count: eventResult[2].count, duration: eventResult[2].duration },
           { count: eventResult[3].count, duration: eventResult[3].duration },
-          { count: 1, duration: '2024-Apr' },
           { count: eventResult[4].count, duration: eventResult[4].duration },
-          { count: eventResult[5].count, duration: eventResult[5].duration },
+          // { count: eventResult[5].count, duration: eventResult[5].duration },
         ],
         maxCount: maxCount
       });
