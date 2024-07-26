@@ -3394,7 +3394,7 @@ const createTrends = async (req, res, next) => {
       pr: !!pr ? pr : "",
     });
     const SaveTrends = await trends.save(trends);
-
+    
     // For current date and time
     const currentDateTime = new Date();
 

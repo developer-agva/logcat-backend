@@ -45,6 +45,9 @@ router.post('/upload-patient-file/:UHID', upload.single('file'), uploadControlle
 router.delete('/delete-file/:key', isAuth, uploadController.deletePatientFile);
 router.delete('/delete-patient/:id', isAuth, patientController.deletePatientById);
 
+// For medicine graph
+router.post('/patient-graph', patientController.getPatientGraphData);
+
 
 
 

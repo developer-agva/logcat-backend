@@ -15,6 +15,9 @@ const assignDeviceTouserModel = require('../model/assignedDeviceTouserModel');
 const patientModelV2 = require('../model/patientModelV2');
 const patientDischargeModelV2 = require('../model/patientDischargeModelV2');
 const aboutDeviceModel = require('../model/aboutDeviceModel');
+const trends_ventilator_collection = require("../model/trends_ventilator_collection");
+const ObjectId = require('mongodb').ObjectId;
+
 
 /**
  * api      POST @/patient/save-uhid-details
@@ -302,10 +305,10 @@ const updatePatientById = async (req, res) => {
     });
 
     // Format the date and time
-    // const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
-    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day}`;
+    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+    // const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day}`;
     
-    console.log(123, req.body)
+    // console.log(123, req.body)
     const getDispatchData = await aboutDeviceModel.findOne({$or:[{deviceId:req.body.deviceId},{serial_no:req.body.serial_no}]});
     const patientData = await patientModel.findOneAndUpdate(
       {UHID:req.body.UHID},
@@ -399,8 +402,8 @@ const addMedicineAndIllnessDataByUHID = async (req, res) => {
     });
 
     // Format the date and time
-    // const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
-    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day}`;
+    const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
+    // const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day}`;
   
     // Prepare new data to be added
     const newIllnessData = diagnoseData.map(item => ({
@@ -519,6 +522,7 @@ const updateMedicineAndIllnessDataByUHID = async (req, res) => {
   try {
     
     const { UHID, illnessId, medicineId, endDate} = req.body;
+    // console.log(12, req.body)
     if (UHID == "" || UHID == undefined || UHID == null) {
       return res.status(400).json({
         statusCode: 400,
@@ -526,7 +530,7 @@ const updateMedicineAndIllnessDataByUHID = async (req, res) => {
         message: "Error!! Data not added! empty UHID"
       });
     }
-    if ( !!UHID, !!illnessId, !!endDate) {
+    if ( !!UHID && !!illnessId && !!endDate) {
       const updateDoc = await patientModel.findOneAndUpdate(
         {UHID:UHID, "illnessData._id":illnessId},
         {
@@ -553,7 +557,7 @@ const updateMedicineAndIllnessDataByUHID = async (req, res) => {
       });
     }
     
-    if ( !!UHID, !!medicineId, !!endDate) {
+    if ( !!UHID && !!medicineId && !!endDate) {
       const updateDoc = await patientModel.findOneAndUpdate(
         {UHID:UHID, "medicineData._id":medicineId},
         {
@@ -1283,6 +1287,188 @@ const deletePatientById = async (req, res) => {
   }
 }
 
+/** 
+ * api      DELETE @/patient/dpatient-graph
+ * desc     @getPatientGraphData for logger access only
+*/
+const getPatientGraphData = async (req, res) => {
+  try {
+    const {UHID, deviceId, } = req.body;
+    if (!UHID || !deviceId) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: `All fields (UHID, deviceId) are mandatory! `
+      })
+    }
+    const patientData = await patientModel.aggregate([
+      {
+        $match: { UHID:UHID }
+      },
+      {
+        $project: { deviceId:1, medicineData:1 }
+      },
+      {
+        $unwind:"$medicineData"
+      },
+      { $replaceRoot: { newRoot: "$medicineData" } }
+    ])
+
+    // console.log(patientData)
+
+    // const trendsData = await trends_ventilator_collection.find({$and:[{did:deviceId}]},{peep:1, vti:1, fio2:1, sPo2:1, mvi:1, time:1, updatedAt:1}).sort({updatedAt:-1}).limit(7)
+    const trendsData = await trends_ventilator_collection.aggregate([
+      {
+        $match: { did: deviceId }
+      },
+      {
+        $group: {
+          _id: "$time",
+          document: { $first: "$$ROOT" }
+        }
+      },
+      {
+        $replaceRoot: { newRoot: "$document" }
+      },
+      {
+        $addFields: {
+          timeDate: {
+            $dateFromString: {
+              dateString: "$time",
+              format: "%d-%m-%Y %H:%M" // Adjusted to match '16-07-2024 14:46' format
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          peep: 1,
+          vti: 1,
+          fio2: 1,
+          sPo2: 1,
+          mvi: 1,
+          time: 1,
+          updatedAt: 1,
+          timeDate: 1
+        }
+      },
+      {
+        $sort: { timeDate: 1 } // Sort by the newly created date field
+      },
+      {
+        $limit: 20
+      }
+    ])
+    
+    // console.log('trends-data', trendsData)
+    // Convert startDate strings to Date objects
+    const newPatientData = patientData.map(patient => ({
+      ...patient,
+      startDate: new Date(patient.startDate.replace(' ', 'T'))
+    }))
+
+    const convertPatientData = newPatientData.map((item, index) => {
+      if (item.endDate === "") {
+        // console.log(index)
+        const newValue = (index + 1) * 10;
+        // console.log(newValue)
+        const newKeyValues = Array(trendsData.length).fill(newValue)
+        // console.log(newKeyValues)
+
+        return {
+          ...item,
+          newKey: newKeyValues
+        }
+      }
+      return item;
+    })
+    
+    // console.log(11,convertPatientData)
+    // Filter trendsData based on startDate of the first element in patientData
+    const startDate = convertPatientData[0].startDate;
+    // console.log(startDate)
+    // console.log(trendsData)
+    let filteredTrends = trendsData.filter(trends => trends.timeDate >= startDate );
+
+    filteredTrends.sort((a, b) => b.timeDate - a.timeDate)
+    // console.log(filteredTrends)
+
+    // Extract the required fields
+    const startDateArr = filteredTrends.map(trends => startDate)
+    const peep = filteredTrends.map(trends => trends.peep)
+    const vti = filteredTrends.map(trends => trends.vti)
+    const fio2 = filteredTrends.map(trends => trends.fio2)
+    const sPo2 = filteredTrends.map(trends => trends.sPo2)
+    const mvi = filteredTrends.map(trends => trends.mvi)
+    const time = filteredTrends.map(trends => (trends.time).split(' ')[1])
+    
+    // Format the response
+    const response = {
+      medicineData:convertPatientData,
+      peep,
+      vti,
+      fio2,
+      sPo2,
+      mvi,
+      time,
+      startDateArr
+    }
+
+    // // console.log(convertPatientData)
+    // const filterTrends = trendsData.filter(trend => {
+    //   return convertPatientData.some(patient => trend.updatedAt >= patient.startDate)
+    // })
+    
+    // console.log(123, filterTrends)
+
+    // const result = patientData.map(patient => {
+    //   const peep = filterTrends.map(trends => trends.peep)
+    //   const vti = filterTrends.map(trends => trends.vti)
+    //   const fio2 = filterTrends.map(trends => trends.fio2)
+    //   const sPo2 = filterTrends.map(trends => trends.sPo2)
+    //   const mvi = filterTrends.map(trends => trends.mvi)
+    //   const time = filterTrends.map(trends => (trends.time).split(' ')[1])
+
+    //   return {
+    //     name:patient.name,
+    //     startDate:patient.startDate,
+    //     endDate:patient.endDate,
+    //     peep,
+    //     vti,
+    //     fio2,
+    //     sPo2,
+    //     mvi,
+    //     time,
+    //   }
+    // })
+
+    if (patientData) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: `data get successfully.`,
+        data:response,
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: `Error ! while deleting patient data.`
+    })
+  }
+  catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 
 
 module.exports = {
@@ -1306,5 +1492,6 @@ module.exports = {
   updatePatientDischarge,
   addMedicineAndIllnessDataByUHID,
   removeMedicineAndIllnessDataByUHID,
-  updateMedicineAndIllnessDataByUHID
+  updateMedicineAndIllnessDataByUHID,
+  getPatientGraphData
 }

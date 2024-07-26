@@ -22,6 +22,14 @@ const s3sendPrintFileModel = require('../model/s3sendPrintFileModel');
 const projectModel = require('../model/projectModel');
 const featuredProductModel = require('../model/featuredProductModel');
 
+let redisClient = require("../config/redisInit");
+const expenseModel = require('../model/expenseModel');
+const User = require('../model/users');
+const exp = require('constants');
+const JWTR = require("jwt-redis").default;
+const jwtr = new JWTR(redisClient);
+
+
 exports.uploadSingle = async (req, res) => {
     // req.file contains a file object
     res.json(req.file);
@@ -187,6 +195,38 @@ exports.uploadewayBillPdf = async (req, res) => {
     const saveDoc = new s3ewayBillBucketModel(newObj);
     saveFile = saveDoc.save();
   //   await s3BucketProdModel.deleteMany({location: ""});
+}
+
+
+exports.uploadExpenseBill = async (req, res) => {
+    if (!(req.file)) {
+        return res.status(400).json({
+            statusCode: 400,
+            statusValue: "FAIL",
+            message: "Exp document is required."
+        })
+    }
+    // for expense userId
+    const token = req.headers["authorization"].split(" ")[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({ _id: verified.user });
+    // console.log(loggedInUser)
+    // console.log(req.params)
+    const expData = await expenseModel.findOne({_id:req.params._id})
+    const uploadedData = req.file;
+    
+    if (!expData) {
+        return res.status(400).json({
+            statusCode: 400,
+            statusValue: "FAIL",
+            message: "Invalid expense Id"
+        })
+    } 
+    const updateDoc = await expenseModel.findOneAndUpdate({_id:req.params._id},{key:uploadedData.key,location:uploadedData.location},{upsert:true})
+    if (!!updateDoc) {
+        res.json(req.file);
+    }
+    
 }
 
 

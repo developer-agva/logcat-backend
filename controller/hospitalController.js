@@ -181,6 +181,7 @@ const deleteHospital = async (req, res) => {
 */
 const getHospitalList = async (req, res) => {
     try {
+        console.log(true)
         if (!req.params.State) {
             const data = await registeredHospitalModel.find({}, { __v: 0, createdAt: 0, updatedAt: 0 });
             if (data.length == "") {

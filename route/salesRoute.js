@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const salesController = require('../controller/salesController');
+const upload = require('../helper/upload.helper');
+const uploadController = require('../controller/upload.controller');
+
 
 // Route for  
 router.post('/expense/add', salesController.addExpense);
@@ -30,5 +33,7 @@ router.get('/sales/dashboard-data', salesController.getTotalDataCount);
 router.get('/sales/user-data', salesController.getUserData);
 
 router.get('/sales/get-single-user-data/:userId', salesController.getUserData);
+router.post('/expense/upload-exp-bill/:_id', upload.single('file'), uploadController.uploadExpenseBill);
+
 
 module.exports = router;

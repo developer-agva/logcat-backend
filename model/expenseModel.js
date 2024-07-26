@@ -28,6 +28,14 @@ const expenseSchema = new mongoose.Schema({
     paymentStatus:{
         type: String,
         default:"Pending"
+    },
+    location:{
+        type: String,
+        default: ""
+    },
+    key: {
+        type: String,
+        default: ""
     }
 },{
     timestamps: true

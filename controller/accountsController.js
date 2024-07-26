@@ -557,7 +557,7 @@ const getProductionListV2 = async (req, res) => {
                 "__v"
               ]
             }
-       ]
+        ]
         // get data
         const resData = await productionModel.aggregate(pipline)
         // for pagination
@@ -583,7 +583,7 @@ const getProductionListV2 = async (req, res) => {
             statusValue:"FAIL",
             message:"data not found."
         })
-        
+       
     } catch (error) {
         return res.status(500).json({
             statusCode: 500,
@@ -596,6 +596,7 @@ const getProductionListV2 = async (req, res) => {
         })
     }
 }
+
 
 const getDispatchedDeviceList = async (req, res) => {
     try {
