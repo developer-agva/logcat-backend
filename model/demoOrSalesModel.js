@@ -27,7 +27,7 @@ const demoSalesSchema = new mongoose.Schema({
     },
     status:{
         type: String,
-        enum: ["Ongoing", "Sold", "Closed"],
+        enum: ["Demo", "Sold"],
     },
     date:{
         type: String,
@@ -44,6 +44,14 @@ const demoSalesSchema = new mongoose.Schema({
     isExpired: {
         type: Boolean,
         default:false,   
+    },
+    amount:{
+        type: String,
+        default: ""
+    },
+    serialNo:{
+        type: String,
+        default: ""
     }
 },{
     timestamps: true

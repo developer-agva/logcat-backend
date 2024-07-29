@@ -380,20 +380,20 @@ exports.getAllSalesData = async (req, res) => {
     const token = req.headers["authorization"].split(" ")[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user });
-    console.log(loggedInUser._id);
+    // console.log(loggedInUser._id);
     // Get current date
-    let demoData;
+    let soldData;
     if (loggedInUser.userType !== "Marketing-Admin") {
-      demoData = await demoOrSalesModel.find(
+      soldData = await demoOrSalesModel.find(
         { $and: [{ userId: loggedInUser._id }, { status: "Sold" }] },
         { __v: 0, createdAt: 0, updatedAt: 0 }
       );
       if (req.query.search) {
-        demoData = await demoOrSalesModel.find(
+        soldData = await demoOrSalesModel.find(
           {
             $and: [
               { userId: loggedInUser._id },
-              { status: { $ne: "Sold" } },
+              { status: "Sold" },
               {
                 $or: [
                   {
@@ -410,7 +410,7 @@ exports.getAllSalesData = async (req, res) => {
           { __v: 0, createdAt: 0, updatedAt: 0 }
         );
       }
-      if (demoData.length < 1) {
+      if (soldData.length < 1) {
         return res.status(400).json({
           statusCode: 400,
           statusValue: "FAIL",
@@ -422,15 +422,15 @@ exports.getAllSalesData = async (req, res) => {
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Data get successfully!",
-        data: demoData,
+        data: soldData,
       });
     }
-    demoData = await demoOrSalesModel.find(
+    soldData = await demoOrSalesModel.find(
       { status: "Sold" },
       { __v: 0, createdAt: 0, updatedAt: 0 }
     );
     if (req.query.search) {
-      demoData = await demoOrSalesModel.find(
+      soldData = await demoOrSalesModel.find(
         {
           $and: [
             // {userId:loggedInUser._id},
@@ -448,7 +448,7 @@ exports.getAllSalesData = async (req, res) => {
         { __v: 0, createdAt: 0, updatedAt: 0 }
       );
     }
-    if (demoData.length < 1) {
+    if (soldData.length < 1) {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
@@ -460,7 +460,7 @@ exports.getAllSalesData = async (req, res) => {
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Data get successfully!",
-      data: demoData,
+      data: soldData,
     });
   } catch (err) {
     return res.status(500).json({
@@ -645,7 +645,7 @@ exports.getUserData = async (req, res) => {
     const uniqueUserData = [...new Set(finalResult)];
     // console.log(123, uniqueUserData)
     // Calculate demo and sales
-    const demoData = await demoOrSalesModel.find({ status: "Closed" });
+    const demoData = await demoOrSalesModel.find({ status: "Demo" });
     const salesData = await demoOrSalesModel.find({ status: "Sold" });
     // calculate targetDemoDone
     function addTargetDemoDone(uniqueUserData, demoData) {
@@ -731,7 +731,6 @@ exports.getUserData = async (req, res) => {
       });
     }
     
-    
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -801,6 +800,7 @@ exports.addDemo = async (req, res) => {
       demoDuration: Joi.string().required(),
       priority: Joi.string().required(),
       description: Joi.string().allow("").optional(),
+      serialNo:Joi.string().allow("").optional()
     });
     let result = schema.validate(req.body);
     if (result.error) {
@@ -822,9 +822,8 @@ exports.addDemo = async (req, res) => {
     const year = currentDate.getFullYear();
     // Format the date as "dd-mm-yyyy"
     const formattedDate = `${day}-${month}-${year}`;
-    // check duplicate deviceId
-    const checkData = await demoOrSalesModel.findOne({
-      deviceId: req.body.deviceId,
+    // check duplicate entry
+    const checkData = await demoOrSalesModel.findOne({$and:[{deviceId: req.body.deviceId},{userId:loggedInUser._id},{status:"Demo"}]
     });
     if (!!checkData) {
       return res.status(400).json({
@@ -841,18 +840,32 @@ exports.addDemo = async (req, res) => {
       hospitalName: req.body.hospitalName,
       demoDuration: req.body.demoDuration,
       priority: req.body.priority,
-      status: "Ongoing",
+      status: "Demo",
       date: formattedDate,
       description: !!req.body.description ? req.body.description : "",
       isExpired: false,
+      serialNo:!!req.body.serialNo ? req.body.serialNo : "",
     });
     const savedData = await saveDoc.save();
-    // let getMilestone = await mileStoneModel.find({userId:loggedInUser._id}).sort({createdAt:-1}).limit(1);
-    // getMilestone = getMilestone[0]
-    // let targetDemo = getMilestone.targetDemo
-    // targetDemo = targetDemo-1
+    
+    // check Target assigned or not
+    const targetData = await mileStoneModel.findOne({$and:[{userId:loggedInUser._id},{isExpired:false}]})
     if (!!savedData) {
-      // await mileStoneModel.findByIdAndUpdate({_id:getMilestone._id},{targetDemo:targetDemo})
+      if (!targetData) {
+        await mileStoneModel.findOneAndUpdate(
+          {userId:loggedInUser._id},
+          {
+            createdBy:"6633326ae827aef92da997fe",
+            startDate:formattedDate,
+            endDate:"NA",
+            targetDemo:"0",
+            targetSales:"0",
+            userId:loggedInUser._id,
+            isExpired:false,
+            targetStatus:"Pending"
+          },{upsert:true}
+        )
+      }
       return res.status(201).json({
         statusCode: 201,
         statusValue: "SUCCESS",
@@ -878,6 +891,111 @@ exports.addDemo = async (req, res) => {
     });
   }
 };
+
+
+exports.addSold = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      deviceId: Joi.string().required(),
+      contactNo: Joi.string().required(),
+      hospitalName: Joi.string().required(),
+      description: Joi.string().allow("").optional(),
+      amount:Joi.string().required(),
+      serialNo:Joi.string().allow("").optional(),
+    });
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        status: 0,
+        statusCode: 400,
+        message: result.error.details[0].message,
+      });
+    }
+    // for expense userId
+    const token = req.headers["authorization"].split(" ")[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({ _id: verified.user });
+    // Get current date
+    const currentDate = new Date();
+    // Extract day, month, and year
+    const day = currentDate.getDate().toString().padStart(2, "0");
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, "0"); // Month is zero-based, so add 1
+    const year = currentDate.getFullYear();
+    // Format the date as "dd-mm-yyyy"
+    const formattedDate = `${day}-${month}-${year}`;
+    // check duplicate deviceId
+    const checkData = await demoOrSalesModel.findOne({$and:[{deviceId: req.body.deviceId},{userId:loggedInUser._id},{status:"Sold"}]
+    });
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "deviceId already exists.",
+        data: req.body,
+      });
+    }
+    const saveDoc = new demoOrSalesModel({
+      userId: loggedInUser._id,
+      deviceId: req.body.deviceId,
+      contactNo: req.body.contactNo,
+      hospitalName: req.body.hospitalName,
+      demoDuration: "NA",
+      priority: "NA",
+      status: "Sold",
+      date: formattedDate,
+      soldDate:formattedDate,
+      description: !!req.body.description ? req.body.description : "",
+      isExpired: false,
+      amount:!!(req.body.amount) ? req.body.amount : "",
+      serialNo:!!(req.body.serialNo) ? req.body.serialNo : ""
+    });
+    const savedData = await saveDoc.save();
+    
+    // check Target assigned or not
+    const targetData = await mileStoneModel.findOne({$and:[{userId:loggedInUser._id},{isExpired:false}]})
+    if (!!savedData) {
+      if (!targetData) {
+        await mileStoneModel.findOneAndUpdate(
+          {userId:loggedInUser._id},
+          {
+            createdBy:"6633326ae827aef92da997fe",
+            startDate:formattedDate,
+            endDate:"NA",
+            targetDemo:"0",
+            targetSales:"0",
+            userId:loggedInUser._id,
+            isExpired:false,
+            targetStatus:"Pending"
+          },{upsert:true}
+        )
+      }
+      return res.status(201).json({
+        statusCode: 201,
+        statusValue: "SUCCESS",
+        message: "Data added successfully!",
+        data: saveDoc,
+      });
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Error! while adding data.",
+      data: req.body,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      },
+    });
+  }
+};
+
+
 
 exports.updateVentialtorStatus = async (req, res) => {
   try {
@@ -1023,25 +1141,6 @@ exports.addMileStone = async (req, res) => {
         message: result.error.details[0].message,
       });
     }
-    // for expense userId
-    const token = req.headers["authorization"].split(" ")[1];
-    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-    const loggedInUser = await User.findById({ _id: verified.user });
-    // Get current date
-    // Format the date as "dd-mm-yyyy"
-    // console.log(11, req.body)
-
-    // Check data and expire it
-    // const now = new Date();
-    // const year = now.getFullYear();
-    // const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-    // const day = String(now.getDate()).padStart(2, '0');
-
-    // const formattedDate = `${year}-${month}-${day}`;
-    // const targetDate = new Date(formattedDate);
-
-    // const currentMileStone = await mileStoneModel.findOne({$and:[{isExpired:false},{userId:req.body.userId},{endDate:{$lte:targetDate}}]})
-    // console.log(11,currentMileStone)
 
     const currentMileStone = await mileStoneModel.find({
       $and: [{ isExpired: false }, { userId: req.body.userId }],
@@ -1049,17 +1148,16 @@ exports.addMileStone = async (req, res) => {
     if (!!currentMileStone) {
       await mileStoneModel.findOneAndUpdate(
         { userId: req.body.userId },
-        { isExpired: true, targetStatus: "Pending" }
+        { isExpired: true, targetStatus: "Completed"}
       );
     }
     const saveDoc = new mileStoneModel({
-      createdBy: loggedInUser._id,
+      createdBy: "6633326ae827aef92da997fe",
       startDate: req.body.startDate,
       endDate: req.body.endDate,
       targetDemo: req.body.targetDemo,
       targetSales: req.body.targetSales,
       userId: req.body.userId,
-      // totalDemoSet:req.body.targetDemo,
       isExpired: false,
     });
     const savedData = await saveDoc.save();
@@ -1111,41 +1209,14 @@ exports.getAllMileStone = async (req, res) => {
     // const targetDate = new Date(formattedDate);
 
     const currentMileStone = await mileStoneModel.find({
-      $and: [{ isExpired: false }, { endDate: formattedDate }],
+      $and: [{ isExpired: false }, { userId:loggedInUser._id }],
     });
-    // console.log(currentMileStone)
-    if (!!currentMileStone) {
-      await mileStoneModel.updateMany(
-        { endDate: { $lte: formattedDate } },
-        { $set: { isExpired: true, targetStatus: "Pending" } }
-      );
-    }
+    // console.log('getMileStone', currentMileStone)
+    
     // End
 
     if (loggedInUser.userType == "Marketing-Admin") {
-      // for moileStone count
-      // getData = await mileStoneModel.find({createdBy:loggedInUser._id},{__v:0, createdAt:0, updatedAt:0})
-      // // calculate sum of expenses
-      // expenseData = await expenseModel.find()
-      // totalAmount = expenseData.reduce((sum, expense) => {
-      //     return sum+parseFloat(expense.amount);
-      // }, 0)
-      // // console.log(11,totalAmount)
-      // if (getData.length<1) {
-      //     return res.status(400).json({
-      //         statusCode: 400,
-      //         statusValue: "FAIL",
-      //         message: "Data not found.",
-      //         data: [],
-      //     })
-      // }
-      // return res.status(200).json({
-      //     statusCode: 200,
-      //     statusValue: "SUCCESS",
-      //     message: "Data get successfully!",
-      //     data:getData,
-      //     data2:[{totalExpenses:totalAmount}]
-      // })
+      
     } else {
       getData = await mileStoneModel
         .find(
@@ -1153,15 +1224,16 @@ exports.getAllMileStone = async (req, res) => {
             $and: [
               { userId: loggedInUser._id },
               { isExpired: false },
-              { targetStatus: "Initial" },
             ],
           },
           { __v: 0, createdAt: 0, updatedAt: 0 }
         )
         .sort({ createdAt: -1 })
         .limit(1);
+      
+      // console.log('getData', getData)  
       expenseData = await expenseModel.find({ userId: loggedInUser._id });
-      // console.log(123, expenseData)
+      // console.log('expenseData', expenseData)
       totalAmount = expenseData.reduce((sum, expense) => {
         return sum + parseFloat(expense.amount);
       }, 0);
@@ -1169,16 +1241,19 @@ exports.getAllMileStone = async (req, res) => {
       // console.log(1213, totalAmount)
       // count demo and sales
       const demoData = await demoOrSalesModel.find({
-        $and: [{ userId: loggedInUser._id }, { status: "Closed" }],
+        $and: [{ userId: loggedInUser._id }, { status: "Demo" }],
       });
+      // console.log('demoData', demoData) 
       const salesData = await demoOrSalesModel.find({
         $and: [{ userId: loggedInUser._id }, { status: "Sold" }],
       });
+      // console.log('salesData', salesData) 
+
       const targetDemoDone = (demoData.length>0) ? demoData.length : 0;
       // console.log('target demo', targetDemo-demoData.length)
       const targetSalesDone = (salesData.length>0) ? salesData.length : 0;
       // console.log('target sales', targetSales-salesData.length)
-      const finaData = [
+      const finalData = [
         {
           _id: !!(getData.length>0) ? getData[0]._id : "--",
           startDate: !!(getData.length>0) ? getData[0].startDate : "--",
@@ -1195,7 +1270,7 @@ exports.getAllMileStone = async (req, res) => {
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Data get successfully!",
-        data: finaData,
+        data: finalData,
         data2: [{ totalExpenses: totalAmount }],
       });
     }

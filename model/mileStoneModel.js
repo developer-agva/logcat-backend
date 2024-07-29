@@ -32,7 +32,7 @@ const mileStoneSchema = new mongoose.Schema({
     },
     targetStatus:{
         type: String,
-        default: "Initial"
+        default: "Pending"
     }
 },{
     timestamps: true
