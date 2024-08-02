@@ -816,6 +816,72 @@ const getDeviceCountData = async (req, res) => {
 }
 
 
+const getDeviceVentilationTime = async (req, res) => {
+  try {
+    const deviceStatus = await statusModel.aggregate([
+      {
+        $lookup: {
+          from:"about_devices",
+          localField: "deviceId",
+          foreignField: "deviceId",
+          as: "dispatchInfo"
+        }
+      },
+      {
+        $addFields: {
+          total_seconds: {
+            $add: [
+              { $multiply: [{ $toInt: { $arrayElemAt: [{ $split: ["$total_hours", ":"] }, 0] } }, 3600] },
+              { $multiply: [{ $toInt: { $arrayElemAt: [{ $split: ["$total_hours", ":"] }, 1] } }, 60] },
+              { $toInt: { $arrayElemAt: [{ $split: ["$total_hours", ":"] }, 2] } }
+            ]
+          }
+        }
+      },
+      {
+        $match: {
+          total_seconds: { $gt: 360000 }  // 100 hours in seconds (100 * 3600)
+        }
+      },
+      {
+        $project: {
+          "deviceId":1,
+          // "health":1,
+          // "last_hours": 1,
+          "message": 1,
+          "total_hours": 1,
+          "lastActive": 1,
+          "dispatchInfo.serial_no":1,
+          "dispatchInfo.date_of_dispatch":1
+        }
+      }
+    ])
+      
+
+    if (!!deviceStatus) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Device data count get successfully.",
+        data: deviceStatus,
+        count:deviceStatus.length
+      })
+    }
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+
+
 /**
  * api      POST @/api/logger/logs/services/:project_code
  * desc     @addDeviceServices for logger access only
@@ -6115,5 +6181,6 @@ module.exports = {
   getWMYDemoDataCountForAgvaPro,
   getActiveDemoDevicesCountForAgvaPro,
   deleteParticularDeviceId,
-  getDevicesStatusWithPincode
+  getDevicesStatusWithPincode,
+  getDeviceVentilationTime
 }

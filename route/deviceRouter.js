@@ -39,6 +39,8 @@ router.get("/update/devices/new", deviceController.updateDevices)
 router.get('/registered_devices', isAuth, deviceController.getAllDevices);
 router.get('/get-device-count', deviceController.getDeviceCountData);
 
+router.get('/get-ventilation-time', deviceController.getDeviceVentilationTime);
+
 // replace deviceId from all coll and insert new deviceId
 router.put('/replace-deviceId', deviceController.replaceDeviceId);
 

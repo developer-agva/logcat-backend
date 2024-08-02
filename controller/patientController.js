@@ -276,7 +276,7 @@ const updatePatientById = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     // console.log(verified)
-    // console.log(req.body)
+    console.log(11, req.body)
     const loggedInUser = await User.findById({_id:verified.user});
     if (req.body.UHID == "" || req.body.UHID == undefined || req.body.UHID == null) {
       return res.status(400).json({
@@ -308,7 +308,7 @@ const updatePatientById = async (req, res) => {
     const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day} ${indiaTimeObj.hour}:${indiaTimeObj.minute}:${indiaTimeObj.second}`;
     // const formattedDate = `${indiaTimeObj.year}-${indiaTimeObj.month}-${indiaTimeObj.day}`;
     
-    // console.log(123, req.body)
+    console.log(123, req.body)
     const getDispatchData = await aboutDeviceModel.findOne({$or:[{deviceId:req.body.deviceId},{serial_no:req.body.serial_no}]});
     const patientData = await patientModel.findOneAndUpdate(
       {UHID:req.body.UHID},
@@ -1291,7 +1291,7 @@ const deletePatientById = async (req, res) => {
  * api      DELETE @/patient/dpatient-graph
  * desc     @getPatientGraphData for logger access only
 */
-const getPatientGraphData = async (req, res) => {
+const getPatientGraphDataOld = async (req, res) => {
   try {
     const {UHID, deviceId, } = req.body;
     if (!UHID || !deviceId) {
@@ -1364,7 +1364,8 @@ const getPatientGraphData = async (req, res) => {
     // Convert startDate strings to Date objects
     const newPatientData = patientData.map(patient => ({
       ...patient,
-      startDate: new Date(patient.startDate.replace(' ', 'T'))
+      startDate: new Date(patient.startDate.replace(' ', 'T')),
+      endDate: !!patient.endDate ? new Date(patient.endDate.replace(' ', 'T')) : ""
     }))
 
     const convertPatientData = newPatientData.map((item, index) => {
@@ -1414,33 +1415,6 @@ const getPatientGraphData = async (req, res) => {
       startDateArr
     }
 
-    // // console.log(convertPatientData)
-    // const filterTrends = trendsData.filter(trend => {
-    //   return convertPatientData.some(patient => trend.updatedAt >= patient.startDate)
-    // })
-    
-    // console.log(123, filterTrends)
-
-    // const result = patientData.map(patient => {
-    //   const peep = filterTrends.map(trends => trends.peep)
-    //   const vti = filterTrends.map(trends => trends.vti)
-    //   const fio2 = filterTrends.map(trends => trends.fio2)
-    //   const sPo2 = filterTrends.map(trends => trends.sPo2)
-    //   const mvi = filterTrends.map(trends => trends.mvi)
-    //   const time = filterTrends.map(trends => (trends.time).split(' ')[1])
-
-    //   return {
-    //     name:patient.name,
-    //     startDate:patient.startDate,
-    //     endDate:patient.endDate,
-    //     peep,
-    //     vti,
-    //     fio2,
-    //     sPo2,
-    //     mvi,
-    //     time,
-    //   }
-    // })
 
     if (patientData) {
       return res.status(200).json({
@@ -1469,7 +1443,167 @@ const getPatientGraphData = async (req, res) => {
   }
 }
 
+/** 
+ * api      DELETE @/patient/dpatient-graph
+ * desc     @getPatientGraphData for logger access only
+*/
+const getPatientGraphData = async (req, res) => {
+  try {
+    const {UHID, deviceId} = req.body;
+    if (!UHID || !deviceId) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: `All fields (UHID, deviceId) are mandatory! `
+      })
+    }
+   
+    const filterDate = "16-07-2024";
+    const filterDateISO = new Date(filterDate.split('-').reverse().join('-') + 'T00:00:00.000Z'); // Convert to ISO format
 
+    const patientData = await patientModel.aggregate([
+      {
+        $match: { UHID: UHID }
+      },
+      {
+        $lookup: {
+          from: "trends_ventilator_collections",
+          let: { deviceId: "$deviceId" },
+          pipeline: [
+            {
+              $addFields: {
+                // Convert createdAt to the same format as filterDate for comparison
+                createdAtDate: {
+                  $dateToString: { format: "%d-%m-%Y", date: "$createdAt" }
+                }
+              }
+            },
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$did", "$$deviceId"] },
+                    { $eq: ["$createdAtDate", filterDate] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: "trendsInfo"
+        }
+      },
+      {
+        $unwind: "$medicineData"
+      },
+      {
+        $addFields: {
+          "medicineData.peep": {
+            $slice: [{
+              $map: {
+                input: "$trendsInfo",
+                as: "info",
+                in: "$$info.peep"
+              }
+            }, 10]
+          },
+          "medicineData.vti": {
+            $slice: [{
+              $map: {
+                input: "$trendsInfo",
+                as: "info",
+                in: "$$info.vti"
+              }
+            }, 10]
+          },
+          "medicineData.fio2": {
+            $slice: [{
+              $map: {
+                input: "$trendsInfo",
+                as: "info",
+                in: "$$info.fio2"
+              }
+            }, 10]
+          },
+          "medicineData.sPo2": {
+            $slice: [{
+              $map: {
+                input: "$trendsInfo",
+                as: "info",
+                in: "$$info.sPo2"
+              }
+            }, 10]
+          },
+          "medicineData.mvi": {
+            $slice: [{
+              $map: {
+                input: "$trendsInfo",
+                as: "info",
+                in: "$$info.mvi"
+              }
+            }, 10]
+          },
+          "medicineData.time": {
+            $slice: [{
+              $map: {
+                input: "$trendsInfo",
+                as: "info",
+                in: { $substr: ["$$info.time", 11, 5] }
+              }
+            }, 10]
+          }
+        }
+      },
+      {
+        $project: {
+          _id: "$medicineData._id",
+          name: "$medicineData.name",
+          startDate: "$medicineData.startDate",
+          endDate: "$medicineData.endDate",
+          peep: "$medicineData.peep",
+          vti: "$medicineData.vti",
+          fio2: "$medicineData.fio2",
+          sPo2: "$medicineData.sPo2",
+          mvi: "$medicineData.mvi",
+          time: "$medicineData.time"
+          // createdAt: "$medicineData.createdAt"
+        }
+      }
+    ]);
+
+    // const newPatientData = patientData.map(patient => ({
+    //   ...patient,
+    //   startDate: new Date(patient.startDate.replace(' ', 'T')),
+    //   endDate: !!patient.endDate ? new Date(patient.endDate.replace(' ', 'T')) : ""
+    // }))
+     
+    
+
+    if (patientData) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: `data get successfully.`,
+        data:patientData,
+      })
+    }
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: `Error ! while deleting patient data.`
+    })
+  }
+  catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
 
 module.exports = {
   saveUhid,
