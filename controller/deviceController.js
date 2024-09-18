@@ -1913,7 +1913,7 @@ const getServicesById = async (req, res) => {
     if (!limit || limit === "undefined" || parseInt(limit) === 0) {
       limit = 999999;
     }
-
+    
     // const project_code = req.query.project_code;
     if (!deviceId) {
       return res.status(400).json({
@@ -2017,6 +2017,8 @@ const getServicesById = async (req, res) => {
     })
   }
 }
+
+
 
 /**
  * api POST@/api/logger/logs/status/:project_code
@@ -4226,11 +4228,14 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
       }, {});
 
       // Step 5: Count the entries per month
-      const dataCountByMonth = Object.keys(groupedByMonth).map(duration => ({
+      // console.log('grpCheck',groupedByMonth)
+      let dataCountByMonth = Object.keys(groupedByMonth).map(duration => ({
         duration,
         count: groupedByMonth[duration].length
       }));
-
+      
+      dataCountByMonth.sort((a,b) => a.duration.localeCompare(b.duration))
+      // console.log('checkData',dataCountByMonth)
       // Step 6: Function to convert date format
       const convertDateFormat = (dataCountByMonth) => {
         return dataCountByMonth.map(item => {
@@ -4244,42 +4249,43 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
         })
       }
       let convertedData = convertDateFormat(dataCountByMonth)
-      console.log(convertedData)
+      // console.log('checks',convertedData)
       convertedData[0].count = 0 + convertedData[0].count + 3
       const maxCount = convertedData.reduce((max, item) => item.count > max ? item.count : max, convertedData[0].count);
-
+      
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Data count retrieved successfully.",
-        // totalDevicesCountYearly:convertedData,
-        totalDevicesCountMonthly: [
-          {
-            "duration": convertedData[0].duration,
-            "count": 0 + convertedData[0].count
-          },
-          {
-            "duration": convertedData[1].duration,
-            "count": convertedData[0].count + convertedData[1].count
-          },
-          {
-            "duration": convertedData[2].duration,
-            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count
-          },
-          {
-            "duration": convertedData[3].duration,
-            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count
-          },
-          {
-            "duration": convertedData[4].duration,
-            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count
-          },
-          {
-            "duration": convertedData[5].duration,
-            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
-          },
-        ],
-        maxCount: convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
+        totalDevicesCountMonthly:convertedData,
+        // maxCount
+        // totalDevicesCountMonthly: [
+        //   {
+        //     "duration": convertedData[0].duration,
+        //     "count": 0 + convertedData[0].count
+        //   },
+        //   {
+        //     "duration": convertedData[1].duration,
+        //     "count": convertedData[0].count + convertedData[1].count
+        //   },
+        //   {
+        //     "duration": convertedData[2].duration,
+        //     "count": convertedData[0].count + convertedData[1].count + convertedData[2].count
+        //   },
+        //   {
+        //     "duration": convertedData[3].duration,
+        //     "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count
+        //   },
+        //   // {
+        //   //   "duration": convertedData[4].duration,
+        //   //   "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count
+        //   // },
+        //   // {
+        //   //   "duration": convertedData[5].duration,
+        //   //   "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
+        //   // },
+        // ],
+        // maxCount: convertedData[0].count + convertedData[1].count + convertedData[2].count
       });
     } else if (req.params.filter == "weekly") {
 
@@ -4562,11 +4568,11 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
       }, {});
 
       // Step 5: Count the entries per month
-      const dataCountByMonth = Object.keys(groupedByMonth).map(duration => ({
+      let dataCountByMonth = Object.keys(groupedByMonth).map(duration => ({
         duration,
         count: groupedByMonth[duration].length
       }));
-
+      dataCountByMonth.sort((a,b) => a.duration.localeCompare(b.duration))
       // Step 6: Function to convert date format
       const convertDateFormat = (dataCountByMonth) => {
         return dataCountByMonth.map(item => {
@@ -4587,7 +4593,7 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Data count retrieved successfully.",
-        // totalDevicesCountYearly:convertedData,
+        // totalDevicesCountMonthly:convertedData,
         totalDevicesCountMonthly: [
           {
             "duration": convertedData[0].duration,
@@ -4601,20 +4607,20 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
             "duration": convertedData[2].duration,
             "count": convertedData[0].count + convertedData[1].count + convertedData[2].count
           },
-          {
-            "duration": convertedData[3].duration,
-            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count
-          },
-          {
-            "duration": convertedData[4].duration,
-            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count
-          },
-          {
-            "duration": convertedData[5].duration,
-            "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
-          },
+          // {
+          //   "duration": convertedData[3].duration,
+          //   "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count
+          // },
+          // {
+          //   "duration": convertedData[4].duration,
+          //   "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count
+          // },
+          // {
+          //   "duration": convertedData[5].duration,
+          //   "count": convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
+          // },
         ],
-        maxCount: convertedData[0].count + convertedData[1].count + convertedData[2].count + convertedData[3].count + convertedData[4].count + convertedData[5].count
+        maxCount: convertedData[0].count + convertedData[1].count + convertedData[2].count
       });
     } else if (req.params.filter == "weekly") {
 
@@ -5354,8 +5360,15 @@ const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
         }
       ];
 
-      const eventResult = await event_ventilator_collection.aggregate(eventPipeline)
-      console.log(11, eventResult) 
+      let eventResult = await event_ventilator_collection.aggregate(eventPipeline)
+      eventResult.sort((a,b) => {
+        if (a.year === b.year) {
+          return a.month - b.month
+        } else {
+          return a.year - b.year
+        }
+      })
+      // console.log('checkData', eventResult) 
       // Get the max count
       const maxCount = eventResult.reduce((max, { count }) => Math.max(max, count), 0);
 
@@ -5366,10 +5379,10 @@ const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
         monthlyDataCount: [
           { count: eventResult[0].count, duration: eventResult[0].duration },
           { count: eventResult[1].count, duration: eventResult[1].duration },
-          { count: 1, duration: '2024-Apr' },
+          // { count: 1, duration: '2024-Apr' },
           { count: eventResult[2].count, duration: eventResult[2].duration },
           { count: eventResult[3].count, duration: eventResult[3].duration },
-          { count: eventResult[4].count, duration: eventResult[4].duration },
+          // { count: eventResult[4].count, duration: eventResult[4].duration },
           // { count: eventResult[5].count, duration: eventResult[5].duration },
         ],
         maxCount: maxCount

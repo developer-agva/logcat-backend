@@ -4,7 +4,7 @@ const salesController = require('../controller/salesController');
 const upload = require('../helper/upload.helper');
 const uploadController = require('../controller/upload.controller');
 
-
+                                                                                                                                                                                                                                                                                   
 // Route for  
 router.post('/expense/add', salesController.addExpense);
 router.get('/expense/get-all', salesController.getAllExpenses);

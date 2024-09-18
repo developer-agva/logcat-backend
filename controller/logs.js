@@ -50,6 +50,7 @@ const logModelV2 = require('../model/logModelV2');
 const fcmNotificationModel = require('../model/fcmNotificationModel');
 const { title } = require('process');
 const sendDeviceReqModel = require('../model/sendDeviceReqModel');
+const sendDeviceAlertEmail = require("../helper/sendDeviceAlertEmail");
 
 // initializeApp({
 //   credential: applicationDefault(),
@@ -400,21 +401,15 @@ const getAlertsById = async (req, res) => {
     // Count total documents for pagination info
     const totalCount = await alert_ventilator_collection.countDocuments({ did });
 
-    if (!findDeviceById.length) {
-      return res.status(404).json({
+    if (findDeviceById.length<1) {
+      // console.log(true)
+      return res.status(400).json({
         status: 0,
-        statusCode: 404,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'device not found',
-            msg: 'device not found',
-            type: 'Client Error',
-          },
-        },
-      });
+        statusCode: 400,
+        message: "Data not found",
+        data: []
+      })
     }
-
     // Process and format the result
     const splitedArr = findDeviceById.map(item => ({
       _id: item._id,
@@ -640,7 +635,11 @@ const getTrendsById = async (req, res) => {
     }
 
     const { did } = req.params;
-    const findDeviceById = await trends_ventilator_collection.find({ did: did }).sort({ _id: -1 }).limit(100);
+    const rawData = await trends_ventilator_collection.find({ did: did }).sort({ _id: -1 }).limit(100);
+    const uniqueData = new Map(
+      rawData.map(item => [item.time, item])
+    )
+    const findDeviceById = [...uniqueData.values()]
     if (!findDeviceById) {
       return res.status(404).json({
         status: 0,
@@ -2795,6 +2794,7 @@ const createAlerts = async (req, res, next) => {
  */
 const createAlertsNew = async (req, res) => {
   try {
+    // await sendDeviceAlertEmail("rohanrana@agvahealthtech.com", "724963b4f3ae2a8f", "Standby mode activated", "2024-02-27 17:29:00")
     const { project_code } = req.params;
     // check project exist or not
     const findProjectWithCode = await Projects.findOne({ code: project_code });
@@ -2835,17 +2835,8 @@ const createAlertsNew = async (req, res) => {
 
     const modelReference = require(`../model/${collectionName}`);
     const { did, type, ack, date } = req.body;
-    // console.log(12,req.body)
-    // ack = req.body.ack
-    // if (ack.length<1) {
-    //   return res.status(400).json({
-    //     status: 400,
-    //     data: req.body,
-    //     message: 'ack array is empty',
-    //   });
-    // }
-    // { ack: [], did: 'd6edb19162a04c8b', type: '002' }
-    // check alert exist or not
+    console.log(12,req.body)
+   
     const checkAlert = await modelReference.find({ did: did })
     // console.log(13, checkAlert)
     if (checkAlert.length > 999) {
@@ -2880,6 +2871,10 @@ const createAlertsNew = async (req, res) => {
     let alerts = await Promise.allSettled(dbSavePromise);
     //console.log(alerts,'alerts');
 
+   
+
+    // end email code
+
     var alertsErrArr = [];
     var alertsErrMsgArr = [];
 
@@ -2896,9 +2891,13 @@ const createAlertsNew = async (req, res) => {
     if (!alertsErrArr.includes('rejected')) {
       // check alarm level
       if (req.body.priority == "ALARM_CRITICAL_LEVEL") {
+        // console.log(13, req.body)
+         // sent email code
+      
+          
         // // check deviceId for particular fcm token
         const checkDeviceId = await fcmTokenModel.find({ deviceIds: { $in: req.body.did } })
-
+         
         // console.log(123,checkDeviceId)
         // // start fcm services for notification
         // checkDeviceId.forEach(element => {
@@ -2933,7 +2932,11 @@ const createAlertsNew = async (req, res) => {
           admin.messaging().send(message)
             .then(async (response) => {
               // console.log(13, message)
-              await fcmNotificationModel.findOneAndUpdate({ token: "2sfsr3564dve512" }, { notification: message.notification, data: message.data, token: message.token }, { upsert: true })
+              await fcmNotificationModel.findOneAndUpdate(
+                { token: "2sfsr3564dve512" }, 
+                { notification: message.notification, data: message.data, token: message.token }, 
+                { upsert: true }
+              )
               console.log("Notification sent successfully:", response);
             })
             .catch((error) => {
@@ -2941,6 +2944,64 @@ const createAlertsNew = async (req, res) => {
             });
         });
       }
+
+      // send email
+
+      const ackArr = req.body.ack;
+      // Check if any of the codes 'ACK0824' or 'ACK0786' exist
+      const checkAck = ackArr.some(item => (item.code === "ACK0824" || item.code === "ACK0786"));
+      console.log(checkAck);
+
+        if (checkAck) {
+          console.log(true)
+          const date = new Date();
+
+          // Format date as dd-mm-yyyy
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0'); // January is 0
+          const year = date.getFullYear();
+          
+          // Format time as hh:mm AM/PM
+          let hours = date.getHours();
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12;
+          hours = hours ? hours : 12; // The hour '0' should be '12'
+          const formattedTime = `${hours}:${minutes} ${ampm}`;
+          
+          // Combine date and time
+          const formattedDate = `${day}-${month}-${year}`;
+
+          // Get device associated email
+          const regDeviceDetails = await RegisterDevice.findOne({ DeviceId: req.body.did });
+          const doctorEmails = await User.find({
+            $and: [
+              { hospitalName: regDeviceDetails.Hospital_Name },
+              { userType: "Doctor" },
+              { accountStatus: "Active" }
+            ]
+          }, { email: 1 });
+
+          const hospitalAdminEmail = await User.find({
+            $and: [
+              { hospitalName: regDeviceDetails.Hospital_Name },
+              { userType: "Hospital-Admin" },
+              { accountStatus: "Active" }
+            ]
+          }, { email: 1 });
+
+          // Combine all emails (doctors and hospital admin)
+          const allEmails = [...doctorEmails, ...hospitalAdminEmail];
+          console.log(allEmails)
+          // ackArr.forEach(ackItem => {
+          //   if (ackItem.code === "ACK0824" || ackItem.code === "ACK0786") {
+          //     allEmails.forEach(item => {
+          //       sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime)
+          //     })
+          //   }
+          // })
+        }
+      // end send code
 
       // end fcm services
       return res.status(201).json({

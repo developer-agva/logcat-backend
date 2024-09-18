@@ -238,9 +238,9 @@ const getAccesshospitals = async (req, res) => {
         const loggedInUser = await User.findById({_id:verified.user});
 
         const data1 = loggedInUser.accessHospital
-        // console.log(11, accessHospitalsList)
-        const data2 = await assignDeviceTouserModel.find({userId:loggedInUser._id});
-        // console.log(12, assignHsopitalList)
+        // console.log(11, data1)
+        const data2 = await assignDeviceTouserModel.find({$or:[{userId:loggedInUser._id},{assignedBy:loggedInUser.email}]});
+        // console.log(12, data2)
 
         // Extract hospital names from data2
         const data2HospitalNames = data2.map(item => item.hospitalName)

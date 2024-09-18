@@ -1,3 +1,4 @@
+const cron = require('node-cron');
 const express = require("express");
 const {json} = require('express');
 const path = require("path");
@@ -127,14 +128,6 @@ const PORT = process.env.PORT || 8000;
 const { Server } = require("socket.io");
 const { messaging } = require("firebase-admin");
 
-// const io = new Server(server, {
-//   cors: {
-//     // origin: "http://192.168.2.37:3000",
-//     origin: "http://medtap.in",
-//     methods: ["GET", "POST", "PUT"],
-//   },
-// });
-
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
@@ -151,10 +144,8 @@ const io = new Server(server, {
   },
 });
 
-// console.log(process.env.ORIGIN)
-// Global 
-// var deviceIdArr = [];
-// console.log(11,globalArray)
+
+// Start socket.io code 
 // Socket.IO connection hand
 io.on('connection', (socket) => {
   console.log('A user connected');
@@ -180,6 +171,45 @@ io.on('connection', (socket) => {
      }
   })
 
+
+  // get data of backup tiles
+  socket.on('AndroidToNodeBackup',(data)=>{
+    console.log(data)
+    socket.broadcast.emit('NodeToReactBackup',data);
+     
+  })
+
+  // get data of advanced tiles
+  socket.on('AndroidToNodeAdvanced',(data)=>{
+    console.log(data)
+    socket.broadcast.emit('NodeToReactAdvaned',data);
+  })
+
+  // get data of alarms tiles
+  socket.on('AndroidToNodeAlarm',(data)=>{
+    console.log(data)
+    socket.broadcast.emit('NodeToReactAlarm',data);
+  })
+
+
+  // get data of backup tiles command
+  socket.on('ReactToNodeBackup',(data)=>{
+    console.log(data)
+    socket.broadcast.emit('NodeToAndroidBackup',data);
+  })
+  
+  // get data of advanced tiles command
+  socket.on('ReactToNodeAdvanced',(data)=>{
+    console.log(data)
+    socket.broadcast.emit('NodeToAndroidAdvanced',data);
+  })
+
+  // get data of alarms tiles command
+  socket.on('ReactToNodeAlarm',(data)=>{
+    console.log(data)
+    socket.broadcast.emit('NodeToAndroidAlarm',data);
+  })
+
   // logic of data sending and receiving
   socket.on('DataSendingAndroid',(data)=>{
     console.log(data)
@@ -203,7 +233,7 @@ io.on('connection', (socket) => {
     console.log("run auto stop android")
     socket.broadcast.emit('ReceiverVentilatorDisconnected',`${data},Disconnect`);
   })
-
+  
   // disconnect android
   socket.on('AndroidDisconnect',(data) =>{
     deviceIdArr.pop(data)
@@ -216,8 +246,86 @@ io.on('connection', (socket) => {
 });
 
 // Socket end
-// Start code for 
 
+// Start cron-job
+const trends_ventilator_collection = require("./model/trends_ventilator_collection.js");
+const trends_ventilator_collection_backup = require("./model/trends_ventilator_collection_backup.js");
+
+const alert_ventilator_collection = require('./model/alert_ventilator_collection.js')
+const alert_ventilator_collection_backup = require('./model/alert_ventilator_collection_backup.js');
+
+async function shiftAlarmData () {
+  try {
+    // Check document count in source collection
+    const count = await alert_ventilator_collection.countDocuments();
+    
+    if (count > 50000) {
+      const excessDocuments = count - 50000;
+
+      // Fetch excess documents (oldest first)
+      const excessData = await alert_ventilator_collection.find({}).sort({_id:1}).limit(excessDocuments);
+      
+      // Insert excess data into the backup collection
+      if (excessData.length > 0) {
+        await alert_ventilator_collection_backup.insertMany(excessData);
+
+        // Remove the excess data from the source collection
+        const excessIds = excessData.map(doc => doc._id);
+        await alert_ventilator_collection.deleteMany({_id: { $in: excessIds }});
+        console.log(`Shifted ${excessDocuments} documents to backup collection.`);
+      }
+    } else {
+      console.log('No excess data to shift.');
+    }
+
+  } catch (error) {
+    console.error('Error in shifting alarm data:', error);
+  }
+}
+
+// Schedule the cron job to run once a day at midnight
+cron.schedule('0 2 * * *', () => {
+  console.log('Running cron job...');
+  shiftAlarmData();
+});
+
+async function shiftTrendsData () {
+  try {
+    // Check document count in source collection
+    const count = await trends_ventilator_collection.countDocuments();
+    if (count > 50000) {
+      const excessDocuments = count - 50000;
+
+      // Fetch excess documents (oldest first)
+      const excessData = await trends_ventilator_collection.find({}).sort({_id:1}).limit(excessDocuments);
+
+      // Insert excess data into the backup collection
+      if (excessData.length > 0) {
+        await trends_ventilator_collection_backup.insertMany(excessData);
+
+        // Remove the excess data from the source collection
+        const excessIds = excessData.map(doc => doc._id);
+        await trends_ventilator_collection.deleteMany({_id: { $in: excessIds }});
+        console.log(`Shifted ${excessDocuments} documents to backup collection.`);
+      } else {
+        console.log('No excess data to shift.');
+      }
+    }
+  } catch (error) {
+    console.error('Error in shifting trends data:', error);
+  }
+}
+
+// Schedule the cron job to run once a day at midnight
+cron.schedule('0 3 * * *', () => {
+  console.log('Running cron job...');
+  shiftTrendsData();
+});
+// End cron-job
+
+
+
+// Start code for 
 server.listen(PORT, () =>
   logger.error(`Server is running on port : ${PORT}`)
 );
