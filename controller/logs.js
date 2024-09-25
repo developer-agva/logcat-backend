@@ -2835,7 +2835,7 @@ const createAlertsNew = async (req, res) => {
 
     const modelReference = require(`../model/${collectionName}`);
     const { did, type, ack, date } = req.body;
-    console.log(12,req.body)
+    // console.log(12,req.body)
    
     const checkAlert = await modelReference.find({ did: did })
     // console.log(13, checkAlert)
@@ -2945,12 +2945,12 @@ const createAlertsNew = async (req, res) => {
         });
       }
 
-      // send email
+      // sent email
 
       const ackArr = req.body.ack;
       // Check if any of the codes 'ACK0824' or 'ACK0786' exist
-      const checkAck = ackArr.some(item => (item.code === "ACK0824" || item.code === "ACK0786"));
-      console.log(checkAck);
+      const checkAck = ackArr.some(item => (item.code === "ACK0824" || item.code === "ACK0786" || item.code === "ACK0789" || item.code === "ACK0782"));
+      // console.log('checkAck',checkAck);
 
         if (checkAck) {
           console.log(true)
@@ -2973,33 +2973,36 @@ const createAlertsNew = async (req, res) => {
           const formattedDate = `${day}-${month}-${year}`;
 
           // Get device associated email
-          const regDeviceDetails = await RegisterDevice.findOne({ DeviceId: req.body.did });
-          const doctorEmails = await User.find({
-            $and: [
-              { hospitalName: regDeviceDetails.Hospital_Name },
-              { userType: "Doctor" },
-              { accountStatus: "Active" }
-            ]
-          }, { email: 1 });
+          // const regDeviceDetails = await RegisterDevice.findOne({ DeviceId: req.body.did });
+          // const doctorEmails = await User.find({
+          //   $and: [
+          //     { hospitalName: regDeviceDetails.Hospital_Name },
+          //     { userType: "Doctor" },
+          //     { accountStatus: "Active" }
+          //   ]
+          // }, { email: 1 });
 
-          const hospitalAdminEmail = await User.find({
-            $and: [
-              { hospitalName: regDeviceDetails.Hospital_Name },
-              { userType: "Hospital-Admin" },
-              { accountStatus: "Active" }
-            ]
-          }, { email: 1 });
-
+          // const hospitalAdminEmail = await User.find({
+          //   $and: [
+          //     { hospitalName: regDeviceDetails.Hospital_Name },
+          //     { userType: "Hospital-Admin" },
+          //     { accountStatus: "Active" }
+          //   ]
+          // }, { email: 1 });
+           
           // Combine all emails (doctors and hospital admin)
-          const allEmails = [...doctorEmails, ...hospitalAdminEmail];
-          console.log(allEmails)
-          // ackArr.forEach(ackItem => {
-          //   if (ackItem.code === "ACK0824" || ackItem.code === "ACK0786") {
-          //     allEmails.forEach(item => {
-          //       sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime)
-          //     })
-          //   }
-          // })
+          // const allEmails = [...doctorEmails, ...hospitalAdminEmail];
+          const allEmails = [{email: 'support@agvahealthtech.com'},{email: 'info@agvahealthtech.com'},{email: 'nadeem@agvahealthtech.com'}]
+
+          // console.log('allEmails', allEmails)
+
+          ackArr.forEach(ackItem => {
+            if (ackItem.code === "ACK0824" || ackItem.code === "ACK0786" || ackItem.code === "ACK0789" || ackItem.code === "ACK0782") {
+              allEmails.forEach(item => {
+                sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime)
+              })
+            }
+          })
         }
       // end send code
 

@@ -76,7 +76,7 @@ async function sendDeviceAlertEmail(to, did, msg, formattedDate, formattedTime) 
                                     </tr>
                                     <tr>
                                         <td align="center" style="padding: 20px;">
-                                            <a href="#" style="background-color: #4CAF50; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">Get Info</a>
+                                            <a href="http://medtap.in/" style="background-color: #4CAF50; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">Get Info</a>
                                         </td>
                                     </tr>
                                     <tr>

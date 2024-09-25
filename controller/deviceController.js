@@ -21,8 +21,6 @@ const jwtr = new JWTR(redisClient);
 
 require("dotenv").config({ path: "../.env" });
 var unirest = require("unirest");
-// const mongoose = require('mongoose');
-// console.log(11111,process.env.ORIGIN)
 
 /**
  * api      POST @/devices/register
@@ -3120,6 +3118,7 @@ const { eventNames } = require('../model/event_ventilator_collection');
 const event_ventilator_collection = require('../model/event_ventilator_collection');
 const trends_ventilator_collection = require('../model/trends_ventilator_collection');
 const { registerDevice } = require('./RegisterDevice');
+const todayActiveDevicesCountModel = require('../model/todayActiveDeviceCountModel');
 // const { ConfigurationServicePlaceholders } = require('aws-sdk/lib/config_service_placeholders');
 
 // const jwtr = require("jwtr-redis").default;
@@ -4385,57 +4384,63 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
       });
     } else if (req.params.filter == "today") {
 
-      const initialDate = new Date("2023-12-01T00:00:00Z");
-      let endDate2 = new Date();
-      endDate2.setDate(endDate2.getDate() - 1);
+      // const initialDate = new Date("2023-12-01T00:00:00Z");
+      // let endDate2 = new Date();
+      // endDate2.setDate(endDate2.getDate() - 1);
 
-      const moment = require('moment-timezone');
-      const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
-      const currentDateInKolkata = moment.tz("Asia/Kolkata");
-      const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+      // const moment = require('moment-timezone');
+      // const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
+      // const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      // const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
 
-      // console.log(11, productionData.length)  
+      // // console.log(11, productionData.length)  
 
-      const pipelines = hoursArray.map(hours => {
-        return {
-          $facet: {
-            [`eventsForLast${hours}Hr`]: [
-              { $match: { createdAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
-              { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
-              { $replaceRoot: { newRoot: "$latestEvent" } }
-            ]
-          }
-        };
-      });
-      const results = await Promise.all(pipelines.map(pipeline => productionModel.aggregate([pipeline])));
+      // const pipelines = hoursArray.map(hours => {
+      //   return {
+      //     $facet: {
+      //       [`eventsForLast${hours}Hr`]: [
+      //         { $match: { createdAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
+      //         { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+      //         { $replaceRoot: { newRoot: "$latestEvent" } }
+      //       ]
+      //     }
+      //   };
+      // });
+      // const results = await Promise.all(pipelines.map(pipeline => productionModel.aggregate([pipeline])));
 
-      const todayActiveDeviceCount = results.map((result, index) => {
-        const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
-        const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
-        return { duration, count };
-      }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
-
-
-      const productionData = await productionModel.find({
-        $and: [
-          { deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } },
-          { createdAt: { $gte: initialDate, $lte: endDate2 } }
-        ]
-      },
-        { _id: 1, deviceId: 1, createdAt: 1, updatedAt: 1, deviceType: 1, purpose: 1 }
-      )
-
-      const initialCount = productionData.length + 2
-      // console.log(11,productionData.length)
-
-      let updatedRsult = todayActiveDeviceCount.map(item => {
-        // Extract time part after the space character
-        const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
-        const count = (item.count) + (initialCount)
-        return { count: count, duration: time };
-      })
+      // const todayActiveDeviceCount = results.map((result, index) => {
+      //   const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
+      //   const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
+      //   return { duration, count };
+      // }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
 
 
+      // const productionData = await productionModel.find({
+      //   $and: [
+      //     { deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } },
+      //     { createdAt: { $gte: initialDate, $lte: endDate2 } }
+      //   ]
+      // },
+      //   { _id: 1, deviceId: 1, createdAt: 1, updatedAt: 1, deviceType: 1, purpose: 1 }
+      // )
+
+      // const initialCount = productionData.length + 2
+      // // console.log(11,productionData.length)
+
+      // let updatedRsult = todayActiveDeviceCount.map(item => {
+      //   // Extract time part after the space character
+      //   const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
+      //   const count = (item.count) + (initialCount)
+      //   return { count: count, duration: time };
+      // })
+
+      // // Format response
+      // updatedRsult = updatedRsult.map(item => {
+      //   let duration = item.duration.replace(/:\d{2}/, '')
+      //   return { ...item, duration }
+      // })
+      const updatedResult = await todayActiveDevicesCountModel.find({},{todayActiveDevices:1}).sort({_id:-1}).limit(1)
+      const todayActiveDeviceCount = updatedResult[0].todayActiveDevices
       // Calculate maxCount value
       let maxCount = -Infinity;
       for (item of todayActiveDeviceCount) {
@@ -4443,18 +4448,13 @@ const getWMYDataCountForAgvaPro = async (req, res) => {
           maxCount = item.count
         }
       }
-
-      // Format response
-      updatedRsult = updatedRsult.map(item => {
-        let duration = item.duration.replace(/:\d{2}/, '')
-        return { ...item, duration }
-      })
-
+      // console.log(updatedResult)
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Most recent events by device ID retrieved successfully.",
-        todayActiveDeviceCount: updatedRsult
+        todayActiveDeviceCount: todayActiveDeviceCount,
+        maxCount
       })
     }
     return res.status(400).json({
@@ -4719,76 +4719,93 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
 
     } else if (req.params.filter == "today") {
 
-      const initialDate = new Date("2023-11-01T00:00:00Z");
-      let endDate2 = new Date();
-      endDate2.setDate(endDate2.getDate() - 1);
+      // const initialDate = new Date("2023-11-01T00:00:00Z");
+      // let endDate2 = new Date();
+      // endDate2.setDate(endDate2.getDate() - 1);
 
-      const moment = require('moment-timezone');
-      const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
-      const currentDateInKolkata = moment.tz("Asia/Kolkata");
-      const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+      // const moment = require('moment-timezone');
+      // const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
+      // const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      // const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
 
-      // console.log(11, productionData.length)  
+      // // console.log(11, productionData.length)  
 
-      const pipelines = hoursArray.map(hours => {
-        return {
-          $facet: {
-            [`eventsForLast${hours}Hr`]: [
-              { $match: { createdAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
-              { $group: { _id: "$deviceId", latestEvent: { $last: "$$ROOT" } } },
-              { $replaceRoot: { newRoot: "$latestEvent" } }
-            ]
-          }
-        };
-      });
-      const results = await Promise.all(pipelines.map(pipeline => productionModel.aggregate([pipeline])));
+      // const pipelines = hoursArray.map(hours => {
+      //   return {
+      //     $facet: {
+      //       [`eventsForLast${hours}Hr`]: [
+      //         { $match: { createdAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
+      //         { $group: { _id: "$deviceId", latestEvent: { $last: "$$ROOT" } } },
+      //         { $replaceRoot: { newRoot: "$latestEvent" } }
+      //       ]
+      //     }
+      //   };
+      // });
+      // const results = await Promise.all(pipelines.map(pipeline => productionModel.aggregate([pipeline])));
 
-      const todayActiveDeviceCount = results.map((result, index) => {
-        const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
-        const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
-        return { duration, count };
-      }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
+      // const todayActiveDeviceCount = results.map((result, index) => {
+      //   const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
+      //   const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
+      //   return { duration, count };
+      // }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
 
 
-      const productionData = await productionModel.find({
-        $and: [
-          { deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } },
-          { purpose: "Demo" },
-          { createdAt: { $gte: initialDate, $lte: endDate2 } }
-        ]
-      },
-        { _id: 1, deviceId: 1, createdAt: 1, updatedAt: 1, deviceType: 1, purpose: 1 }
-      )
+      // const productionData = await productionModel.find({
+      //   $and: [
+      //     { deviceId: { $ne: "" } }, { productType: { $ne: "Suction" } },
+      //     { purpose: "Demo" },
+      //     { createdAt: { $gte: initialDate, $lte: endDate2 } }
+      //   ]
+      // },
+      //   { _id: 1, deviceId: 1, createdAt: 1, updatedAt: 1, deviceType: 1, purpose: 1 }
+      // )
 
-      const initialCount = productionData.length
-      // console.log(11,productionData.length)
+      // const initialCount = productionData.length
+      // // console.log(11,productionData.length)
 
-      let updatedRsult = todayActiveDeviceCount.map(item => {
-        // Extract time part after the space character
-        const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
-        const count = (item.count) + (initialCount)
-        return { count: count, duration: time };
-      })
+      // let updatedRsult = todayActiveDeviceCount.map(item => {
+      //   // Extract time part after the space character
+      //   const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
+      //   const count = (item.count) + (initialCount)
+      //   return { count: count, duration: time };
+      // })
 
+      // // Calculate maxCount value
+      // let maxCount = -Infinity;
+      // for (item of updatedRsult) {
+      //   if (item.count > maxCount) {
+      //     maxCount = item.count
+      //   }
+      // }
+
+      // // Format response
+      // updatedRsult = updatedRsult.map(item => {
+      //   let duration = item.duration.replace(/:\d{2}/, '')
+      //   return { ...item, duration }
+      // })
+
+      // return res.status(200).json({
+      //   statusCode: 200,
+      //   statusValue: "SUCCESS",
+      //   message: "Most recent events by device ID retrieved successfully.",
+      //   todayActiveDeviceCount: updatedRsult,
+      //   maxCount
+      // })
+      const updatedResult = await todayActiveDevicesCountModel.find({},{todayActiveDemoDevices:1}).sort({_id:-1}).limit(1)
+      const todayActiveDemoDevices = updatedResult[0].todayActiveDemoDevices
       // Calculate maxCount value
       let maxCount = -Infinity;
-      for (item of updatedRsult) {
+      for (item of todayActiveDemoDevices) {
         if (item.count > maxCount) {
           maxCount = item.count
         }
       }
-
-      // Format response
-      updatedRsult = updatedRsult.map(item => {
-        let duration = item.duration.replace(/:\d{2}/, '')
-        return { ...item, duration }
-      })
-
+      // console.log(updatedResult)
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Most recent events by device ID retrieved successfully.",
-        todayActiveDeviceCount: updatedRsult,
+        todayActiveDeviceCount: todayActiveDemoDevices,
         maxCount
       })
     }
@@ -4815,59 +4832,76 @@ const getActiveDevicesCountForAgvaPro = async (req, res) => {
     // console.log(dataCountArray);
     if (filter == "today") {
 
-      const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
-      const currentDateInKolkata = moment.tz("Asia/Kolkata");
-      const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+      // const currentDate = moment.tz("Asia/Kolkata").format('YYYY-MM-DD HH:mm:ss');
+      // const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      // const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
 
-      const pipelines = hoursArray.map(hours => {
-        return {
-          $facet: {
-            [`eventsForLast${hours}Hr`]: [
-              { $match: { updatedAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
-              { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
-              { $replaceRoot: { newRoot: "$latestEvent" } }
-            ]
-          }
-        };
-      });
-      // const results = await Promise.all(pipelines.map(pipeline => event_ventilator_collection.aggregate([pipeline])));
-      const results = await Promise.all(pipelines.map(pipeline => trends_ventilator_collection.aggregate([pipeline])));
+      // const pipelines = hoursArray.map(hours => {
+      //   return {
+      //     $facet: {
+      //       [`eventsForLast${hours}Hr`]: [
+      //         { $match: { updatedAt: { $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(), $lte: currentDateInKolkata.toDate() } } },
+      //         { $group: { _id: "$did", latestEvent: { $last: "$$ROOT" } } },
+      //         { $replaceRoot: { newRoot: "$latestEvent" } }
+      //       ]
+      //     }
+      //   };
+      // });
+      // // const results = await Promise.all(pipelines.map(pipeline => event_ventilator_collection.aggregate([pipeline])));
+      // const results = await Promise.all(pipelines.map(pipeline => trends_ventilator_collection.aggregate([pipeline])));
 
-      const todayActiveDeviceCount = results.map((result, index) => {
-        const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
-        const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
-        return { duration, count };
-      }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
+      // const todayActiveDeviceCount = results.map((result, index) => {
+      //   const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
+      //   const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
+      //   return { duration, count };
+      // }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
 
-      let updatedRsult = todayActiveDeviceCount.map(item => {
-        // Extract time part after the space character
-        const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
-        return { ...item, duration: time };
-      })
+      // let updatedRsult = todayActiveDeviceCount.map(item => {
+      //   // Extract time part after the space character
+      //   const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
+      //   return { ...item, duration: time };
+      // })
 
+      // // Calculate maxCount value
+      // let maxCount = -Infinity;
+      // for (item of todayActiveDeviceCount) {
+      //   if (item.count > maxCount) {
+      //     maxCount = item.count
+      //   }
+      // }
+
+      // // For formating data response
+      // updatedRsult = updatedRsult.map(item => {
+      //   let duration = item.duration.replace(/:\d{2}/, ''); // Remove the minutes part
+      //   return { ...item, duration };
+      // });
+
+      // return res.status(200).json({
+      //   statusCode: 200,
+      //   statusValue: "SUCCESS",
+      //   message: "Most recent events by device ID retrieved successfully.",
+      //   // data:results,
+      //   todayActiveDeviceCount: updatedRsult,
+      //   maxCount,
+      // });
+
+      const updatedResult = await todayActiveDevicesCountModel.find({},{todayActiveDeviceAgvaPro:1}).sort({_id:-1}).limit(1)
+      const todayActiveDeviceAgvaPro = updatedResult[0].todayActiveDeviceAgvaPro
       // Calculate maxCount value
       let maxCount = -Infinity;
-      for (item of todayActiveDeviceCount) {
+      for (item of todayActiveDeviceAgvaPro) {
         if (item.count > maxCount) {
           maxCount = item.count
         }
       }
-
-      // For formating data response
-      updatedRsult = updatedRsult.map(item => {
-        let duration = item.duration.replace(/:\d{2}/, ''); // Remove the minutes part
-        return { ...item, duration };
-      });
-
+      // console.log(updatedResult)
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Most recent events by device ID retrieved successfully.",
-        // data:results,
-        todayActiveDeviceCount: updatedRsult,
-        maxCount,
-      });
-
+        todayActiveDeviceCount: todayActiveDeviceAgvaPro,
+        maxCount
+      })
     } else if (filter == "weekly") {
 
       const now = new Date();
@@ -5480,79 +5514,88 @@ const getActiveDemoDevicesCountForAgvaPro = async (req, res) => {
 
     } else if (filter == "today") {
 
-      const moment = require('moment-timezone');
-      const prodData = await productionModel.find({ $and: [{ purpose: "Demo" }, { productType: { $ne: "Suction" } }] }, { _id: 1, purpose: 1, deviceId: 1 })
-      const deviceIds = prodData.map((item) => {
-        return item.deviceId
-      })
+      // const moment = require('moment-timezone');
+      // const prodData = await productionModel.find({ $and: [{ purpose: "Demo" }, { productType: { $ne: "Suction" } }] }, { _id: 1, purpose: 1, deviceId: 1 })
+      // const deviceIds = prodData.map((item) => {
+      //   return item.deviceId
+      // })
 
-      const currentDateInKolkata = moment.tz("Asia/Kolkata");
-      // console.log(34,currentDateInKolkata)
-      const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
+      // const currentDateInKolkata = moment.tz("Asia/Kolkata");
+      // // console.log(34,currentDateInKolkata)
+      // const hoursArray = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24];
 
-      const pipelines = hoursArray.map(hours => {
-        return {
-          $facet: {
-            [`eventsForLast${hours}Hr`]: [
-              {
-                $match: {
-                  updatedAt: {
-                    $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(),
-                    $lte: currentDateInKolkata.toDate()
-                  },
-                  did: { $in: deviceIds } // Add this line to filter by deviceIds
-                }
-              },
-              {
-                $group: {
-                  _id: "$did",
-                  latestEvent: { $last: "$$ROOT" }
-                }
-              },
-              {
-                $replaceRoot: { newRoot: "$latestEvent" }
-              }
-            ]
-          }
-        };
-      });
+      // const pipelines = hoursArray.map(hours => {
+      //   return {
+      //     $facet: {
+      //       [`eventsForLast${hours}Hr`]: [
+      //         {
+      //           $match: {
+      //             updatedAt: {
+      //               $gte: moment(currentDateInKolkata).subtract(hours, 'hours').toDate(),
+      //               $lte: currentDateInKolkata.toDate()
+      //             },
+      //             did: { $in: deviceIds } // Add this line to filter by deviceIds
+      //           }
+      //         },
+      //         {
+      //           $group: {
+      //             _id: "$did",
+      //             latestEvent: { $last: "$$ROOT" }
+      //           }
+      //         },
+      //         {
+      //           $replaceRoot: { newRoot: "$latestEvent" }
+      //         }
+      //       ]
+      //     }
+      //   };
+      // });
 
-      const results = await Promise.all(
-        // pipelines.map(pipeline => event_ventilator_collection.aggregate([pipeline]))
-        pipelines.map(pipeline => trends_ventilator_collection.aggregate([pipeline]))
-      );
+      // const results = await Promise.all(
+      //   // pipelines.map(pipeline => event_ventilator_collection.aggregate([pipeline]))
+      //   pipelines.map(pipeline => trends_ventilator_collection.aggregate([pipeline]))
+      // );
 
-      const todayActiveDeviceCount = results.map((result, index) => {
-        const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
-        const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
-        return { duration, count };
-      }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
+      // const todayActiveDeviceCount = results.map((result, index) => {
+      //   const count = result[0][`eventsForLast${hoursArray[index]}Hr`].length;
+      //   const duration = moment(currentDateInKolkata).subtract(hoursArray[index], 'hours').format('YYYY-MM-DD h:mm A');
+      //   return { duration, count };
+      // }).sort((a, b) => new Date(a.duration) - new Date(b.duration));
 
-      let updatedResult = todayActiveDeviceCount.map(item => {
-        // Extract time part after the space character
-        const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
-        return { ...item, duration: time };
-      });
+      // let updatedResult = todayActiveDeviceCount.map(item => {
+      //   // Extract time part after the space character
+      //   const time = item.duration.split(' ')[1] + ' ' + item.duration.split(' ')[2];
+      //   return { ...item, duration: time };
+      // });
+      // console.log('check',updatedResult)
+      // // Calculate maxCount value
+      // let maxCount = -Infinity;
+      // for (item of todayActiveDeviceCount) {
+      //   if (item.count > maxCount) {
+      //     maxCount = item.count
+      //   }
+      // }
 
+      // // Formating data response
+      // updatedResult = updatedResult.map(item => {
+      //   let duration = item.duration.replace(/:\d{2}/, ''); // Remove the minutes part
+      //   return { ...item, duration };
+      // });
+      // console.log('check',updatedResult)
+      const updatedResult = await todayActiveDevicesCountModel.find({},{todayActiveDemoDeviceAgvaPro:1}).sort({_id:-1}).limit(1)
+      const todayActiveDemoDeviceAgvaPro = updatedResult[0].todayActiveDemoDeviceAgvaPro
       // Calculate maxCount value
       let maxCount = -Infinity;
-      for (item of todayActiveDeviceCount) {
+      for (item of todayActiveDemoDeviceAgvaPro) {
         if (item.count > maxCount) {
           maxCount = item.count
         }
       }
-
-      // Formating data response
-      updatedResult = updatedResult.map(item => {
-        let duration = item.duration.replace(/:\d{2}/, ''); // Remove the minutes part
-        return { ...item, duration };
-      });
-
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Most recent events by device ID retrieved successfully.",
-        todayActiveDeviceCount: updatedResult,
+        todayActiveDeviceCount: todayActiveDemoDeviceAgvaPro,
         maxCount
       });
     }

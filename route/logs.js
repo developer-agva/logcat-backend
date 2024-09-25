@@ -154,7 +154,7 @@ router.get('/weekly-monthly-yearly-count-agvapro/:filter', deviceController.getW
 router.get('/total-demo-device-count-agvapro/:filter', deviceController.getWMYDemoDataCountForAgvaPro);  // done
 
 router.get('/active-devices-count-agvapro/:filter', deviceController.getActiveDevicesCountForAgvaPro);   // done
-router.get('/active-devices-demo-count-agvapro/:filter', deviceController.getActiveDemoDevicesCountForAgvaPro); // 
+router.get('/active-devices-demo-count-agvapro/:filter', deviceController.getActiveDemoDevicesCountForAgvaPro); // done
 
 router.get('/getTotalDevicesCount/:filterType', deviceController.getTotalDevicesDataCount);  // for dashboard api
 router.get('/getTotalActiveDevicesCount/:filterType', deviceController.getTotalActiveDevicesCount);
