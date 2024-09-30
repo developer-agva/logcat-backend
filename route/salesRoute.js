@@ -37,5 +37,9 @@ router.get('/sales/user-data', salesController.getUserData);   // Done
 router.get('/sales/get-single-user-data/:userId', salesController.getUserData);
 router.post('/expense/upload-exp-bill/:_id', upload.single('file'), uploadController.uploadExpenseBill);
 
+// Route for update device overview
+// router.get('/sales/user-data', );
+
+
 
 module.exports = router;

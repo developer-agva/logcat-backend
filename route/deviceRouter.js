@@ -19,6 +19,9 @@ router.put('/update/:DeviceId', deviceController.updateDevice);
 router.get('/getdevice/:DeviceId', deviceController.getDeviceById);     // get device with isPayment || isLocked field
 router.get('/getdevice/v2/:DeviceId', deviceController.getDeviceByIdV2);  // get device with isPayment || isLocked field
 
+router.get('/get-device-overview/:DeviceId', deviceController.getDeviceOverviewForSalesById); // Get single device overview for sales module
+router.put('/update-device-overview/:DeviceId', deviceController.updateDeviceOverviewForSalesById);  // Update single device overview for sales
+
 router.put('/payment-update', deviceController.updatePaymentStatus);
 
 router.get('/get-details/:DeviceId', deviceController.getDeviceById);

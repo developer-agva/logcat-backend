@@ -49,22 +49,6 @@ const createDevice = async (req, res) => {
       })
     }
 
-    // for logger user activity
-    // const token = req.headers["authorization"].split(' ')[1];
-    // const verified = await jwtrr.verify(token, process.env.jwtr_SECRET);
-    // const loggedInUser = await User.findById({_id:verified.user});
-    // const normalUser = await User.findById({_id:req.body._id});
-
-
-    // give alias name of deviceId
-    // const Alias_Str = "AgPr";
-    // const ranNum = Math.floor(1000 + Math.random() * 9000);
-    // let Alias_Name = `${Alias_Str}-${ranNum}`
-    // // check aliasname
-    // const checkAlias = await Device.findOne({Alias_Name:Alias_Name})
-    // if (checkAlias) {
-    //   Alias_Name = `${Alias_Str}-${ranNum}`
-    // }
     const checkHospital = await registeredHospitalModel.findOne({ Hospital_Name: req.body.Hospital_Name });
     if (!checkHospital) {
       return res.status(400).json({
@@ -79,7 +63,7 @@ const createDevice = async (req, res) => {
         DeviceId: req.body.DeviceId,
         Alias_Name: req.body.Alias_Name,
         Department_Name: req.body.Department_Name,
-        Hospital_Name: req.body.Hospital_Name,
+        Hospital_Name: checkHospital.Hospital_Name,
         Ward_No: req.body.Ward_No,
         Doctor_Name: req.body.Doctor_Name,
         IMEI_NO: req.body.IMEI_NO,
@@ -242,17 +226,61 @@ const updateDevice = async (req, res) => {
         message: "Error! Wrong hospital name.",
       });
     }
-
+    // console.log(req.body)
+    // {
+    //   Department_Name: 'na',
+    //   Hospital_Name: 'KGMU Lucknow',
+    //   Doctor_Name: 'na',
+    //   Ward_No: '0',
+    //   IMEI_NO: '1321',
+    //   Bio_Med: 'Nitesh',
+    //   Alias_Name: 'AgVa Pro'
+    // }
+    const getDeviceData = await Device.findOne({DeviceId: req.params.DeviceId})
+    if (!getDeviceData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error! Device Not registered",
+      });
+    }
     const deviceData = await Device.findOneAndUpdate(
       { DeviceId: req.params.DeviceId },
-      req.body,
+      { 
+        Department_Name: !!(req.body.Department_Name) ? req.body.Department_Name : getDeviceData.Department_Name,
+        Hospital_Name: !!(req.body.Hospital_Name) ? req.body.Hospital_Name : getDeviceData.Hospital_Name,
+        Doctor_Name: !!(req.body.Doctor_Name) ? req.body.Doctor_Name : getDeviceData.Doctor_Name,
+        Ward_No: !!(req.body.Ward_No) ? req.body.Ward_No : getDeviceData.Ward_No,
+        IMEI_NO: !!(req.body.IMEI_NO) ? req.body.IMEI_NO : getDeviceData.IMEI_NO,
+        Bio_Med: !!(req.body.Bio_Med) ? req.body.Bio_Med : getDeviceData.Bio_Med,
+        Alias_Name: !!(req.body.Alias_Name) ? req.body.Alias_Name : getDeviceData.Alias_Name,
+      },
       { upsert: true, new: true },
     );
-    // const newDevice = new Device(req.body);
-    // const savedDevice = await newDevice.save();
+    if (!!deviceData) {
+      await Device.findOneAndUpdate(
+        { DeviceId: req.params.DeviceId },
+        { 
+          Department_Name: !!(req.body.Department_Name) ? req.body.Department_Name : getDeviceData.Department_Name,
+          Hospital_Name: !!(req.body.Hospital_Name) ? req.body.Hospital_Name : getDeviceData.Hospital_Name,
+          Doctor_Name: !!(req.body.Doctor_Name) ? req.body.Doctor_Name : getDeviceData.Doctor_Name,
+          Ward_No: !!(req.body.Ward_No) ? req.body.Ward_No : getDeviceData.Ward_No,
+          IMEI_NO: !!(req.body.IMEI_NO) ? req.body.IMEI_NO : getDeviceData.IMEI_NO,
+          Bio_Med: !!(req.body.Bio_Med) ? req.body.Bio_Med : getDeviceData.Bio_Med,
+          Alias_Name: !!(req.body.Alias_Name) ? req.body.Alias_Name : getDeviceData.Alias_Name,
+        },
+        { upsert: true, new: true },
+      );
+      return res.status(200).json({
+        "statusCode": 200,
+        "statusValue": "SUCCESS",
+        "message":"Data updated sucessfully!" 
+      });
+    }
     return res.status(200).json({
       "statusCode": 200,
       "statusValue": "SUCCESS",
+      "message":"Data updated sucessfully!",
       data: deviceData
     });
 
@@ -535,6 +563,189 @@ const getDeviceById = async (req, res) => {
       statusValue: "SUCCESS",
       message: "Device get successfully!",
       data: data
+    });
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+/**
+ * api      GET @/devices/get-device-overview/:deviceId
+ * desc     @get single device by id for logger access only
+ */
+const getDeviceOverviewForSalesById = async (req, res) => {
+  try {
+    const { DeviceId } = req.params;
+    if (!DeviceId) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation error",
+        message: "Device Id is required!"
+      })
+    }
+
+    let data = await Device.findOne({ DeviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    if (!data) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "DeviceId not registered.",
+      })
+    }
+    const data2 = await statusModel.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    const prodData = await productionModel.findOne({ deviceId: DeviceId },{ "createdAt": 0, "updatedAt": 0, "__v": 0 })
+    data = {
+      '_id': data._id,
+      'DeviceId': data.DeviceId,
+      'Alias_Name': data.Alias_Name,
+      'Bio_Med': data.Bio_Med,
+      'Department_Name': data.Department_Name,
+      'Doctor_Name': data.Doctor_Name,
+      'Hospital_Name': data.Hospital_Name,
+      'IMEI_NO': !!(data.IMEI_NO) ? data.IMEI_NO : "NA",
+      'message': !!(data2.message) ? data2.message : "NA",
+      'Ward_No': data.Ward_No,
+      'address': "",
+      'purpose':!!(prodData.purpose) ? prodData.purpose : "NA",
+      'serialNumber':!!(prodData.serialNumber) ? prodData.serialNumber : "NA"
+      // 'isPaymentDone': !!(data.isPaymentDone) ? data.isPaymentDone : "true",
+      // 'isLocked': !!(data.isLocked) ? data.isLocked : false,
+    };
+    if (!data) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Data not found with this given deviceId.",
+        data: {},
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Device get successfully!",
+      data: data
+    });
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+/**
+ * api      PUT @/devices/update-device-overview/:deviceId
+ * desc     @get single device by id for logger access only
+ */
+const updateDeviceOverviewForSalesById = async (req, res) => {
+  try {
+    const DeviceId = req.params.DeviceId;
+    if (!DeviceId) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation error",
+        message: "Device Id is required!"
+      })
+    } 
+    // console.log(req.body.Bio_Med)
+    const regData = await Device.findOne({ DeviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    // console.log('checkDeviceReg', data)
+    if (!regData) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! DeviceId not registered.",
+      })
+    }
+    const statusData = await statusModel.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    // console.log('checkDeviceStatus', statusData)
+    if (!statusData) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! DeviceId does not has any status",
+      })
+    }
+    const prodData = await productionModel.findOne({ deviceId: DeviceId },{ "createdAt": 0, "updatedAt": 0, "__v": 0 })
+    // console.log('checkDeviceProd', prodData)
+    if (!prodData) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! DeviceId does not has production details",
+      })
+    }
+    const aboutData = await aboutDeviceModel.findOne({ deviceId: DeviceId },{ "createdAt": 0, "updatedAt": 0, "__v": 0 })
+    // console.log('checkDeviceAbout', aboutData)
+    if (!aboutData) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! DeviceId does not has dispatch details",
+      })
+    }
+    // console.log(req.body)
+    const updateRegData = await Device.findOneAndUpdate(
+      { DeviceId: DeviceId },
+      { 
+        Alias_Name: !!(req.body.Alias_Name) ? req.body.Alias_Name : regData.Alias_Name,
+        Bio_Med: !!(req.body.Bio_Med) ? req.body.Bio_Med : regData.Bio_Med,
+        Department_Name: !!(req.body.Department_Name) ? req.body.Department_Name : regData.Department_Name,
+        Doctor_Name: !!(req.body.Doctor_Name) ? req.body.Doctor_Name : regData.Doctor_Name,
+        Hospital_Name: !!(req.body.Hospital_Name) ? req.body.Hospital_Name : regData.Hospital_Name,
+        IMEI_NO: !!(req.body.IMEI_NO) ? req.body.IMEI_NO : regData.IMEI_NO,
+      },
+      // { new:true }
+    )
+    // console.log(updateRegData)
+    const updateStatusData = await statusModel.findOneAndUpdate(
+      { deviceId: DeviceId },
+      { 
+        message: !!(req.body.message) ? req.body.message : statusData.message, 
+      }
+    )
+    const updateProdData = await productionModel.findOneAndUpdate(
+      {
+        deviceId: DeviceId
+      },
+      {
+        purpose:!!(req.body.purpose) ? req.body.purpose : prodData.purpose,
+        serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : prodData.serialNumber
+      }
+    )
+    const updateAboutData = await aboutDeviceModel.findOneAndUpdate({deviceId: DeviceId},
+      {
+        purpose:!!(req.body.purpose) ? req.body.purpose : aboutData.purpose,
+        serial_no:!!(req.body.serialNumber) ? req.body.serialNumber : aboutData.serial_no
+      }
+    )
+    
+    if (!DeviceId) {
+      return res.status(404).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "DeviceId is required!.",
+        data: {},
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data updated successfully!",
     });
   } catch (err) {
     res.status(500).json({
@@ -3119,6 +3330,7 @@ const event_ventilator_collection = require('../model/event_ventilator_collectio
 const trends_ventilator_collection = require('../model/trends_ventilator_collection');
 const { registerDevice } = require('./RegisterDevice');
 const todayActiveDevicesCountModel = require('../model/todayActiveDeviceCountModel');
+const { get } = require('https');
 // const { ConfigurationServicePlaceholders } = require('aws-sdk/lib/config_service_placeholders');
 
 // const jwtr = require("jwtr-redis").default;
@@ -6238,5 +6450,7 @@ module.exports = {
   getActiveDemoDevicesCountForAgvaPro,
   deleteParticularDeviceId,
   getDevicesStatusWithPincode,
-  getDeviceVentilationTime
+  getDeviceVentilationTime,
+  getDeviceOverviewForSalesById,
+  updateDeviceOverviewForSalesById
 }

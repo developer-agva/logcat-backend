@@ -631,15 +631,23 @@ const getTrendsById = async (req, res) => {
       page = 1;
     }
     if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 999999;
+      limit = 10;
     }
 
+    // const { did } = req.params;
+    // const rawData = await trends_ventilator_collection.find({ did: did }).sort({ _id: -1 }).limit(50);
+    // const uniqueData = new Map(
+    //   rawData.map(item => [item.time, item])
+    // )
+    // const findDeviceById = [...uniqueData.values()]
     const { did } = req.params;
-    const rawData = await trends_ventilator_collection.find({ did: did }).sort({ _id: -1 }).limit(100);
-    const uniqueData = new Map(
-      rawData.map(item => [item.time, item])
-    )
-    const findDeviceById = [...uniqueData.values()]
+    const rawData = await trends_ventilator_collection.find({ did }).sort({ _id: -1 }).limit(50).lean();
+
+    const uniqueDataMap = rawData.reduce((map, item) => map.set(item.time, item), new Map());
+
+    // Convert the map values back to an array
+    const findDeviceById = Array.from(uniqueDataMap.values());
+
     if (!findDeviceById) {
       return res.status(404).json({
         status: 0,
@@ -684,53 +692,98 @@ const getTrendsById = async (req, res) => {
         },
       });
     }
-    // for pagination
-    const paginateArray = (findDeviceById, page, limit) => {
-      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
-      return skip;
+    // // for pagination
+    // const paginateArray = (findDeviceById, page, limit) => {
+    //   const skip = findDeviceById.slice((page - 1) * limit, page * limit);
+    //   return skip;
+    // };
+
+    // let finalData = paginateArray(findDeviceById, page, limit)
+    // // for count
+    // const count = findDeviceById.length
+    // // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
+    // // console.log(collectionName,'collectionName');
+
+    // // for dynamic UI data
+    // let data2;
+    // let checkCode = await trends_ventilator_collection.find({ did: did }).sort({ _id: -1 }).limit(1)
+    // checkCode = !!checkCode[0] ? checkCode[0] : []
+    // if (checkCode.type == "002" || "") {
+    //   data2 = [trendsDataKey[0]]
+    // } else if (checkCode.type == "003") {
+    //   data2 = [trendsDataKey[1]]
+    // }
+
+    // if (finalData.length > 0) {
+    //   return res.status(200).json({
+    //     status: 1,
+    //     statusCode: 200,
+    //     message: 'successfull',
+    //     //   data: {
+    //     //     findDeviceById: finalData
+    //     //   },
+    //     //   message: 'successfull'
+    //     // });
+    //     data: {
+    //       findDeviceById: finalData
+    //     },
+    //     data2: data2,
+    //     totalDataCount: count,
+    //     totalPages: Math.ceil(count / limit),
+    //     currentPage: page
+    //   })
+    // }
+    // return res.status(400).json({
+    //   status: 0,
+    //   statusCode: 400,
+    //   message: "Data not found",
+    //   data: []
+    // })
+
+    const paginateArray = (dataArray, page, limit) => {
+      const offset = (page - 1) * limit;
+      return dataArray.slice(offset, offset + limit);
     };
-
-    let finalData = paginateArray(findDeviceById, page, limit)
-    // for count
-    const count = findDeviceById.length
-    // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
-    // console.log(collectionName,'collectionName');
-
-    // for dynamic UI data
+    
+    const finalData = paginateArray(findDeviceById, page, limit);
+    const count = findDeviceById.length;
+    
+    const checkCode = await trends_ventilator_collection
+      .findOne({ did })
+      .sort({ _id: -1 })
+      .lean() || {}; // Fetch the most recent document or default to an empty object
+    
+    // Determine UI data based on `checkCode.type`
     let data2;
-    let checkCode = await trends_ventilator_collection.find({ did: did }).sort({ _id: -1 }).limit(1)
-    checkCode = !!checkCode[0] ? checkCode[0] : []
-    if (checkCode.type == "002" || "") {
-      data2 = [trendsDataKey[0]]
-    } else if (checkCode.type == "003") {
-      data2 = [trendsDataKey[1]]
+    if (checkCode.type === "002" || checkCode.type === "") {
+      data2 = [trendsDataKey[0]];
+    } else if (checkCode.type === "003") {
+      data2 = [trendsDataKey[1]];
     }
-
+    
+    // Handle the response
     if (finalData.length > 0) {
       return res.status(200).json({
         status: 1,
         statusCode: 200,
-        message: 'successfull',
-        //   data: {
-        //     findDeviceById: finalData
-        //   },
-        //   message: 'successfull'
-        // });
+        message: 'Successful',
         data: {
-          findDeviceById: finalData
-        },
-        data2: data2,
-        totalDataCount: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: page
-      })
+          findDeviceById: finalData,
+          data2: data2,
+          totalDataCount: count,
+          totalPages: Math.ceil(count / limit),
+          currentPage: page
+        }
+      });
     }
+    
     return res.status(400).json({
       status: 0,
       statusCode: 400,
       message: "Data not found",
       data: []
-    })
+    });
+    
   }
   catch (err) {
     return res.status(500).json({
@@ -1046,40 +1099,62 @@ const getLogsByIdV2 = async (req, res) => {
 const getEventsById = async (req, res) => {
   try {
 
+    // const { did } = req.params;
+    // // Pagination
+    // let { page, limit } = req.query;
+    // if (!page || page === "undefined") {
+    //   page = 1;
+    // }
+    // if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+    //   limit = 9999;
+    // }
+
+    // const findDeviceById = await event_ventilator_collection.find({ did: did }).select({ createdAt: 0, updatedAt: 0, __v: 0 }).sort({ _id: -1 });
+
+    // const maxDate = new Date(
+    //   Math.max(
+    //     ...findDeviceById.map(element => {
+    //       return new Date(element.date);
+    //     }),
+    //   ),
+    // );
+    // //console.log(maxDate);  
+    // const dt1 = new Date(maxDate);
+    // //console.log(dt1)
+    // const dt2 = new Date();
+    // // dt=new Date(maxDate);
+    // //dt=new Date();
+    // var diff = (dt2.getTime() - dt1.getTime()) / 1000;
+    // diff = Math.trunc(Math.abs(diff / (60 * 60)));
+    // //console.log(diff)
+    // if (diff >= 24 || diff < 0) {
+    //   state = 'inactive';
+    // }
+    // else {
+    //   state = 'active';
+    // }
+
     const { did } = req.params;
+
     // Pagination
-    let { page, limit } = req.query;
-    if (!page || page === "undefined") {
-      page = 1;
-    }
-    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 9999;
-    }
+    let { page = 1, limit = 9999 } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
 
-    const findDeviceById = await event_ventilator_collection.find({ did: did }).select({ createdAt: 0, updatedAt: 0, __v: 0 }).sort({ _id: -1 });
+    // Ensure valid page and limit values
+    if (isNaN(page) || page <= 0) page = 1;
+    if (isNaN(limit) || limit <= 0) limit = 9999;
 
-    const maxDate = new Date(
-      Math.max(
-        ...findDeviceById.map(element => {
-          return new Date(element.date);
-        }),
-      ),
-    );
-    //console.log(maxDate);  
-    const dt1 = new Date(maxDate);
-    //console.log(dt1)
-    const dt2 = new Date();
-    // dt=new Date(maxDate);
-    //dt=new Date();
-    var diff = (dt2.getTime() - dt1.getTime()) / 1000;
-    diff = Math.trunc(Math.abs(diff / (60 * 60)));
-    //console.log(diff)
-    if (diff >= 24 || diff < 0) {
-      state = 'inactive';
-    }
-    else {
-      state = 'active';
-    }
+    const findDeviceById = await event_ventilator_collection
+      .find({ did })
+      .select('-createdAt -updatedAt -__v')
+      .sort({ _id: -1 });
+
+    const maxDate = new Date(Math.max(...findDeviceById.map(el => new Date(el.date))));
+
+    const diffInHours = Math.abs((Date.now() - maxDate.getTime()) / (1000 * 60 * 60));
+
+    const state = (diffInHours >= 24 || diffInHours < 0) ? 'inactive' : 'active';
 
     //console.log(findDeviceById, 'findDeviceById');
     if (!findDeviceById) {
@@ -2117,7 +2192,8 @@ const getAllDeviceId = async (req, res) => {
               $or: [
                 { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
                 { "deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" } },
-                { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } }
+                { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } },
+                { "prodDataInfo.purpose": { $regex: ".*" + search + ".*", $options: "i" } }
               ]
             }
           ]
@@ -2130,7 +2206,8 @@ const getAllDeviceId = async (req, res) => {
           $or: [
             { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
             { "deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" } },
-            { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } }
+            { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } },
+            { "prodDataInfo.purpose": { $regex: ".*" + search + ".*", $options: "i" } }
           ]
         }
       }
@@ -2140,7 +2217,8 @@ const getAllDeviceId = async (req, res) => {
           $or: [
             { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
             { "deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" } },
-            { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } }
+            { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } },
+            { "prodDataInfo.purpose": { $regex: ".*" + search + ".*", $options: "i" } }
           ]
         }
       }
@@ -2150,7 +2228,8 @@ const getAllDeviceId = async (req, res) => {
           $or: [
             { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
             { "deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" } },
-            { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } }
+            { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } },
+            { "prodDataInfo.purpose": { $regex: ".*" + search + ".*", $options: "i" } }
           ]
         }
       }
@@ -2163,7 +2242,8 @@ const getAllDeviceId = async (req, res) => {
               $or: [
                 { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
                 { "deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" } },
-                { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } }
+                { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } },
+                { "prodDataInfo.purpose": { $regex: ".*" + search + ".*", $options: "i" } }
               ]
             }
           ]
@@ -2180,7 +2260,8 @@ const getAllDeviceId = async (req, res) => {
               $or: [
                 { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
                 { "deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" } },
-                { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } }
+                { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } },
+                { "prodDataInfo.purpose": { $regex: ".*" + search + ".*", $options: "i" } }
               ]
             }
           ]
@@ -2197,7 +2278,8 @@ const getAllDeviceId = async (req, res) => {
               $or: [
                 { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
                 { "deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" } },
-                { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } }
+                { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } },
+                { "prodDataInfo.purpose": { $regex: ".*" + search + ".*", $options: "i" } }
               ]
             }
           ]
@@ -2209,7 +2291,8 @@ const getAllDeviceId = async (req, res) => {
           $or: [
             { deviceId: { $regex: ".*" + search + ".*", $options: "i" } },
             { "deviceInfo.Hospital_Name": { $regex: ".*" + search + ".*", $options: "i" } },
-            { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } }
+            { "prodDataInfo.serialNumber": { $regex: ".*" + search + ".*", $options: "i" } },
+            { "prodDataInfo.purpose": { $regex: ".*" + search + ".*", $options: "i" } }
           ]
         }
       }

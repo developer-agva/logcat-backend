@@ -562,7 +562,7 @@ async function todayActiveDeviceCountAgvaPro() {
 }
 
 // Schedule the cron job to run for today active devices count
-cron.schedule('0 6,12,19 * * *', () => {
+cron.schedule('0 6,19 * * *', () => {
   console.log('Running cron job for today active devices count hour hourly basis');
   todayActiveDeviceCountAgvaPro();
 });
