@@ -21,6 +21,7 @@ const jwtr = new JWTR(redisClient);
 
 require("dotenv").config({ path: "../.env" });
 var unirest = require("unirest");
+const axios = require('axios');
 
 /**
  * api      POST @/devices/register
@@ -1234,9 +1235,9 @@ const addDeviceService = async (req, res) => {
         "route": "otp",
         "numbers": `${number}`
       })
-      req.headers({
-        "cache-control": "no-cache"
-      })
+      // req.headers({
+      //   "cache-control": "no-cache"
+      // })
       req.end(function (res) {
         // console.log(123,res.error.status)
         if (res.error.status === 400) {
@@ -1705,7 +1706,7 @@ const verifyOtpSms = async (req, res) => {
 }
 
 
-// api for ticket closing process
+// for ticket closing process
 const updateTicketStatus = async (req, res) => {
   try {
     const schema = Joi.object({
@@ -1713,75 +1714,77 @@ const updateTicketStatus = async (req, res) => {
       contactNo: Joi.string().required(),
       UId: Joi.string().allow("").optional(),
       serviceEngName: Joi.string().required(),
-    })
+    });
+    
+    // Validate request body
     let result = schema.validate(req.body);
     if (result.error) {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
         message: result.error.details[0].message,
-      })
+      });
     }
 
-    // console.log(12, req.body);
-    // for otp sms on mobile
     const contactNo = `+91${req.body.contactNo}`;
     const number = req.body.contactNo;
-    var otpValue = Math.floor(1000 + Math.random() * 9000);
+    const otpValue = Math.floor(1000 + Math.random() * 9000); // Generate OTP
 
-    // check ticket 
-    const checkTicket = await servicesModel.findById({ _id: req.body._id });
-
-    if (!!checkTicket) {
-      // console.log(13,otp)
+    // Check if the ticket exists
+    const checkTicket = await servicesModel.find({ _id: req.body._id });
+    // console.log(checkTicket)
+    if (checkTicket.length > 0) {
+      // Update ticket with OTP, UId, and serviceEngName
       await servicesModel.findOneAndUpdate(
         { _id: req.body._id },
         {
           otp: otpValue,
           UID: req.body.UId,
           serviceEngName: req.body.serviceEngName,
-        }, { upsert: true },
+        }, 
+        { upsert: true }
       );
-      var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
-      const sendSms = req.query({
+  
+      // Rename `req` to `otpRequest` to avoid conflict with the Express `req`
+      var otpRequest = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
+      otpRequest.query({
         "authorization": process.env.Fast2SMS_AUTHORIZATION,
         "variables_values": `${otpValue}`,
         "route": "otp",
-        "numbers": `${number}`
-      })
-      req.headers({
-        "cache-control": "no-cache"
-      })
-      req.end(function (res) {
-        // console.log(123,res.error.status)
-        if (res.error.status === 400) {
-          console.log(false)
-        }
-        console.log("Otp sent successfully.")
+        "numbers": `${number}`,
       });
+      // otpRequest.headers({
+      //   "cache-control": "no-cache",
+      // });
+      
+      // Handle response for OTP SMS request
+      otpRequest.end(function (smsResponse) {
+        if (smsResponse.error) {
+          // If error in sending OTP
+          res.status(400).json({
+            statusCode: 400,
+            statusValue: "FAIL",
+            message: "OTP could not be sent. Please try again.",
+          });
+        }
 
-      if (sendSms) {
-        // findlast inserted data
-        return res.status(201).json({
+
+        // If OTP sent successfully
+        res.status(201).json({
           statusCode: 201,
           statusValue: "SUCCESS",
-          message: "OTP has been send successfully.",
-          otp: otpValue
-        })
-      }
+          message: "OTP has been sent successfully.",
+          otp: otpValue,
+        });
+      })
+    } else {
+      // If no ticket is found
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "otp was not sended.",
+        message: "Error! Ticket not found.",
       });
     }
-    return res.status(400).json({
-      statusCode: 400,
-      statusValue: "FAIL",
-      message: "Error! Data not added.",
-      data: savedServices
-    })
-
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -1795,7 +1798,7 @@ const updateTicketStatus = async (req, res) => {
   }
 }
 
-// for ticket closing process
+
 const closeTicket = async (req, res) => {
   try {
     const schema = Joi.object({

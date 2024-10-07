@@ -3082,7 +3082,7 @@ const createAlertsNew = async (req, res) => {
           ackArr.forEach(ackItem => {
             if (ackItem.code === "ACK0824" || ackItem.code === "ACK0786" || ackItem.code === "ACK0789" || ackItem.code === "ACK0782") {
               allEmails.forEach(item => {
-                sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime)
+                // sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime)
               })
             }
           })
