@@ -1109,6 +1109,8 @@ const addDeviceService = async (req, res) => {
       wardNo: Joi.string().required(),
       email: Joi.string().required(),
       department: Joi.string().required(),
+      remark:Joi.string().allow("").optional(),
+      serviceRaisedFrom:Joi.string().allow("").optional(),
     })
     let result = schema.validate(req.body);
     if (result.error) {
@@ -1122,7 +1124,7 @@ const addDeviceService = async (req, res) => {
 
     // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
-
+    
     const contactNo = `+91${req.body.contactNo}`;
     const number = req.body.contactNo;
     var otpValue = Math.floor(1000 + Math.random() * 9000);
@@ -1168,18 +1170,16 @@ const addDeviceService = async (req, res) => {
       priority = "Medium";
     }
     priority = "High";
+    
+    // for ticket num
+    const ticketStr = "AgVaPro";
+    const ranNum = Math.floor(1000 + Math.random() * 9000); 
 
-    // // check already exists and isVerified
-    // const checkIsexistsAndVerfied = await servicesModel.findOne({
-    //   $and: [{ deviceId: req.body.deviceId }, { isVerified: false }] 
-    // })
-
-    // let savedServices;
-    // if (!!checkIsexistsAndVerfied) {
     const savedServices = await servicesModel.findOneAndUpdate({
       $and: [{ deviceId: req.body.deviceId }, { isVerified: false }]
     }, {
       deviceId: req.body.deviceId,
+      ticket_number:`${ticketStr}-${ranNum}`,
       message: req.body.message,
       date: req.body.date,
       serialNo: otpValue,
@@ -1190,31 +1190,11 @@ const addDeviceService = async (req, res) => {
       email: req.body.email,
       department: req.body.department,
       ticketStatus: "Open",
-      remark: "",
+      remark: !!(req.body.remark) ? req.body.remark : "",
       issues: tags,
       priority: priority,
+      serviceRaisedFrom:!!(req.body.serviceRaisedFrom) ? req.body.serviceRaisedFrom : "Ventilator" 
     }, { upsert: true })
-
-    // } else {
-    //   const newServices = new servicesModel({
-    //     deviceId: req.body.deviceId,
-    //     message: req.body.message,
-    //     date: req.body.date,
-    //     serialNo: otpValue,
-    //     name: req.body.name,
-    //     contactNo: req.body.contactNo,
-    //     hospitalName: req.body.hospitalName,
-    //     wardNo: req.body.wardNo,
-    //     email: req.body.email,
-    //     department: req.body.department,
-    //     ticketStatus: "Open",
-    //     remark: "",
-    //     issues: tags,
-    //     priority: priority,
-    //   });
-    //   // console.log(req.body)
-    //   savedServices = await newServices.save();
-    // }
 
     const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 }).limit(1);
     // console.log(11, getLastData) 
@@ -1227,7 +1207,7 @@ const addDeviceService = async (req, res) => {
           isVerified: false,
         },
       )
-
+      
       var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
       const sendSms = req.query({
         "authorization": process.env.Fast2SMS_AUTHORIZATION,
@@ -1279,6 +1259,336 @@ const addDeviceService = async (req, res) => {
         errMsg: err.stack,
       }
     })
+  }
+}
+
+/**
+ * api      POST @/api/logger/logs/services/:project_code
+ * desc     @addDeviceServices for logger access only
+ */
+const addServiceAndTicketDetails = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      // services data
+      deviceId: Joi.string().required(),
+      message: Joi.string().allow("").optional(),
+      date: Joi.string().allow("").optional(),
+      serialNo: Joi.string().allow("").optional(),
+      name: Joi.string().allow("").optional(),
+      contactNo: Joi.string().allow("").optional(),
+      hospitalName: Joi.string().allow("").optional(),
+      wardNo: Joi.string().allow("").optional(),
+      email: Joi.string().allow("").optional(),
+      department: Joi.string().allow("").optional(),
+      remark:Joi.string().allow("").optional(),
+      serviceRaisedFrom:Joi.string().allow("").optional(),
+      
+      // ticket data
+      service_engineer: Joi.string().required(),
+      // issues: Joi.string().allow("").optional(),
+      pincode: Joi.string().allow("").required(),
+      // dept_name: Joi.string().allow("").required(),
+      concerned_p_name: Joi.string().allow("").optional(),
+      concerned_p_email: Joi.string().allow("").optional(),
+      concerned_p_contact: Joi.string().allow("").optional(),
+      priority: Joi.string().valid('Critical', 'Medium'),
+      details: Joi.string().allow("").optional(),
+      waranty_status: Joi.string().allow("").optional(),
+      serialNumber: Joi.string().allow("").optional(),
+      tag: Joi.string().optional(),
+      address: Joi.string().allow("").optional(),
+      location: Joi.string().allow("").optional(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation Error",
+        message: result.error.details[0].message,
+      })
+    }
+    const project_code = req.query.project_code
+    // console.log(11,req.body)
+    // var serialNo = Math.floor(1000 + Math.random() * 9000);
+    // for otp sms on mobile
+    
+    const contactNo = `+91${req.body.contactNo}`;
+    const number = req.body.contactNo;
+    var otpValue = Math.floor(1000 + Math.random() * 9000);
+
+
+    // define tag name
+    let tag1 = "General Service";
+    let tag2 = "Operating Support";
+    let tag3 = "Request for Consumables";
+    let tag4 = "Physical Damage";
+    let tag5 = "Issue in Ventilation";
+    let tag6 = "Performance Issues";
+    let tag7 = "Apply for CMC/AMC";
+
+    const msg = req.body.message;
+
+    const tags = {
+      tag1: !!(msg && msg.includes("General Service")) ? tag1 : "",
+      tag2: !!(msg && msg.includes("Operating Support")) ? tag2 : "",
+      tag3: !!(msg && msg.includes("Request for Consumables")) ? tag3 : "",
+      tag4: !!(msg && msg.includes("Physical Damage")) ? tag4 : "",
+      tag5: !!(msg && msg.includes("Issue in Ventilation")) ? tag5 : "",
+      tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",
+      tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
+    };
+
+    // check already exixts service request oe not
+    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }, { ticketStatus: "Open" }] });
+    // console.log(11,checkData);
+    // console.log(12,req.body); 
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Service request already raised.",
+      })
+    }
+
+    // console.log(11,tags)
+    // Set priority
+    let priority;
+    if (msg.includes("General Service") == true || msg.includes("Apply for CMC/AMC") == true) {
+      priority = "Medium";
+    }
+    priority = "High";
+    
+    // for ticket num
+    const ticketStr = "AgVaPro";
+    const ranNum = Math.floor(1000 + Math.random() * 9000); 
+    // ticket owner
+    // const token = req.headers["authorization"].split(' ')[1];
+    // const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    // const loggedInUser = await User.findById({_id:verified.user});
+    
+    // Get info details
+    const getHospital = await Device.findOne({DeviceId:req.body.deviceId})
+    const getAddress = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
+    
+    // Get current date Format "dd-mm-yyyy"
+    const getCurrentDate = () => {
+      const today = new Date();
+      
+      const day = String(today.getDate()).padStart(2, '0');  // Get the day and pad with '0' if needed
+      const month = String(today.getMonth() + 1).padStart(2, '0');  // Get the month (0-indexed, so +1) and pad with '0'
+      const year = today.getFullYear();  // Get the full year
+  
+      return `${day}-${month}-${year}`;  // Format as 'dd-mm-yyyy'
+    };
+    const date = getCurrentDate()
+    // End current date
+
+    const serviceData = new servicesModel({
+      deviceId: req.body.deviceId,
+      ticket_number:`${ticketStr}-${ranNum}`,
+      message: req.body.message,
+      date: !!date ? date : "NA",
+      serialNo: otpValue,
+      name: req.body.name,
+      contactNo: req.body.contactNo,
+      hospitalName: req.body.hospitalName,
+      wardNo: req.body.wardNo,
+      email: req.body.email,
+      department: req.body.department,
+      ticketStatus: "Open",
+      remark: !!(req.body.remark) ? req.body.remark : "",
+      issues: tags,
+      priority: priority,
+      serviceRaisedFrom:!!(req.body.serviceRaisedFrom) ? req.body.serviceRaisedFrom : "Ventilator" 
+    })
+    const saveDoc2 = await serviceData.save();
+
+    const ticketData = new assignTicketModel({
+      deviceId:req.body.deviceId,
+      ticket_number:`${ticketStr}-${ranNum}`,
+      ticket_owner:"support@agvahealthtech.com",
+      // ticket_owner:"admin@gmail.com",
+      status:"Pending",
+      ticket_status: "Open",
+      service_engineer:!!(req.body.service_engineer) ? req.body.service_engineer : "NA",
+      // issues:req.body.issues,
+      pincode:req.body.pincode,
+      // dept_name:req.body.dept_name,
+      concerned_p_name:req.body.concerned_p_name,
+      concerned_p_email:req.body.concerned_p_email,
+      concerned_p_contact:req.body.concerned_p_contact,
+      priority:req.body.priority,
+      details:req.body.details,
+      waranty_status:!!(req.body.waranty_status) ? req.body.waranty_status : "NA",
+      serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : "NA",
+      tag:req.body.tag,
+      address:!!(req.body.address) ? req.body.address : "NA",
+      hospital_name:!!getHospital? getHospital.Hospital_Name : "NA",
+      location: !!(req.body.location) ? req.body.location : "NA"
+    });
+
+    const saveDoc = await ticketData.save();
+    if (!saveDoc2) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Ticket data not added!",
+      });
+    }
+
+    const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 }).limit(1);
+    // console.log(11, getLastData) 
+    if (getLastData) {
+      // console.log('enter', true)
+      await servicesModel.findOneAndUpdate(
+        { serialNo: `${otpValue}` },
+        {
+          otp: `${otpValue}`,
+          isVerified: false,
+        },
+      )
+      
+      var req = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
+      const sendSms = req.query({
+        "authorization": process.env.Fast2SMS_AUTHORIZATION,
+        "variables_values": `${otpValue}`,
+        "route": "otp",
+        "numbers": `${number}`
+      })
+      // req.headers({
+      //   "cache-control": "no-cache"
+      // })
+      req.end(function (res) {
+        // console.log(123,res.error.status)
+        if (res.error.status === 400) {
+          console.log(false)
+        }
+        console.log("Otp sent successfully.")
+      });
+
+      if (sendSms) {
+        // findlast inserted data
+        return res.status(201).json({
+          statusCode: 201,
+          statusValue: "SUCCESS",
+          message: "Data added successfully.",
+          otp: otpValue
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "otp was not sended.",
+        data: savedServices
+      });
+    }
+    // console.log(22, false)
+    return res.status(400).json({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Error! Data not added.",
+      data: savedServices
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+const addTicketDetails = async (req, res) => {
+  try {
+      const schema = Joi.object({
+          deviceId: Joi.string().required(),
+          service_engineer: Joi.string().required(),
+          issues: Joi.string().allow("").optional(),
+          pincode: Joi.string().allow("").optional(),
+          dept_name: Joi.string().allow("").optional(),
+          concerned_p_name: Joi.string().required(),
+          concerned_p_email: Joi.string().required(),
+          concerned_p_contact: Joi.string().required(),
+          priority: Joi.string().valid('Critical', 'Medium'),
+          details: Joi.string().allow("").optional(),
+          waranty_status: Joi.string().required(),
+          serialNumber: Joi.string().allow("").optional(),
+          tag: Joi.string().allow("").optional(),
+          address: Joi.string().optional(),
+          location: Joi.string().allow("").optional(),
+      })
+      let result = schema.validate(req.body);
+      if (result.error) {
+          return res.status(400).json({
+              status: 0,
+              statusCode: 400,
+              message: result.error.details[0].message,
+          })
+      }
+      const ticketStr = "AgVaPro";
+      const ranNum = Math.floor(1000 + Math.random() * 9000); 
+      // for ticket owner
+      const token = req.headers["authorization"].split(' ')[1];
+      const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+      const loggedInUser = await User.findById({_id:verified.user});
+      
+      // getAddress, Hospital
+      const getHospital = await Device.findOne({DeviceId:req.body.deviceId})
+      // console.log(11,getHospital)
+      const getAddress = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
+
+      const ticketData = new assignTicketModel({
+          deviceId:req.body.deviceId,
+          ticket_number: req.params.ticket_number,
+          ticket_owner:!!loggedInUser ? loggedInUser.email : "NA",
+          // ticket_owner:"admin@gmail.com",
+          // status:"Pending",
+          ticket_status: "Open",
+          service_engineer:req.body.service_engineer,
+          issues:req.body.issues,
+          pincode:req.body.pincode,
+          dept_name:req.body.dept_name,
+          concerned_p_name:req.body.concerned_p_name,
+          concerned_p_email:req.body.concerned_p_email,
+          concerned_p_contact:req.body.concerned_p_contact,
+          priority:req.body.priority,
+          details:req.body.details,
+          waranty_status:req.body.waranty_status,
+          serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : "NA",
+          tag:req.body.tag,
+          address:!!(req.body.address) ? req.body.address : getAddress.address,
+          hospital_name:!!getHospital? getHospital.Hospital_Name : "NA",
+          location:!!(req.body.location) ? req.body.location : "NA",
+      });
+      // console.log(11, ticketData)
+      const saveDoc = await ticketData.save();
+      if (!saveDoc) {
+          return res.status(400).json({
+              statusCode: 400,
+              statusValue: "FAIL",
+              message: "Ticket not assigned.",
+          });
+      }
+      return res.status(201).json({
+          statusCode: 201,
+          statusValue: "SUCCESS",
+          message: "Ticket assigned successfully!",
+          data:saveDoc
+      });
+  } catch (err) {
+      return res.status(500).json({
+          statusCode: 500,
+          statusValue: "FAIL",
+          message: "Internal server error",
+          data: {
+              generatedTime: new Date(),
+              errMsg: err.stack,
+          }
+      })
   }
 }
 
@@ -1799,6 +2109,68 @@ const updateTicketStatus = async (req, res) => {
 }
 
 
+// for ticket closing process
+const updateTicketStatus2 = async (req, res) => {
+  try {
+    const schema = Joi.object({
+      ticket_number: Joi.string().required(),
+      ticketStatus: Joi.string().required(),
+    });
+    
+    // Validate request body
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      });
+    }
+    // console.log(req.body)
+    const checkTicket = await servicesModel.findOne({ ticket_number: req.body.ticket_number });
+    if (checkTicket.ticketStatus == "Closed") {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Closed ticket doesn't change.",
+      });
+    }
+    const updateDoc = await servicesModel.findOneAndUpdate(
+      { ticket_number: req.body.ticket_number },
+      {
+        ticketStatus: req.body.ticketStatus,
+      },
+      {upsert: true}
+    );
+  
+    if (!!updateDoc) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "ticket has been updated successfully.",
+      })
+    }
+    // return res.status(400).json({
+    //   statusCode: 400,
+    //   statusValue: "FAIL",
+    //   message: "Error!! while updating ticket.",
+    // });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
+
+
+
+
 const closeTicket = async (req, res) => {
   try {
     const schema = Joi.object({
@@ -1898,9 +2270,9 @@ const closeTicket = async (req, res) => {
 const getAllServices = async (req, res) => {
   try {
 
-    let { page, limit, sortBy } = req.query;
+    let { page, limit, search, sortBy } = req.query;
     // for search
-    var search = "";
+    search = "";
     if (req.query.search && req.query.search !== "undefined") {
       search = req.query.search;
     }
@@ -1913,44 +2285,91 @@ const getAllServices = async (req, res) => {
       limit = 999999;
     }
 
-    // for sorting
-    if (!sortBy || sortBy === "Open" || sortBy == "undefined" || sortBy == "open") {
-      sortBy = {
-        $and: [
-          { isVerified: true },
-          { ticketStatus: "Open" },
-          {
-            $or: [
-              { serialNo: { $regex: ".*" + search + ".*", $options: "i" } },
-              { email: { $regex: ".*" + search + ".*", $options: "i" } },
-            ]
-          }
-        ],
-      }
+    // Define default sortBy filter
+    let statusFilter = {};
+    
+    // Sorting logic based on the ticket status (Open, Closed, All)
+    if (!sortBy || sortBy === "Open" || sortBy.toLowerCase() === "open") {
+      statusFilter = { ticketStatus: "Open" };
+    } else if (sortBy === "Closed" || sortBy.toLowerCase() === "closed") {
+      statusFilter = { ticketStatus: "Closed" };
+    } else if (sortBy === "All" || sortBy.toLowerCase() === "all") {
+      statusFilter = {}; // No specific status filtering
+    } else if (sortBy === "Hold" || sortBy.toLowerCase() === "hold") {
+      statusFilter = { ticketStatus: "Hold" }; // No specific status filtering
     }
-    else if (sortBy == "All" || sortBy == "all") {
-      sortBy = {
-        $and: [
-          { isVerified: true },
-          {
-            $or: [
-              { serialNo: { $regex: ".*" + search + ".*", $options: "i" } },
-              { email: { $regex: ".*" + search + ".*", $options: "i" } },
-            ]
-          }
-        ],
-      }
-    }
-    // const project_code = req.query.project_code;
 
-    const resData = await servicesModel.find(sortBy,
+    const token = req.headers["authorization"].split(' ')[1];
+    const verified = await jwtr.verify(token, process.env.JWT_SECRET);
+    const loggedInUser = await User.findById({ _id: verified.user });
+    // console.log(11, loggedInUser)
+    let ticketAccess = {}
+    if (!!loggedInUser && (loggedInUser.userType === "Support" || loggedInUser.userType === "Admin" || loggedInUser.userType === "Super-Admin")) {
+      ticketAccess = {}
+    } else {
+      ticketAccess = { email: loggedInUser.email }
+    }
+
+    // const resDataa = await servicesModel.find({})
+    // console.log(resDataa)
+    const resData = await servicesModel.aggregate([
       {
-        __v: 0,
-        otp: 0,
-        createdAt: 0,
-        updatedAt: 0
-      })
-      .sort({ "createdAt": -1 });
+        $lookup: {
+          from:"assign_tickets",
+          localField: "ticket_number",
+          foreignField: "ticket_number",
+          as: "ticketInfo"
+        }
+      },
+      {
+        $match: {
+          $and: [
+            ticketAccess,
+            statusFilter, // Apply ticket status filtering here
+            {
+              $or: [
+                { serialNo: { $regex: ".*" + search + ".*", $options: "i" } },
+                { email: { $regex: ".*" + search + ".*", $options: "i" } },
+                { hospitalName: { $regex: ".*" + search + ".*", $options: "i" } },
+                { ticket_number: { $regex: ".*" + search + ".*", $options: "i" } },
+                { date: { $regex: ".*" + search + ".*", $options: "i" } },
+              ],
+            },
+          ],
+        },
+      },
+      
+      {
+        $sort: {
+          createdAt:-1
+        }
+      },
+      // Sort the ticketInfo array by createdAt and select the last one
+      {
+        $addFields: {
+          ticketInfo: {
+            $arrayElemAt: [{
+              $slice: [
+                { $reverseArray: "$ticketInfo" }, // Reverse to get last element easily
+                1
+              ]
+            }, 0]
+          }
+        }
+      },
+      {
+        $project: {
+          "issues":0,
+          "__v":0,
+          "UID":0,
+          "createdAt":0,
+          "updatedAt":0,
+          "ticketInfo.__v":0,
+          // "ticketInfo.createdAt":0,
+          "ticketInfo.updatedAt":0,
+        }
+      }
+    ])
 
     // for pagination
     const paginateArray = (resData, page, limit) => {
@@ -1960,15 +2379,7 @@ const getAllServices = async (req, res) => {
 
     let finalData = paginateArray(resData, page, limit)
     // count data
-    const count = await servicesModel.find(sortBy,
-      {
-        __v: 0,
-        otp: 0,
-        createdAt: 0,
-        updatedAt: 0
-      })
-      .sort({ "createdAt": -1 })
-      .countDocuments();
+    const count = finalData.length
 
     if (finalData.length > 0) {
       return res.status(200).json({
@@ -1984,7 +2395,134 @@ const getAllServices = async (req, res) => {
     return res.status(404).json({
       statusCode: 404,
       statusValue: "FAIL",
-      message: "Data not found."
+      message: "Data not found.",
+      // data:resData
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+/**
+ * api   GET@/api/logger/logs/services/get-ticket-counts
+ * desc  @getTicketCounts for logger access only
+ */
+const getTicketCounts = async (req, res) => {
+  try {
+
+    const resData = await servicesModel.aggregate([
+      {
+        $project: {
+         "ticket_number":1,
+         "ticketStatus":1,
+         "createdAt":1
+        }
+      }
+    ])
+    // console.log(resData)
+    
+    // Calculate ticket stats
+    function calculateTicketStats(data) {
+      const stats = {
+        totalTickets: data.length,
+        openTickets: 0,
+        closedTickets: 0,
+        onHold:0,
+      };
+
+      data.forEach(ticket => {
+        if (ticket.ticketStatus === "Open") {
+          stats.openTickets++;
+        } else if (ticket.ticketStatus === "Closed") {
+          stats.closedTickets++;
+        } else if (ticket.ticketStatus === "Hold") {
+          stats.onHold++;
+        }
+      })
+      return stats;
+    }
+
+    const ticketStats = calculateTicketStats(resData);
+
+    if (req.query.filter == "12month-data") {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      const response = monthNames.reduce((acc, month) => {
+        acc[month] = 0;
+        return acc;
+      }, {});
+
+      // Loop through the data and count the occurrences by month
+      resData.forEach(ticket => {
+        const createdAt = new Date(ticket.createdAt);
+        const monthIndex = createdAt.getMonth();
+        const currentYear = new Date().getFullYear();
+        if (createdAt.getFullYear() === currentYear) {
+          const monthName = monthNames[monthIndex];
+          response[monthName]++;
+        }
+      });
+
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Count get successfully!",
+        data:{
+          data:ticketStats,
+          data2: [response]
+        }
+        // data:ticketStats,
+        // data2: [response]
+      })
+    } else if (req.query.filter == "yearly-data") {
+      // console.log(true)
+      const yearlyData = {};
+      resData.forEach(ticket => {
+        const createdAt = new Date(ticket.createdAt);
+        const year = createdAt.getFullYear(); // Get the year
+
+        if (yearlyData[year]) {
+          yearlyData[year]++;
+        } else {
+          yearlyData[year] = 1;
+        }
+      });
+
+      // Convert the object to the desired array format
+      const response = [yearlyData];
+      
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Count get successfully!",
+        data: {
+          data:ticketStats,
+          data3: response
+        } 
+      })
+    }
+
+    if (resData.length > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Count get successfully!",
+        data:ticketStats
+      })
+    }
+    return res.status(404).json({
+      statusCode: 404,
+      statusValue: "FAIL",
+      message: "Data not found.",
+      // data:resData
     })
   } catch (err) {
     res.status(500).json({
@@ -3334,6 +3872,7 @@ const trends_ventilator_collection = require('../model/trends_ventilator_collect
 const { registerDevice } = require('./RegisterDevice');
 const todayActiveDevicesCountModel = require('../model/todayActiveDeviceCountModel');
 const { get } = require('https');
+const assignTicketModel = require('../model/assignTicketModel');
 // const { ConfigurationServicePlaceholders } = require('aws-sdk/lib/config_service_placeholders');
 
 // const jwtr = require("jwtr-redis").default;
@@ -6455,5 +6994,9 @@ module.exports = {
   getDevicesStatusWithPincode,
   getDeviceVentilationTime,
   getDeviceOverviewForSalesById,
-  updateDeviceOverviewForSalesById
+  updateDeviceOverviewForSalesById,
+  addTicketDetails,
+  addServiceAndTicketDetails,
+  getTicketCounts,
+  updateTicketStatus2
 }

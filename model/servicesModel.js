@@ -1,3 +1,4 @@
+const { required } = require('joi');
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema;
 
@@ -66,7 +67,7 @@ const ServiceSchema = mongoose.Schema({
     },
     ticketStatus:{
         type:String,
-        enum:["Open","Closed"],
+        enum:["Open", "Closed", "Hold", "Re-Open"],
         default:"Open",
     },
     isAssigned:{
@@ -114,7 +115,23 @@ const ServiceSchema = mongoose.Schema({
     productCode: {
         type: String,
         default:""
-    }
+    },
+    serviceRaisedFrom: {
+        type: String,
+        default: ""
+    },
+    ticket_number: {
+        type: String,
+        required: true,
+        default: "NA"
+    },
+    // attachment: [
+    //     {
+    //         location:{ type: String, default: "NA" },
+    //         bucket: { type: String, default: "NA" },
+    //         key: { type: String, default: "NA" },
+    //     }
+    // ],
     
     
 },

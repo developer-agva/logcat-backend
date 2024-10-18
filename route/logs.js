@@ -88,17 +88,24 @@ router.get('/calibration/:deviceId', calibrationController.getCalibrationByDevic
 
 
 // Service API
-router.post('/services/:project_code', deviceController.addDeviceService);
+router.post('/services/:project_code', deviceController.addDeviceService);  // Step 1 to create issue from ventilator or web
 router.post('/services/v2/:project_code', deviceController.addDeviceServiceV2);  // v2-version
-
+router.post('/services/add-ticket-details/:ticket_number', deviceController.addTicketDetails)  // step 2 for assign ticket or add details
+router.post('/services/add-service-and-ticket-details/:project_code', deviceController.addServiceAndTicketDetails)
 
 // step 1 for ventilator   done
 router.post('/services/verify-sms-otp/:project_code', deviceController.verifyOtpSms); // step 2 for ventilator  done
 router.get('/services/get-by-deviceId', deviceController.getServicesById);
 router.post('/services/ticket-status/:project_code', deviceController.updateTicketStatus);  // step 1 for close ticket  done
 router.post('/services/verify-otp-for-ticket-close/:project_code', deviceController.closeTicket);
+router.post('/services/change-ticket-status/:project_code', deviceController.updateTicketStatus2)  // Change ticket status e.g Open, Closed, Hold
 
-router.get('/services/get-all', deviceController.getAllServices);
+
+router.get('/services/get-all', isAuth, deviceController.getAllServices);
+router.get('/services/get-ticket-counts', deviceController.getTicketCounts);  // for count tickets
+// router.put('/services/update-ticket/:id', deviceController.updateTicketById);
+
+
 router.get('/services/get-all/v2/:project_code', deviceController.getAllServicesV2);
 
 

@@ -11,7 +11,7 @@ async function sendDeviceAlertEmail(to, did, msg, formattedDate, formattedTime) 
         const tranEmailApi = new Sib.TransactionalEmailsApi();
 
         const sender = {
-            email: 'shivprakash@agvahealthtech.com',
+            email: 'nadeem@agvahealthtech.com',
             name: 'AgVa Healthcare',
         }
 

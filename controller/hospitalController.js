@@ -282,9 +282,17 @@ const getAccesshospitals = async (req, res) => {
 
 const getHospitals = async (req, res) => {
     try {
-        let Hospital_Name = req.params.Hospital_Name.trim();
-        const data = await registeredHospitalModel.find({$or:[{Pincode:req.params.Pincode},{Hospital_Name:Hospital_Name}]}, { __v: 0, createdAt: 0, updatedAt: 0 });
-        if (data.length == "") {
+        let Pincode = req.params.Pincode.trim();
+        if (req.params === undefined || "" || null) {
+            res.status(404).json({
+                statusCode: 404,
+                statusValue: "FAIL",
+                message: "Hospital name is required !!"
+            }) 
+        }
+
+        const data = await registeredHospitalModel.find({$or:[{Pincode:Pincode}]}, { __v: 0, createdAt: 0, updatedAt: 0 });
+        if (data.length<1) {
             return res.status(404).json({
                 statusCode: 404,
                 statusValue: "FAIL",
@@ -304,7 +312,46 @@ const getHospitals = async (req, res) => {
             message: "Internal server error",
             data: {
                 generatedTime: new Date(),
-                errMsg: err.stack,
+                errMsg: error.stack,
+            }
+        })
+    }
+}
+
+
+const getHospitalsByName = async (req, res) => {
+    try {
+        let Hospital_Name = req.params.Hospital_Name.trim();
+        if (req.params === undefined || "" || null) {
+            res.status(404).json({
+                statusCode: 404,
+                statusValue: "FAIL",
+                message: "Hospital name is required !!"
+            }) 
+        }
+
+        const data = await registeredHospitalModel.find({$or:[{Hospital_Name:Hospital_Name}]}, { __v: 0, createdAt: 0, updatedAt: 0 });
+        if (data.length<1) {
+            return res.status(404).json({
+                statusCode: 404,
+                statusValue: "FAIL",
+                message: "Data not found."
+            })
+        }
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "Hospital data get successfully.",
+            data: data
+        })
+    } catch (error) {
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message: "Internal server error",
+            data: {
+                generatedTime: new Date(),
+                errMsg: error.stack,
             }
         })
     }
@@ -432,5 +479,6 @@ module.exports = {
     updateHospital,
     deleteHospital,
     getHospitals,
-    getAccesshospitals
+    getAccesshospitals,
+    getHospitalsByName
 }

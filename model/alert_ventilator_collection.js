@@ -1,5 +1,6 @@
 
-    const mongoose = require('mongoose');
+    const { required } = require('joi');
+const mongoose = require('mongoose');
     
         const schemaOptions = {
             timestamps: true,
@@ -16,27 +17,35 @@
               did:  {
                 type: String,
                 required: [true, "Device id is required."],
-            },
-                type: {
-                  type: String,
-                  enum: ["001","002"],
-                  required: [true, "Atleast one model required."]
+              },
+              type: {
+                type: String,
+                enum: ["001","002"],
+                required: [true, "Atleast one model required."]
+              },
+              ack:{
+                  msg: String,
+                  code: {
+                    type: String,
+                    required: [true, 'Code is required']
+                  },
+                  date: {
+                    type: String,
+                    required: [true, 'Date time is required']
+                  },
                 },
-                ack:{
-                    msg: String,
-                    code: {
-                      type: String,
-                      required: [true, 'Code is required']
-                    },
-                    date: {
-                      type: String,
-                      required: [true, 'Date time is required']
-                    },
-                },
-                priority:{
-                  type:String,
-                  default: "",
-                },
+              priority:{
+                type:String,
+                default: "",
+              },
+              emailSent: {
+                type: Boolean,
+                default: false, // Track if the email has been sent
+              },
+              lastEmailSent: {
+                type: Date,
+                default: null, // Track the last time an email was sent
+              },
             },
             schemaOptions
         )

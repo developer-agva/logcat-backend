@@ -46,6 +46,7 @@ const commonRouter = require("./route/commonRoute.js");
 const accountsRouter = require("./route/accountsRoute.js");
 const salesRouter = require('./route/salesRoute.js');
 const insulRouter = require('./route/insulRoute.js')
+const dynamicRouter = require('./route/dynamicUIRoute.js');
 
 // creating connection with DB
 connectDB();
@@ -98,6 +99,7 @@ app.use("/api/common", commonRouter);
 app.use("/api/logger", accountsRouter);
 app.use("/api/marketing", salesRouter);
 app.use('/insul', insulRouter);
+app.use("/api/dynamic-ui", dynamicRouter);
 
 
 // Logs Routing

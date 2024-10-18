@@ -33,7 +33,7 @@ const fcmNotificationModel = require('../model/fcmNotificationModel.js');
 const sendVerificationEmail = async (req, res) => {
     try {
         const schema = Joi.object({
-            email: Joi.string().email().required(),
+          email: Joi.string().email().required(),
         })
         let result = schema.validate(req.body);
         if (result.error) {
@@ -68,15 +68,6 @@ const sendVerificationEmail = async (req, res) => {
           });
         }
 
-
-        // if(!!checkStatus && checkStatus.status == "Verified") {
-        //     return res.status(400).json({
-        //         statusCode: 400,
-        //         statusValue: "FAIL",
-        //         message: "Already verified.",
-        //         data:checkStatus.status
-        //     });
-        // }
         var otp = Math.floor(1000 + Math.random() * 9000);
         const saveOtp = await emailVerificationModel.findOneAndUpdate({
             email:req.body.email
@@ -109,7 +100,7 @@ const sendVerificationEmail = async (req, res) => {
                 generatedTime: new Date(),
                 errMsg: err.stack,
             }
-        });
+      });
     }
 }
 

@@ -26,6 +26,8 @@ let redisClient = require("../config/redisInit");
 const expenseModel = require('../model/expenseModel');
 const User = require('../model/users');
 const exp = require('constants');
+const assignTicketModel = require('../model/assignTicketModel');
+const servicesModel = require('../model/servicesModel');
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 
@@ -144,6 +146,25 @@ exports.uploadQualityReport = async (req, res) => {
 //   saveFile = saveDoc.save();
 //   await s3BucketProdModel.deleteMany({location: ""});
 }
+
+// upload quality report for production modules
+exports.uploadTicketAttachmentFile = async (req, res) => {
+    res.json(req.file);
+    console.log(req.file)
+
+    // const newAttachment = {
+    //     location: req.file.location,
+    //     bucket: req.file.bucket,
+    //     key: req.file.key
+    // }
+
+    // await servicesModel.findOneAndUpdate(
+    //     { ticket_number: req.params.ticket_number },
+    //     { $push: { attachment: newAttachment} },
+    //     { upsert:true }
+    // )
+}
+
 
 // upload invoice pdf for accounts modules
 exports.uploadInvoicePdf = async (req, res) => {

@@ -10,7 +10,7 @@ const verifyAdmin = require("../middleware/verifyAdmin.js");
 router.post('/register-hospital', isAuth, hospitalController.saveHospital)
 router.get('/hospital-list/:State', hospitalController.getHospitalList);
 router.get('/get-bypincode/:Pincode', hospitalController.getHospitals);
-router.get('/get-byhospital/:Hospital_Name', hospitalController.getHospitals);
+router.get('/get-byhospital/:Hospital_Name', hospitalController.getHospitalsByName);
 
 
 router.get('/hospital-list', hospitalController.getHospitalList);

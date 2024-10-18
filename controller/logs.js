@@ -383,10 +383,10 @@ const getAlertsById = async (req, res) => {
   // Pagination
   let { page, limit } = req.query;
   page = parseInt(page) || 1;
-  limit = parseInt(limit) || 10;
+  limit = parseInt(limit) || 1000;
 
   if (limit <= 0) {
-    limit = 10; // Set a default limit to prevent fetching too many records
+    limit = 1000; // Set a default limit to prevent fetching too many records
   }
 
   const skip = (page - 1) * limit;
@@ -432,6 +432,35 @@ const getAlertsById = async (req, res) => {
       });
     }
     // Send the response
+    if (!!req.query.startDate || !!req.query.endDate) {
+     
+      const filterAlertsByDate = (splitedArr, startDate, endDate) => {
+        // Create Date objects from the input strings
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // Set end date to the end of the day
+      
+        // Filter the data
+        return splitedArr.filter(item => {
+          const itemDate = new Date(item.ack.date);
+          return itemDate >= start && itemDate <= end;
+        });
+      };  
+      const filteredData = filterAlertsByDate(splitedArr, req.query.startDate, req.query.endDate)
+      return res.status(200).json({
+        status: 1,
+        statusCode: 200,
+        message: 'Data retrieved successfully.',
+        data: {
+          findDeviceById: filteredData,
+        },
+        totalDataCount: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        currentPage: page,
+      });
+    }
+    
+
     return res.status(200).json({
       status: 1,
       statusCode: 200,
@@ -443,6 +472,7 @@ const getAlertsById = async (req, res) => {
       totalPages: Math.ceil(totalCount / limit),
       currentPage: page,
     });
+    
 
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -460,70 +490,6 @@ const getAlertsById = async (req, res) => {
     });
   }
 }
-
-
-// try {
-// const { did } = req.params;
-// // Pagination
-// let { page, limit } = req.query;
-// if (!page || page === "undefined") {
-//   page = 1;
-// }
-// if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-//   limit = 9999;
-// }
-
-// const findDeviceById = await alert_ventilator_collection.find({ did: did }).select({__v:0,createdAt:0,updatedAt:0}).sort({"ack.date":-1});
-
-// console.log(findDeviceById, 'findDeviceById');
-// if (!findDeviceById) {
-//   return res.status(404).json({
-//     status: 0,
-//     statusCode: 404,
-//     data: {
-//       err: {
-//         generatedTime: new Date(),
-//         errMsg: 'device not found',
-//         msg: 'device not found',
-//         type: 'Client Error',
-//       },
-//     },
-//   });
-// }
-
-// const paginateArray =  (findDeviceById, page, limit) => {
-//   const skip = findDeviceById.slice((page - 1) * limit, page * limit);
-//   return skip;
-// };
-// let finalArrData = paginateArray(findDeviceById, page, limit);
-// var splitedArr = [];
-// let modifiedArr = finalArrData.map((item) => { 
-//   let objItem = {
-//     _id:item._id,
-//     did:item.did,
-//     type:item.type,
-//     ack:{
-//       msg:item.ack.msg,
-//       code:item.ack.code,
-//       date:item.ack.date.split('T')[0],
-//       time:item.ack.date.split('T')[1],
-//     },
-//     priority:item.priority,
-//   }
-//   splitedArr.push(objItem)
-// })
-
-// return res.status(200).json({
-//   status: 1,
-//   statusCode: 200,
-//   message: 'Data get successfully.',
-//   data: {
-//     findDeviceById: splitedArr
-//   },
-//   totalDataCount: findDeviceById.length,
-//   totalPages: Math.ceil( (findDeviceById.length)/ limit),
-//   currentPage: page
-// });
 
 
 
@@ -1099,48 +1065,9 @@ const getLogsByIdV2 = async (req, res) => {
 const getEventsById = async (req, res) => {
   try {
 
-    // const { did } = req.params;
-    // // Pagination
-    // let { page, limit } = req.query;
-    // if (!page || page === "undefined") {
-    //   page = 1;
-    // }
-    // if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-    //   limit = 9999;
-    // }
-
-    // const findDeviceById = await event_ventilator_collection.find({ did: did }).select({ createdAt: 0, updatedAt: 0, __v: 0 }).sort({ _id: -1 });
-
-    // const maxDate = new Date(
-    //   Math.max(
-    //     ...findDeviceById.map(element => {
-    //       return new Date(element.date);
-    //     }),
-    //   ),
-    // );
-    // //console.log(maxDate);  
-    // const dt1 = new Date(maxDate);
-    // //console.log(dt1)
-    // const dt2 = new Date();
-    // // dt=new Date(maxDate);
-    // //dt=new Date();
-    // var diff = (dt2.getTime() - dt1.getTime()) / 1000;
-    // diff = Math.trunc(Math.abs(diff / (60 * 60)));
-    // //console.log(diff)
-    // if (diff >= 24 || diff < 0) {
-    //   state = 'inactive';
-    // }
-    // else {
-    //   state = 'active';
-    // }
-
     const { did } = req.params;
 
-    // Pagination
-    let { page = 1, limit = 9999 } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
-
+    let { page, limit} = req.query;
     // Ensure valid page and limit values
     if (isNaN(page) || page <= 0) page = 1;
     if (isNaN(limit) || limit <= 0) limit = 9999;
@@ -1198,6 +1125,40 @@ const getEventsById = async (req, res) => {
         message: 'Data not found.',
       });
     }
+    // console.log(splitedArr)
+    // Send the response
+    if (!!req.query.startDate || !!req.query.endDate) {
+      // console.log(true)
+
+      const filterEventsByDate = (splitedArr, startDate, endDate) => {
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); 
+      
+        
+        return splitedArr.filter(item => {
+          const itemDate = new Date(item.date);
+          return itemDate >= start && itemDate <= end;
+        });
+      };  
+      const filteredData = filterEventsByDate(splitedArr, req.query.startDate, req.query.endDate)
+      // console.log(11, filteredData)
+      return res.status(200).json({
+        status: 1,
+        statusCode: 200,
+        data: {
+          findDeviceById: filteredData,
+        },
+        message: 'successfull',
+        //state:findDeviceById.find().sort({date:-1}).limit(1)
+        state: state,
+        totalDataCount: findDeviceById.length,
+        totalPages: Math.ceil((findDeviceById.length) / limit),
+        currentPage: page
+      });
+    }
+
     return res.status(200).json({
       status: 1,
       statusCode: 200,
@@ -2980,23 +2941,6 @@ const createAlertsNew = async (req, res) => {
           
         // // check deviceId for particular fcm token
         const checkDeviceId = await fcmTokenModel.find({ deviceIds: { $in: req.body.did } })
-         
-        // console.log(123,checkDeviceId)
-        // // start fcm services for notification
-        // checkDeviceId.forEach(element => {
-
-        //   const receivedToken = element.fcmToken;
-        //   const message = {
-        //     notification: {
-        //       title:"AgVa-Pro-Ventilator-Alert",
-        //       body:`ALARM_CRITICAL_LEVEL | Ward - ${Ward_No} | Patient Disconnected. | Date-Time : ${date}`,
-        //       // body:`` Ventilator patient disconnected.",
-        //     },
-        //     token:receivedToken,
-        //   }
-        //   getMessaging()
-        //   .send(message) 
-        // });
 
         // Iterate through each fcmToken and send a notification
         checkDeviceId.forEach(device => {
@@ -3028,66 +2972,37 @@ const createAlertsNew = async (req, res) => {
         });
       }
 
-      // sent email
-
+      // Check if email needs to be sent once per day with 1-hour interval
       const ackArr = req.body.ack;
-      // Check if any of the codes 'ACK0824' or 'ACK0786' exist
-      const checkAck = ackArr.some(item => (item.code === "ACK0824" || item.code === "ACK0786" || item.code === "ACK0789" || item.code === "ACK0782"));
-      // console.log('checkAck',checkAck);
-
-        if (checkAck) {
-          console.log(true)
-          const date = new Date();
-
-          // Format date as dd-mm-yyyy
-          const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0'); // January is 0
-          const year = date.getFullYear();
-          
-          // Format time as hh:mm AM/PM
-          let hours = date.getHours();
-          const minutes = String(date.getMinutes()).padStart(2, '0');
+      const checkAck = ackArr.some(item => ["ACK0824", "ACK0786", "ACK0789", "ACK0782"].includes(item.code));
+ 
+      if (checkAck) {
+        const currentTime = new Date();
+        const existingAlert = await modelReference.findOne({ did: req.body.did, 'ack.code': { $in: ["ACK0824", "ACK0786", "ACK0789", "ACK0782"] } });
+ 
+        if (!existingAlert || !existingAlert.lastEmailSent || (currentTime - new Date(existingAlert.lastEmailSent)) >= 3600000) {
+          // Prepare email details
+          const formattedDate = `${String(currentTime.getDate()).padStart(2, '0')}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${currentTime.getFullYear()}`;
+          let hours = currentTime.getHours();
+          const minutes = String(currentTime.getMinutes()).padStart(2, '0');
           const ampm = hours >= 12 ? 'PM' : 'AM';
-          hours = hours % 12;
-          hours = hours ? hours : 12; // The hour '0' should be '12'
+          hours = hours % 12 || 12;
           const formattedTime = `${hours}:${minutes} ${ampm}`;
-          
-          // Combine date and time
-          const formattedDate = `${day}-${month}-${year}`;
-
-          // Get device associated email
-          // const regDeviceDetails = await RegisterDevice.findOne({ DeviceId: req.body.did });
-          // const doctorEmails = await User.find({
-          //   $and: [
-          //     { hospitalName: regDeviceDetails.Hospital_Name },
-          //     { userType: "Doctor" },
-          //     { accountStatus: "Active" }
-          //   ]
-          // }, { email: 1 });
-
-          // const hospitalAdminEmail = await User.find({
-          //   $and: [
-          //     { hospitalName: regDeviceDetails.Hospital_Name },
-          //     { userType: "Hospital-Admin" },
-          //     { accountStatus: "Active" }
-          //   ]
-          // }, { email: 1 });
-           
-          // Combine all emails (doctors and hospital admin)
-          // const allEmails = [...doctorEmails, ...hospitalAdminEmail];
-          const allEmails = [{email: 'support@agvahealthtech.com'},{email: 'info@agvahealthtech.com'},{email: 'nadeem@agvahealthtech.com'}]
-
-          // console.log('allEmails', allEmails)
-
+ 
+          const allEmails = [{ email: 'support@agvahealthtech.com' }, { email: 'info@agvahealthtech.com' }, { email: 'developer@agvahealthtech.com' }];
+ 
           ackArr.forEach(ackItem => {
-            if (ackItem.code === "ACK0824" || ackItem.code === "ACK0786" || ackItem.code === "ACK0789" || ackItem.code === "ACK0782") {
+            if (["ACK0824", "ACK0786", "ACK0789", "ACK0782"].includes(ackItem.code)) {
               allEmails.forEach(item => {
-                // sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime)
-              })
+                sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime);
+              });
             }
-          })
+          });
+ 
+          // Update the database to indicate that the email has been sent
+          await modelReference.updateMany({ did: req.body.did }, { $set: { lastEmailSent: new Date() } });
         }
-      // end send code
+      }
 
       // end fcm services
       return res.status(201).json({

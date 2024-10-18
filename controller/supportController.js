@@ -15,6 +15,7 @@ const feedbackModel = require('../model/feedbackModel');
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 const {sendOtp, sendEmailLink} = require('../helper/sendOtp');
+const servicesModel = require('../model/servicesModel');
 // const jwt = require('jsonwebtoken')
 
 
@@ -25,6 +26,7 @@ const {sendOtp, sendEmailLink} = require('../helper/sendOtp');
 const saveTicket = async (req, res) => {
     try {
         const schema = Joi.object({
+            ticket_number: Joi.string().required(),
             deviceId: Joi.string().required(),
             service_engineer: Joi.string().required(),
             issues: Joi.string().required(),
@@ -35,7 +37,7 @@ const saveTicket = async (req, res) => {
             concerned_p_contact: Joi.string().required(),
             priority: Joi.string().valid('Critical', 'Medium'),
             details: Joi.string().required(),
-            waranty_status: Joi.string().required(),
+            waranty_status: Joi.string().allow("").optional(),
             serialNumber: Joi.string().allow("").optional(),
             tag: Joi.string().optional(),
             address: Joi.string().optional(),
@@ -48,8 +50,6 @@ const saveTicket = async (req, res) => {
                 message: result.error.details[0].message,
             })
         }
-        const ticketStr = "AgVaPro";
-        const ranNum = Math.floor(1000 + Math.random() * 9000); 
         // for ticket owner
         const token = req.headers["authorization"].split(' ')[1];
         const verified = await jwtr.verify(token, process.env.JWT_SECRET);
@@ -62,11 +62,8 @@ const saveTicket = async (req, res) => {
 
         const ticketData = new assignTicketModel({
             deviceId:req.body.deviceId,
-            ticket_number:`${ticketStr}-${ranNum}`,
-            ticket_owner:loggedInUser.email,
-            // ticket_owner:"admin@gmail.com",
-            status:"Pending",
-            ticket_status: "Open",
+            ticket_number:req.body.ticket_number,
+            ticket_owner:!!(loggedInUser.email) ? loggedInUser.email : "NA",
             service_engineer:req.body.service_engineer,
             issues:req.body.issues,
             pincode:req.body.pincode,
@@ -76,10 +73,10 @@ const saveTicket = async (req, res) => {
             concerned_p_contact:req.body.concerned_p_contact,
             priority:req.body.priority,
             details:req.body.details,
-            waranty_status:req.body.waranty_status,
+            waranty_status:!!(req.body.waranty_status) ? req.body.waranty_status : "NA",
             serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : "NA",
-            tag:req.body.tag,
-            address:!!(req.body.address) ? req.body.address : getAddress.address,
+            tag:!!(req.body.tag) ? req.body.tag : "NA",
+            address:!!(req.body.address) ? req.body.address : "NA",
             hospital_name:!!getHospital? getHospital.Hospital_Name : "NA",
         });
         // console.log(11, ticketData)
@@ -398,7 +395,7 @@ const updateTicket = async (req, res) => {
 const reAssignTicket = async (req, res) => {
     try {
         const schema = Joi.object({
-            id: Joi.string().required(),
+            ticket_number: Joi.string().required(),
             service_engineer: Joi.string().required(),
         })
         let result = schema.validate(req.body);
@@ -410,25 +407,32 @@ const reAssignTicket = async (req, res) => {
             })
         }
         // console.log(req.body)
-        const checkTicket = await assignTicketModel.findById({_id:req.body.id});
-        if (checkTicket.ticket_status == "Close") {
+        const checkTicket = await servicesModel.findOne({ticket_number:req.body.ticket_number});
+        if (checkTicket.ticketStatus == "Closed") {
             return res.status(400).json({
                 statusCode: 400,
                 statusValue: "FAIL",
                 message: "Error! You can't re-assign closed tickets.",
             })
         }
-        const updateDoc = await assignTicketModel.findByIdAndUpdate(
-            {_id:req.body.id}, 
-            {service_engineer:req.body.service_engineer}, 
+        const updateDoc = await assignTicketModel.findOneAndUpdate(
+            {ticket_number:req.body.ticket_number}, 
+            {service_engineer:req.body.service_engineer},
             { new: true }
         );
-        if (!!updateDoc) {
+        const updateDoc2 = await servicesModel.findOneAndUpdate(
+            {ticket_number:req.body.ticket_number}, 
+            {email:req.body.service_engineer},
+            { new: true }
+        )
+
+        if (!!updateDoc || !!updateDoc2) {
             return res.status(200).json({
                 statusCode: 200,
                 statusValue: "SUCCESS",
                 message: "Ticket re-assigned successfully.",
                 data: updateDoc,
+                data2: updateDoc2
             });
         }
     } catch (err) {
@@ -451,20 +455,34 @@ const reAssignTicket = async (req, res) => {
 */
 const getTicketDetails = async (req, res) => {
     try {
-        const id = req.params.id;
-        const data = await assignTicketModel.findById({_id:req.params.id});
-        if (!data) {
-            return res.status(404).json({
-                statusCode: 404,
-                statusValue: "FAIL",
-                message: "Data not found."
-            });
-        }
+        // const ticket_number = req.params.ticket_number;
+        const resData = await servicesModel.aggregate([
+            {
+                "$match": { "ticket_number":req.params.ticket_number }
+            },
+            {
+              "$lookup": {
+                "from":"assign_tickets",
+                "localField": "ticket_number",
+                "foreignField": "ticket_number",
+                "as": "ticketInfo",
+              }
+            },
+            // For this data model, will always be 1 record in right-side
+            // of join, so take 1st joined array element
+            {
+                "$set": { "ticketInfo": { "$first": "$ticketInfo" },
+                }
+            },
+            {
+                $project: { "issues":0, "__v":0, "ticketInfo.__v":0 }
+            }
+        ])
         return res.status(200).json({
             statusCode: 200,
             statusValue: "SUCCESS",
             message: "Data get successfully.",
-            data: data
+            data: resData[0]
         })
     } catch (err) {
         return res.status(500).json({

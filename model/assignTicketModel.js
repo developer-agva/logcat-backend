@@ -18,15 +18,15 @@ const ticketSchema = mongoose.Schema({
         type: String,
         default:""
     },
-    status: {
-        type: String,
-        enum: ["Pending", "Not-Done", "Completed"],
-        default: "Pending",
-    },
-    ticket_status: {
-        type: String,
-        enum: ["Open", "Re-Open", "Close"],
-    },
+    // status: {
+    //     type: String,
+    //     enum: ["Pending", "Not-Done", "Completed"],
+    //     default: "Pending",
+    // },
+    // ticket_status: {
+    //     type: String,
+    //     enum: ["Open", "Re-Open", "Close"],
+    // },
     priority: {
         type: String,
         enum: ["Critical", "Medium"],
@@ -83,14 +83,17 @@ const ticketSchema = mongoose.Schema({
     },
     tag: {                      // new added 26oct
         type: String,
-        default: "",
-        required: true,
+        default: ""
     },
-    isFeedback: {
-        type: String,
-        enum: ["Submitted","Not-Submitted","Submitted-Without-Feedback"],
-        default: "Not-Submitted",
-    },
+    location: { 
+        type: String, 
+        default: "NA"
+    }    
+    // isFeedback: {
+    //     type: String,
+    //     enum: ["Submitted","Not-Submitted","Submitted-Without-Feedback"],
+    //     default: "Not-Submitted",
+    // },
 
 },
     { timestamps: true })
