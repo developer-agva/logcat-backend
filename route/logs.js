@@ -53,7 +53,8 @@ const {
   getTrendsByIdV2,
   getEventsByIdV2,
   getLogsByIdV2,
-  getAllDeviceIdForApp
+  getAllDeviceIdForApp,
+  createEventsForDebug
 } = require("../controller/logs");
 // New controller
 const logController = require('../controller/logController.js');
@@ -90,7 +91,7 @@ router.get('/calibration/:deviceId', calibrationController.getCalibrationByDevic
 // Service API
 router.post('/services/:project_code', deviceController.addDeviceService);  // Step 1 to create issue from ventilator or web
 router.post('/services/v2/:project_code', deviceController.addDeviceServiceV2);  // v2-version
-router.post('/services/add-ticket-details/:ticket_number', deviceController.addTicketDetails)  // step 2 for assign ticket or add details
+router.post('/services/add-ticket-details/:ticket_number', isAuth, deviceController.addTicketDetails)  // step 2 for assign ticket or add details
 router.post('/services/add-service-and-ticket-details/:project_code', deviceController.addServiceAndTicketDetails)
 
 // step 1 for ventilator   done
@@ -102,7 +103,8 @@ router.post('/services/change-ticket-status/:project_code', deviceController.upd
 
 
 router.get('/services/get-all', isAuth, deviceController.getAllServices);
-router.get('/services/get-ticket-counts', deviceController.getTicketCounts);  // for count tickets
+router.get('/services/get-ticket-counts', isAuth, deviceController.getTicketCounts);  // for count tickets
+router.get('/services/get-ticket-pincodes', deviceController.getTicketPincodeList);
 // router.put('/services/update-ticket/:id', deviceController.updateTicketById);
 
 
@@ -227,6 +229,13 @@ router.post("/events/:project_code",
   body('ack.*.code').notEmpty(),
   body('ack.*.timestamp').notEmpty(),
 createEvents);
+
+router.post("/debug-events/:project_code",
+  body('did').notEmpty(),
+  body('type').notEmpty(),
+  body('ack.*.code').notEmpty(),
+  body('ack.*.timestamp').notEmpty(),
+  createEventsForDebug);
 
 // new route for all upcomming products
 router.post("/v2/events/:productCode",

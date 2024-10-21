@@ -5,6 +5,9 @@ const { validationResult } = require('express-validator');
 const Projects = require('../model/project.js');
 const Joi = require('joi');
 const NodeGeocoder = require('node-geocoder');
+const locations = require('../data/locations.json');
+
+
 
 /**
  * 
@@ -113,11 +116,72 @@ const getLocationByDeviceId = async (req, res) => {
     }
 }
 
+// Get all locations
+const getAllLocations = async (req, res) => {
+    try {
+        // const locationData = locations;
+        res.status(200).json({
+            statusCode: 200,
+            statusValue:"SUCCESS",
+            message:"Location data get successfully.",
+            data:locations
+        })
+    } catch (error) {
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message:"Internal server error",
+            data:{
+                name:"locationCotroller/getLocationByDeviceId",
+                error:error
+            }
+        })
+    }
+};
 
+
+// Get geo location by pincode
+const getGeoCodeByPincode = async (req, res) => {
+    try {
+        const { pincode } = req.params;
+        for (const location in locations) {
+            if (locations[location].PinCodes.includes(parseInt(pincode))) {
+                return res.status(200).json({
+                    statusCode: 200,
+                    statusValue:"SUCCESS",
+                    message:"Location data get successfully.",
+                    data:{
+                        location: location,
+                        state: locations[location].State,
+                        geoCode: locations[location].GeoCode
+                    }
+                })
+            }
+        }
+        res.status(200).json({
+            statusCode: 200,
+            statusValue:"SUCCESS",
+            message:"Location data get successfully.",
+            data:locations
+        })
+    } catch (error) {
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message:"Internal server error",
+            data:{
+                name:"locationCotroller/getLocationByDeviceId",
+                error:error
+            }
+        })
+    }
+};
 
 
 
 module.exports = {
     saveNewLocation,
-    getLocationByDeviceId
+    getLocationByDeviceId,
+    getAllLocations,
+    getGeoCodeByPincode
 }

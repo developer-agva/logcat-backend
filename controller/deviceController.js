@@ -1286,7 +1286,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       // ticket data
       service_engineer: Joi.string().required(),
       // issues: Joi.string().allow("").optional(),
-      pincode: Joi.string().allow("").required(),
+      pincode: Joi.string().required(),
       // dept_name: Joi.string().allow("").required(),
       concerned_p_name: Joi.string().allow("").optional(),
       concerned_p_email: Joi.string().allow("").optional(),
@@ -1410,7 +1410,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       // ticket_owner:"admin@gmail.com",
       status:"Pending",
       ticket_status: "Open",
-      service_engineer:!!(req.body.service_engineer) ? req.body.service_engineer : "NA",
+      service_engineer:req.body.service_engineer,
       // issues:req.body.issues,
       pincode:req.body.pincode,
       // dept_name:req.body.dept_name,
@@ -1487,7 +1487,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       statusCode: 400,
       statusValue: "FAIL",
       message: "Error! Data not added.",
-      data: savedServices
+      // data: savedServices
     })
   } catch (err) {
     res.status(500).json({
@@ -1502,13 +1502,14 @@ const addServiceAndTicketDetails = async (req, res) => {
   }
 }
 
+
 const addTicketDetails = async (req, res) => {
   try {
       const schema = Joi.object({
           deviceId: Joi.string().required(),
           service_engineer: Joi.string().required(),
           issues: Joi.string().allow("").optional(),
-          pincode: Joi.string().allow("").optional(),
+          pincode: Joi.string().required(),
           dept_name: Joi.string().allow("").optional(),
           concerned_p_name: Joi.string().required(),
           concerned_p_email: Joi.string().required(),
@@ -1544,7 +1545,7 @@ const addTicketDetails = async (req, res) => {
       const ticketData = new assignTicketModel({
           deviceId:req.body.deviceId,
           ticket_number: req.params.ticket_number,
-          ticket_owner:!!loggedInUser ? loggedInUser.email : "NA",
+          ticket_owner:"support@agvahealthtech.com",
           // ticket_owner:"admin@gmail.com",
           // status:"Pending",
           ticket_status: "Open",
@@ -2115,6 +2116,7 @@ const updateTicketStatus2 = async (req, res) => {
     const schema = Joi.object({
       ticket_number: Joi.string().required(),
       ticketStatus: Joi.string().required(),
+      remark:Joi.string().allow("").optional(),
     });
     
     // Validate request body
@@ -2139,6 +2141,7 @@ const updateTicketStatus2 = async (req, res) => {
       { ticket_number: req.body.ticket_number },
       {
         ticketStatus: req.body.ticketStatus,
+        remark: !!(req.body.remark) ? req.body.remark : "NA"
       },
       {upsert: true}
     );
@@ -2304,7 +2307,7 @@ const getAllServices = async (req, res) => {
     const loggedInUser = await User.findById({ _id: verified.user });
     // console.log(11, loggedInUser)
     let ticketAccess = {}
-    if (!!loggedInUser && (loggedInUser.userType === "Support" || loggedInUser.userType === "Admin" || loggedInUser.userType === "Super-Admin")) {
+    if (!!loggedInUser && ((loggedInUser.userType === "Support" && loggedInUser.email === "support@agvahealthtech.com") || loggedInUser.userType === "Admin" || loggedInUser.userType === "Super-Admin")) {
       ticketAccess = {}
     } else {
       ticketAccess = { email: loggedInUser.email }
@@ -2536,6 +2539,52 @@ const getTicketCounts = async (req, res) => {
     })
   }
 }
+
+
+
+/**
+ * api   GET@/api/logger/logs/services/get-ticket-counts
+ * desc  @getTicketCounts for logger access only
+ */
+const getTicketPincodeList = async (req, res) => {
+  try {
+    const getData = await assignTicketModel.find({},{ticket_number:1, pincode:1})
+    
+    const filterUniqueNonNullPincode = (arr) => {
+      return Object.values(
+        arr
+          
+          .filter(item => item.pincode !== null && item.pincode !== "")
+          
+          .reduce((acc, current) => {
+            acc[current._id] = current;
+            return acc;
+          }, {})
+      );
+    };
+    
+    const result = filterUniqueNonNullPincode(getData);
+    // console.log(result);
+    
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Pincodes get successfully!",
+      data:result
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 
 
 /**
@@ -6998,5 +7047,6 @@ module.exports = {
   addTicketDetails,
   addServiceAndTicketDetails,
   getTicketCounts,
-  updateTicketStatus2
+  updateTicketStatus2,
+  getTicketPincodeList
 }

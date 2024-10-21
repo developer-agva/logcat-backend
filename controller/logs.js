@@ -51,6 +51,7 @@ const fcmNotificationModel = require('../model/fcmNotificationModel');
 const { title } = require('process');
 const sendDeviceReqModel = require('../model/sendDeviceReqModel');
 const sendDeviceAlertEmail = require("../helper/sendDeviceAlertEmail");
+const event_ventilator_collection_debug = require('../model/event_ventilator_collection_debug');
 
 // initializeApp({
 //   credential: applicationDefault(),
@@ -2980,7 +2981,7 @@ const createAlertsNew = async (req, res) => {
         const currentTime = new Date();
         const existingAlert = await modelReference.findOne({ did: req.body.did, 'ack.code': { $in: ["ACK0824", "ACK0786", "ACK0789", "ACK0782"] } });
  
-        if (!existingAlert || !existingAlert.lastEmailSent || (currentTime - new Date(existingAlert.lastEmailSent)) >= 3600000) {
+        if (!existingAlert || !existingAlert.lastEmailSent || (currentTime - new Date(existingAlert.lastEmailSent)) >= 7200000) {
           // Prepare email details
           const formattedDate = `${String(currentTime.getDate()).padStart(2, '0')}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${currentTime.getFullYear()}`;
           let hours = currentTime.getHours();
@@ -2989,7 +2990,11 @@ const createAlertsNew = async (req, res) => {
           hours = hours % 12 || 12;
           const formattedTime = `${hours}:${minutes} ${ampm}`;
  
-          const allEmails = [{ email: 'support@agvahealthtech.com' }, { email: 'info@agvahealthtech.com' }, { email: 'developer@agvahealthtech.com' }];
+          const allEmails = [
+            { email: 'support@agvahealthtech.com' }, 
+            { email: 'info@agvahealthtech.com' }, 
+            { email: 'shivprakash@agvahealthtech.com' }
+          ];
  
           ackArr.forEach(ackItem => {
             if (["ACK0824", "ACK0786", "ACK0789", "ACK0782"].includes(ackItem.code)) {
@@ -3287,6 +3292,88 @@ const createEvents = async (req, res, next) => {
     });
   }
 };
+
+
+// create or save device id from ventilators
+const createEventsForDebug = async (req, res, next) => {
+  try {
+    const { project_code } = req.params;
+    
+    const { did, type, message, date } = req.body;
+    // console.log(`did : ${did}`)
+    if (!did || !type || !message || !date) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Please fill all the details.',
+            msg: 'Please fill all the details.',
+            type: 'Client Error',
+          },
+        },
+      });
+    }
+    const events = new event_ventilator_collection_debug({
+      did: did,
+      message: message,
+      type: type,
+      date: date,
+    });
+
+    console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
+    const SaveEvents = await events.save();
+
+    // For current date and time
+    // const currentDateTime = new Date();
+
+    // const year = currentDateTime.getFullYear();
+    // const month = String(currentDateTime.getMonth() + 1).padStart(2, '0');
+    // const day = String(currentDateTime.getDate()).padStart(2, '0');
+
+    // const hours = String(currentDateTime.getHours()).padStart(2, '0');
+    // const minutes = String(currentDateTime.getMinutes()).padStart(2, '0');
+    // const seconds = String(currentDateTime.getSeconds()).padStart(2, '0');
+
+    // const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+    if (SaveEvents) {
+      // await statusModel.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
+      res.status(201).json({
+        status: 201,
+        data: { eventCounts: SaveEvents.length },
+        message: 'Event has been added successfully!',
+      });
+    }
+    else {
+      res.status(500).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Some error happened during registration',
+            msg: 'Some error happened during registration',
+            type: 'MongodbError',
+          },
+        },
+      }); I
+    }
+  }
+  catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
 
 // create events or save device id -- for all upcomming products
 const createEventsV2 = async (req, res, next) => {
@@ -5829,5 +5916,6 @@ module.exports = {
   getTrendsByIdV2,
   getEventsByIdV2,
   getLogsByIdV2,
-  getAllDeviceIdForApp
+  getAllDeviceIdForApp,
+  createEventsForDebug
 };

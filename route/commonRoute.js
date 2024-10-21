@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { isAuth, isAdmin, isDispatch } = require("../middleware/authMiddleware.js");
 const commonController = require("../controller/commonController.js");
-
+const locationCotroller = require("../controller/locationController.js");
 
 // common routes
 router.post("/send-verification-email", commonController.sendVerificationEmail);
@@ -18,6 +18,9 @@ router.get("/get-notification-list/:fcmToken", commonController.getFcmNotificati
 router.delete("/delete-notification/:id", commonController.deleteFcmNotification);
 
 
+// Get Lat/Long by name or pincode
+router.get("/get-all-locations", locationCotroller.getAllLocations);
+router.get("/get-geocode-location/:pincode", locationCotroller.getGeoCodeByPincode);
 
 
 
