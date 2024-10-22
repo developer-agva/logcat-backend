@@ -125,6 +125,10 @@ const ServiceSchema = mongoose.Schema({
         required: true,
         default: "NA"
     },
+    toolsProvided: {
+        type: String,
+        default: ""
+    }
     // attachment: [
     //     {
     //         location:{ type: String, default: "NA" },

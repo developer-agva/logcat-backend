@@ -2991,8 +2991,8 @@ const createAlertsNew = async (req, res) => {
           const formattedTime = `${hours}:${minutes} ${ampm}`;
  
           const allEmails = [
-            { email: 'support@agvahealthtech.com' }, 
-            { email: 'info@agvahealthtech.com' }, 
+            // { email: 'support@agvahealthtech.com' }, 
+            // { email: 'info@agvahealthtech.com' }, 
             { email: 'shivprakash@agvahealthtech.com' }
           ];
  

@@ -29,7 +29,7 @@ const ticketSchema = mongoose.Schema({
     // },
     priority: {
         type: String,
-        enum: ["Critical", "Medium"],
+        enum: ["Critical", "Medium", "High"],
         default: "",
     },
     hospital_name: { 

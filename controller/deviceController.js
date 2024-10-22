@@ -1108,7 +1108,7 @@ const addDeviceService = async (req, res) => {
       hospitalName: Joi.string().required(),
       wardNo: Joi.string().required(),
       email: Joi.string().required(),
-      department: Joi.string().required(),
+      department: Joi.string().allow("").optional(),
       remark:Joi.string().allow("").optional(),
       serviceRaisedFrom:Joi.string().allow("").optional(),
     })
@@ -1188,7 +1188,7 @@ const addDeviceService = async (req, res) => {
       hospitalName: req.body.hospitalName,
       wardNo: req.body.wardNo,
       email: req.body.email,
-      department: req.body.department,
+      department: !!(req.body.department) ? req.body.department : "NA",
       ticketStatus: "Open",
       remark: !!(req.body.remark) ? req.body.remark : "",
       issues: tags,
@@ -1291,13 +1291,14 @@ const addServiceAndTicketDetails = async (req, res) => {
       concerned_p_name: Joi.string().allow("").optional(),
       concerned_p_email: Joi.string().allow("").optional(),
       concerned_p_contact: Joi.string().allow("").optional(),
-      priority: Joi.string().valid('Critical', 'Medium'),
+      priority: Joi.string().valid('Critical', 'Medium', 'High'),
       details: Joi.string().allow("").optional(),
       waranty_status: Joi.string().allow("").optional(),
       serialNumber: Joi.string().allow("").optional(),
       tag: Joi.string().optional(),
       address: Joi.string().allow("").optional(),
       location: Joi.string().allow("").optional(),
+      toolsProvided: Joi.string().allow("").optional(),
     })
     let result = schema.validate(req.body);
     if (result.error) {
@@ -1394,12 +1395,13 @@ const addServiceAndTicketDetails = async (req, res) => {
       hospitalName: req.body.hospitalName,
       wardNo: req.body.wardNo,
       email: req.body.email,
-      department: req.body.department,
+      department: !!(req.body.department) ? req.body.department : "NA",
       ticketStatus: "Open",
-      remark: !!(req.body.remark) ? req.body.remark : "",
+      remark: !!(req.body.remark) ? req.body.remark : "NA",
       issues: tags,
       priority: priority,
-      serviceRaisedFrom:!!(req.body.serviceRaisedFrom) ? req.body.serviceRaisedFrom : "Ventilator" 
+      serviceRaisedFrom:!!(req.body.serviceRaisedFrom) ? req.body.serviceRaisedFrom : "Ventilator",
+      toolsProvided:!!(req.body.toolsProvided) ? req.body.toolsProvided : "NA" 
     })
     const saveDoc2 = await serviceData.save();
 
@@ -1514,7 +1516,7 @@ const addTicketDetails = async (req, res) => {
           concerned_p_name: Joi.string().required(),
           concerned_p_email: Joi.string().required(),
           concerned_p_contact: Joi.string().required(),
-          priority: Joi.string().valid('Critical', 'Medium'),
+          priority: Joi.string().valid('Critical', 'Medium', "High"),
           details: Joi.string().allow("").optional(),
           waranty_status: Joi.string().required(),
           serialNumber: Joi.string().allow("").optional(),
@@ -1552,7 +1554,7 @@ const addTicketDetails = async (req, res) => {
           service_engineer:req.body.service_engineer,
           issues:req.body.issues,
           pincode:req.body.pincode,
-          dept_name:req.body.dept_name,
+          dept_name:!!(req.body.dept_name) ? req.body.dept_name : "NA",
           concerned_p_name:req.body.concerned_p_name,
           concerned_p_email:req.body.concerned_p_email,
           concerned_p_contact:req.body.concerned_p_contact,
@@ -2043,7 +2045,6 @@ const updateTicketStatus = async (req, res) => {
 
     // Check if the ticket exists
     const checkTicket = await servicesModel.find({ _id: req.body._id });
-    // console.log(checkTicket)
     if (checkTicket.length > 0) {
       // Update ticket with OTP, UId, and serviceEngName
       await servicesModel.findOneAndUpdate(
@@ -2055,7 +2056,7 @@ const updateTicketStatus = async (req, res) => {
         }, 
         { upsert: true }
       );
-  
+    
       // Rename `req` to `otpRequest` to avoid conflict with the Express `req`
       var otpRequest = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
       otpRequest.query({
@@ -2064,30 +2065,72 @@ const updateTicketStatus = async (req, res) => {
         "route": "otp",
         "numbers": `${number}`,
       });
-      // otpRequest.headers({
-      //   "cache-control": "no-cache",
-      // });
       
       // Handle response for OTP SMS request
       otpRequest.end(function (smsResponse) {
         if (smsResponse.error) {
           // If error in sending OTP
-          res.status(400).json({
+          return res.status(400).json({
             statusCode: 400,
             statusValue: "FAIL",
             message: "OTP could not be sent. Please try again.",
           });
         }
-
-
+    
         // If OTP sent successfully
-        res.status(201).json({
+        return res.status(201).json({
           statusCode: 201,
           statusValue: "SUCCESS",
           message: "OTP has been sent successfully.",
           otp: otpValue,
         });
-      })
+      });
+    
+    // console.log(checkTicket)
+    // if (checkTicket.length > 0) {
+    //   // Update ticket with OTP, UId, and serviceEngName
+    //   await servicesModel.findOneAndUpdate(
+    //     { _id: req.body._id },
+    //     {
+    //       otp: otpValue,
+    //       UID: req.body.UId,
+    //       serviceEngName: req.body.serviceEngName,
+    //     }, 
+    //     { upsert: true }
+    //   );
+  
+    //   // Rename `req` to `otpRequest` to avoid conflict with the Express `req`
+    //   var otpRequest = unirest("GET", "https://www.fast2sms.com/dev/bulkV2");
+    //   otpRequest.query({
+    //     "authorization": process.env.Fast2SMS_AUTHORIZATION,
+    //     "variables_values": `${otpValue}`,
+    //     "route": "otp",
+    //     "numbers": `${number}`,
+    //   });
+    //   // otpRequest.headers({
+    //   //   "cache-control": "no-cache",
+    //   // });
+      
+    //   // Handle response for OTP SMS request
+    //   otpRequest.end(function (smsResponse) {
+    //     if (smsResponse.error) {
+    //       // If error in sending OTP
+    //       res.status(400).json({
+    //         statusCode: 400,
+    //         statusValue: "FAIL",
+    //         message: "OTP could not be sent. Please try again.",
+    //       });
+    //     }
+
+
+    //     // If OTP sent successfully
+    //     res.status(201).json({
+    //       statusCode: 201,
+    //       statusValue: "SUCCESS",
+    //       message: "OTP has been sent successfully.",
+    //       otp: otpValue,
+    //     });
+    //   })
     } else {
       // If no ticket is found
       return res.status(400).json({
@@ -2172,8 +2215,6 @@ const updateTicketStatus2 = async (req, res) => {
 }
 
 
-
-
 const closeTicket = async (req, res) => {
   try {
     const schema = Joi.object({
@@ -2238,16 +2279,17 @@ const closeTicket = async (req, res) => {
       });
       // console.log()
     }
+    // console.log('check', req.body)
     if (!!(req.body.remark)) {
-      await servicesModel.findOneAndUpdate({ $and: [{ otp: req.body.otp }, { deviceId: req.body.deviceId }] }, { ticketStatus: "Closed", remark: "Ticket has been closed by Service Engineer" });
-      res.status(200).json({
+      const updateDoc = await servicesModel.findOneAndUpdate({ $and: [{ otp: req.body.otp }, { deviceId: req.body.deviceId }] }, { ticketStatus: "Closed", remark: "Ticket has been closed by Service Engineer" });
+      return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Ticket has been closed successfully."
       })
     }
     await servicesModel.findOneAndUpdate({ $and: [{ otp: req.body.otp }, { deviceId: req.body.deviceId }] }, { ticketStatus: "Closed", remark: "Ticket has been closed by Phone call" });
-    res.status(200).json({
+    return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Ticket has been closed successfully."
@@ -2265,6 +2307,7 @@ const closeTicket = async (req, res) => {
     });
   }
 }
+
 
 /**
  * api   GET@/api/logger/logs/services/get-all
@@ -2726,35 +2769,43 @@ const getServicesById = async (req, res) => {
     var pipline = [
       // Match
       {
-        "$match": { $and: [{ "deviceId": deviceId }, { "isVerified": true }] },
+        "$match": { 
+          $and: [
+            { "deviceId": deviceId }, 
+            // { "isVerified": true }
+          ] 
+        },
       },
       {
         "$lookup": {
-          "from": "s3_bucket_files",
-          "localField": "serialNo",
-          "foreignField": "serialNo",
-          "as": "bucket_mapping",
+          "from": "assign_tickets",
+          "localField": "ticket_number",
+          "foreignField": "ticket_number",
+          "as": "ticketInfo",
         },
       },
-      // For this data model, will always be 1 record in right-side
-      // of join, so take 1st joined array element
       {
         "$set": {
-          "bucket_mapping": { "$first": "$bucket_mapping" },
+          "ticketInfo": { "$first": "$ticketInfo" },
         }
-      },
-      // Extract the joined embeded fields into top level fields
-      {
-        "$set": { "location": "$bucket_mapping.location" },
       },
       {
         "$unset": [
-          "bucket_mapping",
+          // "ticketInfo",
+          "ticketInfo.createdAt",
+          "ticketInfo.updatedAt",
+          "ticketInfo.__v",
+          "ticketInfo._id",
+          "ticketInfo.deviceId",
           "__v",
           "createdAt",
           "updatedAt",
           "otp",
           "isVerified",
+          "issues",
+          "state",
+          "city",
+          "country"
         ]
       },
       {
