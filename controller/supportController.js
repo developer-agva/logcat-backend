@@ -466,14 +466,14 @@ const getTicketDetails = async (req, res) => {
             message: "Data get successfully.",
             data: data
         })
-    } catch (err) {
+    } catch (error) {
         return res.status(500).json({
             statusCode: 500,
             statusValue: "FAIL",
             message: "Internal server error",
             data: {
                 generatedTime: new Date(),
-                errMsg: err.stack,
+                // errMsg: error.stack,
             }
         })
     }
