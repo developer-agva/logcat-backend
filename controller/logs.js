@@ -2977,11 +2977,49 @@ const createAlertsNew = async (req, res) => {
       const ackArr = req.body.ack;
       const checkAck = ackArr.some(item => ["ACK0824", "ACK0786", "ACK0789", "ACK0782"].includes(item.code));
  
+      // if (checkAck) {
+      //   const currentTime = new Date();
+      //   const existingAlert = await modelReference.findOne({ did: req.body.did, 'ack.code': { $in: ["ACK0824", "ACK0786", "ACK0789", "ACK0782"] } });
+ 
+      //   if (!existingAlert || !existingAlert.lastEmailSent || (currentTime - new Date(existingAlert.lastEmailSent)) >= 7200000) {
+      //     // Prepare email details
+      //     const formattedDate = `${String(currentTime.getDate()).padStart(2, '0')}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${currentTime.getFullYear()}`;
+      //     let hours = currentTime.getHours();
+      //     const minutes = String(currentTime.getMinutes()).padStart(2, '0');
+      //     const ampm = hours >= 12 ? 'PM' : 'AM';
+      //     hours = hours % 12 || 12;
+      //     const formattedTime = `${hours}:${minutes} ${ampm}`;
+ 
+      //     const allEmails = [
+      //       // { email: 'support@agvahealthtech.com' }, 
+      //       // { email: 'info@agvahealthtech.com' }, 
+      //       { email: 'shivprakash@agvahealthtech.com' }
+      //     ];
+ 
+      //     ackArr.forEach(ackItem => {
+      //       if (["ACK0824", "ACK0786", "ACK0789", "ACK0782"].includes(ackItem.code)) {
+      //         allEmails.forEach(item => {
+      //           sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime);
+      //         });
+      //       }
+      //     });
+ 
+      //     // Update the database to indicate that the email has been sent
+      //     await modelReference.updateMany({ did: req.body.did }, { $set: { lastEmailSent: new Date() } });
+      //   }
+      // }
       if (checkAck) {
         const currentTime = new Date();
-        const existingAlert = await modelReference.findOne({ did: req.body.did, 'ack.code': { $in: ["ACK0824", "ACK0786", "ACK0789", "ACK0782"] } });
- 
-        if (!existingAlert || !existingAlert.lastEmailSent || (currentTime - new Date(existingAlert.lastEmailSent)) >= 7200000) {
+        const twoHoursInMillis = 7200000;
+      
+        // Find an existing alert for the device that has specific ACK codes
+        const existingAlert = await modelReference.findOne({
+          did: req.body.did,
+          'ack.code': { $in: ["ACK0824", "ACK0786", "ACK0789", "ACK0782"] }
+        });
+      
+        // Check if an email was not sent within the last 2 hours
+        if (!existingAlert || !existingAlert.lastEmailSent || (currentTime - new Date(existingAlert.lastEmailSent)) >= twoHoursInMillis) {
           // Prepare email details
           const formattedDate = `${String(currentTime.getDate()).padStart(2, '0')}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${currentTime.getFullYear()}`;
           let hours = currentTime.getHours();
@@ -2989,26 +3027,35 @@ const createAlertsNew = async (req, res) => {
           const ampm = hours >= 12 ? 'PM' : 'AM';
           hours = hours % 12 || 12;
           const formattedTime = `${hours}:${minutes} ${ampm}`;
- 
+      
+          // Email recipients
           const allEmails = [
             // { email: 'support@agvahealthtech.com' }, 
             // { email: 'info@agvahealthtech.com' }, 
             { email: 'shivprakash@agvahealthtech.com' }
           ];
- 
-          ackArr.forEach(ackItem => {
-            if (["ACK0824", "ACK0786", "ACK0789", "ACK0782"].includes(ackItem.code)) {
-              allEmails.forEach(item => {
-                sendDeviceAlertEmail(item.email, req.body.did, ackItem.msg, formattedDate, formattedTime);
-              });
-            }
-          });
- 
-          // Update the database to indicate that the email has been sent
-          await modelReference.updateMany({ did: req.body.did }, { $set: { lastEmailSent: new Date() } });
+      
+          // Find the first matching ACK code and its message
+          const ackMatched = ackArr.find(ackItem =>
+            ["ACK0824", "ACK0786", "ACK0789", "ACK0782"].includes(ackItem.code)
+          );
+      
+          // Send email if an ACK code matches
+          if (ackMatched) {
+            allEmails.forEach(item => {
+              // Use the ackMatched.msg in the email
+              sendDeviceAlertEmail(item.email, req.body.did, ackMatched.msg, formattedDate, formattedTime);
+            });
+      
+            // Update the database to indicate that the email has been sent
+            await modelReference.updateMany(
+              { did: req.body.did },
+              { $set: { lastEmailSent: new Date() } }
+            );
+          }
         }
       }
-
+      
       // end fcm services
       return res.status(201).json({
         status: 201,
@@ -3314,6 +3361,15 @@ const createEventsForDebug = async (req, res, next) => {
         },
       });
     }
+    // check duplicate events data
+    const eventsData = await event_ventilator_collection_debug.find({$and:[{did:req.body.did},{type:req.body.type},{message:req.body.message},{date:req.body.date}]})
+    if (eventsData.length>0) {
+      return res.status(201).json({
+        status: 201,
+        // data: { eventCounts: SaveEvents.length },
+        message: 'Duplicate records!!',
+      });
+    } 
     const events = new event_ventilator_collection_debug({
       did: did,
       message: message,
@@ -3339,14 +3395,14 @@ const createEventsForDebug = async (req, res, next) => {
 
     if (SaveEvents) {
       // await statusModel.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
-      res.status(201).json({
+      return res.status(201).json({
         status: 201,
         data: { eventCounts: SaveEvents.length },
         message: 'Event has been added successfully!',
       });
     }
     else {
-      res.status(500).json({
+      return res.status(500).json({
         status: 0,
         data: {
           err: {

@@ -2173,11 +2173,18 @@ const updateTicketStatus2 = async (req, res) => {
     }
     // console.log(req.body)
     const checkTicket = await servicesModel.findOne({ ticket_number: req.body.ticket_number });
-    if (checkTicket.ticketStatus == "Closed") {
+    // if (checkTicket.ticketStatus == "Closed") {
+    //   return res.status(400).json({
+    //     statusCode: 400,
+    //     statusValue: "FAIL",
+    //     message: "Error!! Closed ticket doesn't change.",
+    //   });
+    // }
+    if (!checkTicket) {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "Error!! Closed ticket doesn't change.",
+        message: "Error!! ticket not found.",
       });
     }
     const updateDoc = await servicesModel.findOneAndUpdate(
@@ -2335,11 +2342,11 @@ const getAllServices = async (req, res) => {
     let statusFilter = {};
     
     // Sorting logic based on the ticket status (Open, Closed, All)
-    if (!sortBy || sortBy === "Open" || sortBy.toLowerCase() === "open") {
+    if (sortBy === "Open" || sortBy.toLowerCase() === "open") {
       statusFilter = { ticketStatus: "Open" };
     } else if (sortBy === "Closed" || sortBy.toLowerCase() === "closed") {
       statusFilter = { ticketStatus: "Closed" };
-    } else if (sortBy === "All" || sortBy.toLowerCase() === "all") {
+    } else if (!sortBy || sortBy === "All" || sortBy.toLowerCase() === "all" || sortBy === undefined) {
       statusFilter = {}; // No specific status filtering
     } else if (sortBy === "Hold" || sortBy.toLowerCase() === "hold") {
       statusFilter = { ticketStatus: "Hold" }; // No specific status filtering
@@ -2442,7 +2449,7 @@ const getAllServices = async (req, res) => {
       statusCode: 404,
       statusValue: "FAIL",
       message: "Data not found.",
-      // data:resData
+      data:[]
     })
   } catch (err) {
     res.status(500).json({
@@ -2582,6 +2589,49 @@ const getTicketCounts = async (req, res) => {
     })
   }
 }
+
+
+
+const getTicketDataCount = async (req, res) => {
+  try {
+    if (req.query.filter == "weekly") {
+      // Get the date 7 days ago
+      const startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      startDate.setDate(startDate.getDate() - 6); // 7 days including today
+      
+
+      const aggreData = await servicesModel.find({},{ticket_number:1, createdAt:1,})
+      console.log(11, aggreData)
+      
+
+      if (finalData.length > 0) {
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Data get successfully!.",
+          data: finalData
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "data not found."
+      })
+    }
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 
 
 

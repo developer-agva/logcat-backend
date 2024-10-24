@@ -238,7 +238,7 @@ const getAccesshospitals = async (req, res) => {
         const loggedInUser = await User.findById({_id:verified.user});
 
         const data1 = loggedInUser.accessHospital
-        // console.log(11, data1)
+        console.log(11, data1)
         const data2 = await assignDeviceTouserModel.find({$or:[{userId:loggedInUser._id},{assignedBy:loggedInUser.email}]});
         // console.log(12, data2)
 
@@ -249,8 +249,8 @@ const getAccesshospitals = async (req, res) => {
         // console.log(22,commonHospitalNames)
 
         // final hospital list
-        const dataList = await registeredHospitalModel.find({Hospital_Name:{$in:commonHospitalNames}},{__v:0});
-
+        // const dataList = await registeredHospitalModel.find({Hospital_Name:{$in:commonHospitalNames}},{__v:0});
+        const dataList = await registeredHospitalModel.find({Hospital_Name:{$in:data1}},{__v:0});
         if (dataList.length<1) {
             return res.status(404).json({
                 statusCode: 404,

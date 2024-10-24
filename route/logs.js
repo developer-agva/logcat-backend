@@ -103,7 +103,7 @@ router.post('/services/change-ticket-status/:project_code', deviceController.upd
 
 
 router.get('/services/get-all', isAuth, deviceController.getAllServices);
-router.get('/services/get-ticket-counts', isAuth, deviceController.getTicketCounts);  // for count tickets
+router.get('/services/get-ticket-counts', deviceController.getTicketCounts);  // for count tickets
 router.get('/services/get-ticket-pincodes', deviceController.getTicketPincodeList);
 // router.put('/services/update-ticket/:id', deviceController.updateTicketById);
 
