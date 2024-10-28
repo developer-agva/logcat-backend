@@ -497,6 +497,59 @@ const getTicketDetails = async (req, res) => {
     }
 }
 
+
+/**
+* api      GET @/support/get-ticket/:id
+* desc     @getTicketDetails for logger access only
+*/
+const getTicketListByUserEmail = async (req, res) => {
+    try {
+        // const ticket_number = req.params.ticket_number;
+        const resData = await servicesModel.aggregate([
+            // {
+            //     "$match": { "":req.params.ticket_number }
+            // },
+            {
+              "$lookup": {
+                "from":"assign_tickets",
+                "localField": "ticket_number",
+                "foreignField": "ticket_number",
+                "as": "ticketInfo",
+              }
+            },
+            // For this data model, will always be 1 record in right-side
+            // of join, so take 1st joined array element
+            {
+                "$set": { "ticketInfo": { "$first": "$ticketInfo" },
+                }
+            },
+            {
+                "$match": { "ticketInfo.service_engineer": req.params.service_engineer }
+            },
+            {
+                $project: { "issues":0, "__v":0, "ticketInfo.__v":0 }
+            }
+        ])
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "Data get successfully.",
+            data: resData
+        })
+    } catch (err) {
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message: "Internal server error",
+            data: {
+                generatedTime: new Date(),
+                errMsg: err.stack,
+            }
+        })
+    }
+}
+
+
 /**
 * api      GET @/support/get-ticket/:id
 * desc     @getTicketDetails for logger access only
@@ -752,5 +805,6 @@ module.exports = {
     submitFeedback,
     getIndividualTicket,
     getTicketByTicketNumber,
-    reAssignTicket
+    reAssignTicket,
+    getTicketListByUserEmail
 }

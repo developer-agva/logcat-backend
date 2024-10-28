@@ -2360,7 +2360,7 @@ const getAllServices = async (req, res) => {
     if (!!loggedInUser && ((loggedInUser.userType === "Support" && loggedInUser.email === "support@agvahealthtech.com") || loggedInUser.userType === "Admin" || loggedInUser.userType === "Super-Admin")) {
       ticketAccess = {}
     } else {
-      ticketAccess = { email: loggedInUser.email }
+      ticketAccess = { $or: [{ "email": loggedInUser.email }, { "ticketInfo.service_engineer": loggedInUser.email }] }
     }
 
     // const resDataa = await servicesModel.find({})
@@ -2374,6 +2374,7 @@ const getAllServices = async (req, res) => {
           as: "ticketInfo"
         }
       },
+      
       {
         $match: {
           $and: [
@@ -2391,7 +2392,7 @@ const getAllServices = async (req, res) => {
           ],
         },
       },
-      
+    
       {
         $sort: {
           createdAt:-1
@@ -2410,6 +2411,7 @@ const getAllServices = async (req, res) => {
           }
         }
       },
+      
       {
         $project: {
           "issues":0,
@@ -2463,6 +2465,7 @@ const getAllServices = async (req, res) => {
     })
   }
 }
+
 
 /**
  * api   GET@/api/logger/logs/services/get-ticket-counts
@@ -2594,23 +2597,101 @@ const getTicketCounts = async (req, res) => {
 
 const getTicketDataCount = async (req, res) => {
   try {
-    if (req.query.filter == "weekly") {
-      // Get the date 7 days ago
-      const startDate = new Date();
-      startDate.setHours(0, 0, 0, 0);
-      startDate.setDate(startDate.getDate() - 6); // 7 days including today
+    
+    const aggreData = await servicesModel.find({},{ticket_number:1, createdAt:1})
+    // console.log(aggreData)
+    
+    if (req.query.filter == "yearly") {
       
-
-      const aggreData = await servicesModel.find({},{ticket_number:1, createdAt:1,})
-      console.log(11, aggreData)
+      const yearlyDataCount =  aggreData.reduce((acc, { createdAt }) => {
+        const year = createdAt.getFullYear();
+        acc[year] = (acc[year] || 0) + 1
+        // console.log(123,acc)
+        return acc;
+      }, {})    
       
+      const resultData = Object.entries(yearlyDataCount).map(([year, count]) => ({ [year]: count }));
+      const transformedData = Object.entries(resultData[0]).map(([year, count]) => ({
+        duration: year,
+        count: count
+      }));
 
-      if (finalData.length > 0) {
+      if (resultData.length > 0) {
         return res.status(200).json({
           statusCode: 200,
           statusValue: "SUCCESS",
           message: "Data get successfully!.",
-          data: finalData
+          data: transformedData
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "data not found."
+      })
+    } else if (req.query.filter == "monthly") {
+
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      const monthlyCount = monthNames.reduce((acc, month) => {
+        acc[month] = 0;
+        return acc;
+      }, {});
+      const currentYear = new Date().getUTCFullYear();
+
+      aggreData.forEach(({ createdAt }) => {
+        const year = createdAt.getUTCFullYear();
+        const month = createdAt.getUTCMonth();
+        if (year === currentYear) {
+          const monthName = monthNames[month];
+          monthlyCount[monthName]++;
+        }
+      });
+      
+      const resultData = [monthlyCount];
+      const transformedData = Object.entries(resultData[0]).map(([month, count]) => ({
+        duration: month,
+        count: count
+      }));
+
+      if (resultData.length > 0) {
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Data get successfully!.",
+          data: transformedData
+        })
+      }
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "data not found."
+      })
+    } else if (req.query.filter == "weekly") {
+      const weeklyCount = { w1: 0, w2: 0, w3: 0, w4: 0 };
+      const currentDate = new Date();
+      aggreData.forEach(({ createdAt }) => {
+        const timeDiff = currentDate - createdAt;
+        const weekDiff = Math.floor(timeDiff / (7 * 24 * 60 * 60 * 1000)); 
+       
+        if (weekDiff >= 0 && weekDiff < 4) {
+          weeklyCount[`w${weekDiff + 1}`]++;
+        }
+      });
+      
+      
+      const resultData = [weeklyCount];
+      const transformedData = Object.entries(resultData[0]).map(([week, count]) => ({
+        duration: week,
+        count: count
+      }));
+
+      if (resultData.length > 0) {
+        return res.status(200).json({
+          statusCode: 200,
+          statusValue: "SUCCESS",
+          message: "Data get successfully!.",
+          data: transformedData
         })
       }
       return res.status(400).json({
@@ -2626,7 +2707,7 @@ const getTicketDataCount = async (req, res) => {
       message: "Internal server error",
       data: {
         generatedTime: new Date(),
-        errMsg: err.stack,
+        // errMsg: err.stack,
       }
     })
   }
@@ -7149,5 +7230,6 @@ module.exports = {
   addServiceAndTicketDetails,
   getTicketCounts,
   updateTicketStatus2,
-  getTicketPincodeList
+  getTicketPincodeList,
+  getTicketDataCount
 }

@@ -3302,17 +3302,23 @@ const createEvents = async (req, res, next) => {
     const seconds = String(currentDateTime.getSeconds()).padStart(2, '0');
 
     const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-
+    // 
+    if (did && (message == "Standby process success" || message == "Initiating Shutdown Process")) {
+      await statusModel.findOneAndUpdate({ deviceId: did }, { $set: { message: "INACTIVE", lastActive: formattedDateTime } })
+    }
+    else if(did && message.includes("Ventilation")){
+      await statusModel.findOneAndUpdate({ deviceId: did }, { $set: { message: "ACTIVE"} })
+    }
     if (SaveEvents) {
-      await statusModel.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
-      res.status(201).json({
+      // await statusModel.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
+      return res.status(201).json({
         status: 201,
         data: { eventCounts: SaveEvents.length },
         message: 'Event has been added successfully!',
       });
     }
     else {
-      res.status(500).json({
+      return res.status(500).json({
         status: 0,
         data: {
           err: {

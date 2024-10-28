@@ -38,6 +38,10 @@ const productionSchema = new mongoose.Schema({
         type: String,
         default:""
     },
+    pincode:{
+        type: String,
+        default: ""
+    }
 
 },
     { timestamps: true }

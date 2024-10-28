@@ -60,62 +60,107 @@ const createProduction = async (req, res) => {
         }
         // const project_code = req.params.project_code;
         const getHospital = await Device.findOne({DeviceId:req.body.deviceId})
-        // console.log(11,getHospital)
-        // const getWaranty = await installationModel.findOne({deviceId:req.body.deviceId})
+        
         const getAddress = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
-        // console.log(12,getAddress)
-        // console.log(13,getWaranty)
-        // console.log(11,req.body)
 
         // get productCode from statusModelV2
         const getProductCode = await statusModelV2.findOne({deviceId:req.body.deviceId});
-
-        const productionData = await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},
-            {
-                deviceId:req.body.deviceId,
-                // purpose:req.body.purpose,
-                simNumber:req.body.simNumber,
-                productType:req.body.productType,
-                batchNumber:req.body.batchNumber,
-                serialNumber:req.body.serialNumber,
-                manufacturingDate:req.body.manufacturingDate,
-                // dispatchDate:req.body.dispatchDate,
-                hospitalName:!!getHospital? getHospital.Hospital_Name : "NA",
-                dateOfWarranty:!!getAddress? getAddress.date_of_warranty : "NA",
-                address:!!getAddress? getAddress.address : "NA",
-                hw_version:req.body.hw_version,
-                sw_version:req.body.sw_version,
-                displayNumber:req.body.displayNumber,
-                turbineNumber:req.body.turbineNumber,
-                shipmentMode:"req_doc",
-                deviceflag:"new_device",
-                qaDoneBy: !!(req.body.qaDoneBy) ? req.body.qaDoneBy : "",
-                dataEnteredBy: !!(req.body.dataEnteredBy) ? req.body.dataEnteredBy : "",
-                testingDoneBy: !!(req.body.testingDoneBy) ? req.body.testingDoneBy : "",
-                partsIssuedBy: !!(req.body.partsIssuedBy) ? req.body.partsIssuedBy : "",
-                purpose: !!(req.body.purpose) ? req.body.purpose : "NA",
-                productCode:!!getProductCode ? getProductCode.type : "", 
-            },
-            { upsert:true, new: true },
-        );
-        
-        // const saveDoc = await productionData.save();
-        if (!productionData) {
-            await aboutDeviceModel.updateMany({deviceId:req.body.deviceId},{$set:{serial_no:req.body.serialNumber}})
-            return res.status(201).json({
-                statusCode: 201,
-                statusValue: "SUCCESS",
-                message: "Production data has been saved successfully.",
-                data: productionData
-            });
+        const checkProdData = await productionModel.findOne({deviceId:req.body.deviceId});
+        if (checkProdData) {
+            const productionData = await productionModel.findOneAndUpdate({deviceId:req.body.deviceId},
+                {
+                    deviceId:req.body.deviceId,
+                    // purpose:req.body.purpose,
+                    simNumber:req.body.simNumber,
+                    productType:req.body.productType,
+                    batchNumber:req.body.batchNumber,
+                    serialNumber:req.body.serialNumber,
+                    manufacturingDate:req.body.manufacturingDate,
+                    // dispatchDate:req.body.dispatchDate,
+                    hospitalName:!!getHospital? getHospital.Hospital_Name : "NA",
+                    dateOfWarranty:!!getAddress? getAddress.date_of_warranty : "NA",
+                    address:!!getAddress? getAddress.address : "NA",
+                    hw_version:req.body.hw_version,
+                    sw_version:req.body.sw_version,
+                    displayNumber:req.body.displayNumber,
+                    turbineNumber:req.body.turbineNumber,
+                    shipmentMode:"req_doc",
+                    deviceflag:"new_device",
+                    qaDoneBy: !!(req.body.qaDoneBy) ? req.body.qaDoneBy : "",
+                    dataEnteredBy: !!(req.body.dataEnteredBy) ? req.body.dataEnteredBy : "",
+                    testingDoneBy: !!(req.body.testingDoneBy) ? req.body.testingDoneBy : "",
+                    partsIssuedBy: !!(req.body.partsIssuedBy) ? req.body.partsIssuedBy : "",
+                    purpose: !!(req.body.purpose) ? req.body.purpose : "NA",
+                    productCode:!!getProductCode ? getProductCode.type : "", 
+                },
+                { upsert:true, new: true },
+            );
+             
+            // const saveDoc = await productionData.save();
+            if (!productionData) {
+                await aboutDeviceModel.updateMany({deviceId:req.body.deviceId},{$set:{serial_no:req.body.serialNumber}})
+                return res.status(201).json({
+                    statusCode: 201,
+                    statusValue: "SUCCESS",
+                    message: "Production data has been saved successfully.",
+                    data: productionData
+                });
+            } else {
+                await aboutDeviceModel.updateMany({deviceId:req.body.deviceId},{$set:{serial_no:req.body.serialNumber}})
+                return res.status(201).json({
+                    statusCode: 201,
+                    statusValue: "SUCCESS",
+                    message: "Production data has been saved successfully.",
+                    data: productionData
+                });
+            }
         } else {
-            await aboutDeviceModel.updateMany({deviceId:req.body.deviceId},{$set:{serial_no:req.body.serialNumber}})
-            return res.status(201).json({
-                statusCode: 201,
-                statusValue: "SUCCESS",
-                message: "Production data has been saved successfully.",
-                data: productionData
-            });
+            const bodyData = new productionModel(
+                {
+                    deviceId:req.body.deviceId,
+                    // purpose:req.body.purpose,
+                    simNumber:req.body.simNumber,
+                    productType:req.body.productType,
+                    batchNumber:req.body.batchNumber,
+                    serialNumber:req.body.serialNumber,
+                    manufacturingDate:req.body.manufacturingDate,
+                    // dispatchDate:req.body.dispatchDate,
+                    hospitalName:!!getHospital? getHospital.Hospital_Name : "NA",
+                    dateOfWarranty:!!getAddress? getAddress.date_of_warranty : "NA",
+                    address:!!getAddress? getAddress.address : "NA",
+                    hw_version:req.body.hw_version,
+                    sw_version:req.body.sw_version,
+                    displayNumber:req.body.displayNumber,
+                    turbineNumber:req.body.turbineNumber,
+                    shipmentMode:"req_doc",
+                    deviceflag:"new_device",
+                    qaDoneBy: !!(req.body.qaDoneBy) ? req.body.qaDoneBy : "",
+                    dataEnteredBy: !!(req.body.dataEnteredBy) ? req.body.dataEnteredBy : "",
+                    testingDoneBy: !!(req.body.testingDoneBy) ? req.body.testingDoneBy : "",
+                    partsIssuedBy: !!(req.body.partsIssuedBy) ? req.body.partsIssuedBy : "",
+                    purpose: !!(req.body.purpose) ? req.body.purpose : "NA",
+                    productCode:!!getProductCode ? getProductCode.type : "", 
+                }
+            );
+            const productionData = await bodyData.save();
+            // const saveDoc = await productionData.save();
+            if (!productionData) {
+                await aboutDeviceModel.updateMany({deviceId:req.body.deviceId},{$set:{serial_no:req.body.serialNumber}})
+                return res.status(201).json({
+                    statusCode: 201,
+                    statusValue: "SUCCESS",
+                    message: "Production data has been saved successfully.",
+                    data: productionData
+                });
+            } else {
+                await aboutDeviceModel.updateMany({deviceId:req.body.deviceId},{$set:{serial_no:req.body.serialNumber}})
+                return res.status(201).json({
+                    statusCode: 201,
+                    statusValue: "SUCCESS",
+                    message: "Production data has been saved successfully.",
+                    data: productionData
+                });
+            }
         }
         
     } catch (err) {

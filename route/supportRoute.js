@@ -12,6 +12,7 @@ const uploadController = require('../controller/upload.controller');
 router.post('/create-ticket', isAuth, supportController.saveTicket);
 router.put('/re-assign-ticket', isAuth, supportController.reAssignTicket);  // used
 router.get('/get-ticket/:ticket_number',isAuth, supportController.getTicketDetails); // used
+router.get('/get-ticket-list-by-email/:service_engineer',isAuth, supportController.getTicketListByUserEmail); // used
 
 
 
