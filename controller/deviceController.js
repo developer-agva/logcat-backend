@@ -2615,7 +2615,7 @@ const getTicketDataCount = async (req, res) => {
         duration: year,
         count: count
       }));
-
+      
       if (resultData.length > 0) {
         return res.status(200).json({
           statusCode: 200,
@@ -2668,14 +2668,14 @@ const getTicketDataCount = async (req, res) => {
         message: "data not found."
       })
     } else if (req.query.filter == "weekly") {
-      const weeklyCount = { w1: 0, w2: 0, w3: 0, w4: 0 };
+      const weeklyCount = { week1: 0, week2: 0, week3: 0, week4: 0 };
       const currentDate = new Date();
       aggreData.forEach(({ createdAt }) => {
         const timeDiff = currentDate - createdAt;
         const weekDiff = Math.floor(timeDiff / (7 * 24 * 60 * 60 * 1000)); 
        
         if (weekDiff >= 0 && weekDiff < 4) {
-          weeklyCount[`w${weekDiff + 1}`]++;
+          weeklyCount[`week${weekDiff + 1}`]++;
         }
       });
       
@@ -2707,7 +2707,7 @@ const getTicketDataCount = async (req, res) => {
       message: "Internal server error",
       data: {
         generatedTime: new Date(),
-        // errMsg: err.stack,
+        errMsg: error.stack,
       }
     })
   }
