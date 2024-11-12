@@ -101,6 +101,7 @@ const updatePaymentStatus = async (req, res) => {
       isPaymentDone: Joi.string().optional(),
       isLocked: Joi.boolean().optional(),
     })
+    // console.log(req.body)
     let result = schema.validate(req.body);
 
     if (result.error) {
@@ -132,6 +133,7 @@ const updatePaymentStatus = async (req, res) => {
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
+      message:!!(deviceData.isPaymentDone === "true" && deviceData.isLocked == false) ? "Device has been unlocked successfully.":"Device has been locked successfully.",
       data: deviceData
     });
   } catch (err) {

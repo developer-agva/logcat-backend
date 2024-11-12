@@ -3738,7 +3738,7 @@ const createTrendsV2 = async (req, res) => {
 
     } else if (req.params.project_code == "004") {
       const { did, time, type, mode, pip, peep, mean_Airway, vti, vte, mve, mvi, fio2, respiratory_Rate, ie, tinsp, texp, averageLeak, sPo2, pr } = req.body;
-      const trends = await new trends_ventilator_collection({
+      const trends = await new trends_ventilator_collectionV2_model({
         did: did,
         time: !!time ? time : "",
         type: req.params.project_code,
@@ -3761,6 +3761,29 @@ const createTrendsV2 = async (req, res) => {
       });
       SaveTrends = await trends.save(trends);
 
+    } else if (req.params.project_code == "007") {
+      const { did, time, spo2, pr, hr, ecgRR, iBP_S, iBP_D, cgm, etCo2, rr, nibp_S, nibp_D, temp1, temp2, iBP2_S, iBP2_D } = req.body;
+      const trends = await new trends_ventilator_collectionV2_model({
+        did: did,
+        time: !!time ? time : "",
+        spo2: !!spo2 ? spo2 : "",
+        pr: !!pr ? pr : "",
+        hr: !!hr ? hr : "",
+        ecgRR: !!ecgRR ? ecgRR : "",
+        iBP_S: !!iBP_S ? iBP_S : "",
+        iBP_D: !!iBP_D ? iBP_D : "",
+        cgm: !!cgm ? cgm : "",
+        etCo2: !!etCo2 ? etCo2 : "",
+        rr: !!rr ? rr : "",
+        nibp_S: !!nibp_S ? nibp_S : "",
+        nibp_D: !!nibp_D ? nibp_D : "",
+        temp1: temp1 ? temp1 : "",
+        temp2: temp2 ? temp2 : "",
+        iBP2_S: !!iBP2_S ? iBP2_S : "",
+        iBP2_D: !!iBP2_D ? iBP2_D : "",
+        type: req.params.project_code,
+      });
+      SaveTrends = await trends.save(trends);
     }
 
     // console.log(11,SaveTrends)

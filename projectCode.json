@@ -1,0 +1,26 @@
+[
+    {
+        "projectName": "AgVa-Pro",
+        "project-code": "002"
+    },
+    {
+        "projectName": "OxyPlus",
+        "project-code": "003"
+    },
+    {
+        "projectName": "Patient-Monitor",
+        "project-code": "004"
+    },
+    {
+        "projectName": "Insulin",
+        "project-code": "005"
+    },
+    {
+        "projectName": "Intelli",
+        "project-code": "006"
+    },
+    {
+        "projectName": "AgVa-Mini",
+        "project-code": "007"
+    }
+]
