@@ -54,7 +54,8 @@ const {
   getEventsByIdV2,
   getLogsByIdV2,
   getAllDeviceIdForApp,
-  createEventsForDebug
+  createEventsForDebug,
+  getEventsForDebug
 } = require("../controller/logs");
 // New controller
 const logController = require('../controller/logController.js');
@@ -233,10 +234,11 @@ createEvents);
 
 router.post("/debug-events/:project_code",
   body('did').notEmpty(),
-  body('type').notEmpty(),
   body('ack.*.code').notEmpty(),
   body('ack.*.timestamp').notEmpty(),
   createEventsForDebug);
+
+  router.get("/get-debug-events/:project_code", getEventsForDebug);  
 
 // new route for all upcomming products
 router.post("/v2/events/:productCode",

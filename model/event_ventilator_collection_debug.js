@@ -1,4 +1,5 @@
 
+const { required } = require('joi');
 const mongoose = require('mongoose');
     
 const schemaOptions = {
@@ -20,8 +21,7 @@ const event_ventilator_collectionSchema = new mongoose.Schema(
       },
       type: {
         type: String,
-        enum: ["001","002"],
-        required: [true, "Atleast one model required."]
+        default: ""
       },
       message:{
         type:String,

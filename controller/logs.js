@@ -598,17 +598,11 @@ const getTrendsById = async (req, res) => {
       page = 1;
     }
     if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 10;
+      limit = 9999999;
     }
 
-    // const { did } = req.params;
-    // const rawData = await trends_ventilator_collection.find({ did: did }).sort({ _id: -1 }).limit(50);
-    // const uniqueData = new Map(
-    //   rawData.map(item => [item.time, item])
-    // )
-    // const findDeviceById = [...uniqueData.values()]
     const { did } = req.params;
-    const rawData = await trends_ventilator_collection.find({ did }).sort({ _id: -1 }).limit(50).lean();
+    const rawData = await trends_ventilator_collection.find({ did }).sort({ _id: -1 }).lean();
 
     const uniqueDataMap = rawData.reduce((map, item) => map.set(item.time, item), new Map());
 
@@ -3352,9 +3346,9 @@ const createEventsForDebug = async (req, res, next) => {
   try {
     const { project_code } = req.params;
     
-    const { did, type, message, date } = req.body;
+    const { did, message, date } = req.body;
     // console.log(`did : ${did}`)
-    if (!did || !type || !message || !date) {
+    if (!did || !message || !date || !project_code) {
       return res.status(400).json({
         status: 0,
         data: {
@@ -3368,7 +3362,7 @@ const createEventsForDebug = async (req, res, next) => {
       });
     }
     // check duplicate events data
-    const eventsData = await event_ventilator_collection_debug.find({$and:[{did:req.body.did},{type:req.body.type},{message:req.body.message},{date:req.body.date}]})
+    const eventsData = await event_ventilator_collection_debug.find({$and:[{did:req.body.did},{type:req.params.project_code},{message:req.body.message},{date:req.body.date}]})
     if (eventsData.length>0) {
       return res.status(201).json({
         status: 201,
@@ -3379,11 +3373,11 @@ const createEventsForDebug = async (req, res, next) => {
     const events = new event_ventilator_collection_debug({
       did: did,
       message: message,
-      type: type,
+      type: req.params.project_code,
       date: date,
     });
 
-    console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
+    console.log(`did : ${did} message : ${message} type : ${project_code} date : ${date}`);
     const SaveEvents = await events.save();
 
     // For current date and time
@@ -3418,6 +3412,59 @@ const createEventsForDebug = async (req, res, next) => {
             type: 'MongodbError',
           },
         },
+      }); I
+    }
+  }
+  catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
+
+// create or save device id from ventilators
+const getEventsForDebug = async (req, res, next) => {
+  try {
+    const { project_code } = req.params;
+    
+    if (!project_code) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Please fill all the details.',
+            msg: 'Please fill all the details.',
+            type: 'Client Error',
+          },
+        },
+      });
+    }
+    // check duplicate events data
+    const eventsData = await event_ventilator_collection_debug.find({}).lean();
+    if (eventsData.length>0) {
+      return res.status(201).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: 'Event has been added successfully!',
+        data: eventsData,
+      });
+    }
+    else {
+      return res.status(400).json({
+        statusCode: 200,
+        statusValue: "FAIL",
+        message: 'Events data not found.',
+        data: []
       }); I
     }
   }
@@ -6002,5 +6049,6 @@ module.exports = {
   getEventsByIdV2,
   getLogsByIdV2,
   getAllDeviceIdForApp,
-  createEventsForDebug
+  createEventsForDebug,
+  getEventsForDebug
 };
