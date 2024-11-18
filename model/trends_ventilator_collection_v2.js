@@ -10,7 +10,7 @@ const trendsVentoilatorSchemaV2 = mongoose.Schema({
         type: String,
         default:""
     },
-    spo2: {
+    sPo2: {
         type: String,
         default:""
     },
@@ -74,6 +74,63 @@ const trendsVentoilatorSchemaV2 = mongoose.Schema({
         type: String,
         default: ""
     },
+    averageLeak: {
+        type: String,
+        default: ""
+    },
+    fio2: {
+        type: String,
+        default: ""
+    },
+    ie: {
+        type: String,
+        default: ""
+    },
+    mean_Airway: {
+        type: String,
+        default: ""
+    },
+    mve: {
+        type: String,
+        default: ""
+    },
+    mvi: {
+        type: String,
+        default: ""
+    },
+    mode: {
+        type: String,
+        default: ""
+    },
+    peep: {
+        type: String,
+        default: ""
+    },
+    pip: {
+        type: String,
+        default: ""
+    },
+    respiratory_Rate: {
+        type: String,
+        default: ""
+    },
+    texp: {
+        type: String,
+        default: ""
+    },
+    tinsp: {
+        type: String,
+        default: ""
+    },
+    vti: {
+        type: String,
+        default: ""
+    },
+    vte: {
+        type: String,
+        default: ""
+    }
+
 },{timestamps: true})
 
 

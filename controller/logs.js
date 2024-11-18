@@ -780,8 +780,19 @@ const getTrendsByIdV2 = async (req, res) => {
       limit = 999999;
     }
 
-    const { did } = req.params;
-    const findDeviceById = await trends_ventilator_collectionV2_model.find({ did: did }).sort({ _id: -1 }).limit(100);
+    const did = req.params.did;
+    let findDeviceById;
+    
+    const projectCode = await trends_ventilator_collectionV2_model.find({ did: did }).sort({ _id: -1 }).limit(1);
+    findDeviceById = await trends_ventilator_collectionV2_model.find({ did: did }).sort({ _id: -1 }).limit(1000);
+    if (projectCode[0].type == "007") {
+      findDeviceById = await trends_ventilator_collectionV2_model.find({ did: did }, { time :1, averageLeak:1, did:1, fio2:1, ie:1, mean_Airway:1, mode:1, mve:1, mvi:1, peep:1, pip:1, respiratory_Rate:1, texp:1, tinsp:1, type:1, vti:1, vte:1, sPo2:1, pr:1, createdAt:1, updatedAt:1 }).sort({ _id: -1 }).limit(1000);
+    } else if (projectCode[0].type == "003") {
+      findDeviceById = await trends_ventilator_collectionV2_model.find(
+        { did: did }, 
+        { did:1,time:1,sPo2:1,pr:1,hr:1,ecgRR:1,iBP_S:1,iBP_D:1,cgm:1,etCo2:1,rr:1,nibp_S:1,nibp_D:1,temp1:1,temp2:1,iBP2_S:1,iBP2_D:1,type:1, createdAt:1, updatedAt:1 })
+      .sort({ _id: -1 }).limit(1000);
+    }
     if (!findDeviceById) {
       return res.status(404).json({
         status: 0,
@@ -3720,30 +3731,7 @@ const createTrendsV2 = async (req, res) => {
 
     const { project_code } = req.params;
     const findProjectWithCode = req.params.project_code;
-    // if (req.params.) {
-
-    // }
-    //console.log(findProjectWithCode,'findProjectWithProjectCode----')
-
-    // const errors = validationResult(req);
-    // if (!errors.isEmpty()) {
-    //   return res.status(400).json({
-    //     status: 0,
-    //     data: {
-    //       err: {
-    //         generatedTime: new Date(),
-    //         errMsg: errors
-    //           .array()
-    //           .map((err) => {
-    //             return `${err.msg}: ${err.param}`;
-    //           })
-    //           .join(' | '),
-    //         msg: 'Invalid data entered.',
-    //         type: 'ValidationError',
-    //       },
-    //     },
-    //   });
-    // }
+    
     if (!findProjectWithCode) {
       return res.status(404).json({
         status: 0,
@@ -3764,7 +3752,7 @@ const createTrendsV2 = async (req, res) => {
       const trends = await new trends_ventilator_collectionV2_model({
         did: did,
         time: !!time ? time : "",
-        spo2: !!spo2 ? spo2 : "",
+        sPo2: !!spo2 ? spo2 : "",
         pr: !!pr ? pr : "",
         hr: !!hr ? hr : "",
         ecgRR: !!ecgRR ? ecgRR : "",
@@ -3809,26 +3797,29 @@ const createTrendsV2 = async (req, res) => {
       SaveTrends = await trends.save(trends);
 
     } else if (req.params.project_code == "007") {
-      const { did, time, spo2, pr, hr, ecgRR, iBP_S, iBP_D, cgm, etCo2, rr, nibp_S, nibp_D, temp1, temp2, iBP2_S, iBP2_D } = req.body;
+      console.log(req.body)
+      const { time, averageLeak, did, fio2, ie, mean_Airway, mode, mve, mvi, peep, pip, respiratory_Rate, texp, tinsp, type, vti, vte, sPo2, pr } = req.body;
       const trends = await new trends_ventilator_collectionV2_model({
-        did: did,
-        time: !!time ? time : "",
-        spo2: !!spo2 ? spo2 : "",
+        time: !!time ? time: "",
+        averageLeak: !!averageLeak ? averageLeak : "",
+        did: !!did ? did : "",
+        fio2: !!fio2 ? fio2 : "",
+        ie: !!ie ? ie : "",
+        mean_Airway: !!mean_Airway ? mean_Airway : "",
+        mode: !!mode ? mode : "",
+        mve: !!mve ? mve: "",
+        mvi: !!mvi ? mvi : "",
+        peep: !!peep ? peep : "",
+        pip: !!pip ? pip : "",
+        respiratory_Rate: !!respiratory_Rate ? respiratory_Rate : "",
+        texp: !!texp ? texp : "",
+        tinsp: !!tinsp ? tinsp : "",
+        type: !!(req.params.project_code) ? req.params.project_code : "",
+        vti: !!vti ? vti : "",
+        vte: !!vte ? vte : "",
+        sPo2: !!sPo2 ? sPo2 : "",
         pr: !!pr ? pr : "",
-        hr: !!hr ? hr : "",
-        ecgRR: !!ecgRR ? ecgRR : "",
-        iBP_S: !!iBP_S ? iBP_S : "",
-        iBP_D: !!iBP_D ? iBP_D : "",
-        cgm: !!cgm ? cgm : "",
-        etCo2: !!etCo2 ? etCo2 : "",
-        rr: !!rr ? rr : "",
-        nibp_S: !!nibp_S ? nibp_S : "",
-        nibp_D: !!nibp_D ? nibp_D : "",
-        temp1: temp1 ? temp1 : "",
-        temp2: temp2 ? temp2 : "",
-        iBP2_S: !!iBP2_S ? iBP2_S : "",
-        iBP2_D: !!iBP2_D ? iBP2_D : "",
-        type: req.params.project_code,
+        // project_code:  : "" 
       });
       SaveTrends = await trends.save(trends);
     }
@@ -3858,7 +3849,7 @@ const createTrendsV2 = async (req, res) => {
 
       const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
-      await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
+      await statusModelV2.updateMany({ deviceId: req.body.did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
 
       return res.status(201).json({
         status: 1,
