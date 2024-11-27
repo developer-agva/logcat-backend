@@ -456,7 +456,7 @@ const reAssignTicket = async (req, res) => {
 const getTicketDetails = async (req, res) => {
     try {
         // const ticket_number = req.params.ticket_number;
-        const resData = await servicesModel.aggregate([
+        let resData = await servicesModel.aggregate([
             {
                 "$match": { "ticket_number":req.params.ticket_number }
             },
@@ -475,7 +475,20 @@ const getTicketDetails = async (req, res) => {
                 }
             },
             {
-                $project: { "issues":0, "__v":0, "ticketInfo.__v":0 }
+                $project: { 
+                    "issues":0, "__v":0, "ticketInfo.__v":0, "createdAt":0, "updatedAt":0, 
+                    "ticketInfo.__v":0, "state":0, "city":0, "country":0, "ticketInfo.updatedAt":0,
+                    "ticketInfo.createdAt":0, "ticketInfo.priority":0,
+                    "UID": 0,
+                    "otp": 0,
+                    "isVerified": 0,
+                    "ticketInfo._id": 0,
+                    "ticketInfo.userId": 0,
+                    "ticketInfo.deviceId": 0,
+                    "ticketInfo.ticket_number": 0,
+                    "ticketInfo.dept_name": 0,
+                    "ticketInfo.hospital_name":0  
+                }
             }
         ])
         return res.status(200).json({

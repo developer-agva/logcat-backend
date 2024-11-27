@@ -26,7 +26,7 @@ router.delete('/delete-file/:key', isAuth, uploadController.deleteS3File);
 router.get('/get-uploaded-files/:deviceId', isAuth, uploadController.getFileByDeviceId);
 
 router.post('/upload-ticket-file', upload.single('file'), uploadController.uploadTicketAttachmentFile);
-
+router.post('/update-ticket-file/:ticket_number', upload.single('file'), uploadController.updateTicketAttachmentFile);
 
 
 // router.get('/get-s3bucket-file', uploadController.getS3bucketData);

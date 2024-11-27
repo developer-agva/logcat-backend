@@ -52,13 +52,10 @@ const { title } = require('process');
 const sendDeviceReqModel = require('../model/sendDeviceReqModel');
 const sendDeviceAlertEmail = require("../helper/sendDeviceAlertEmail");
 const event_ventilator_collection_debug = require('../model/event_ventilator_collection_debug');
+const manueversModel = require('../model/manueversModel');
+const manueversModelV2 = require('../model/manueversModelV2');
 
-// initializeApp({
-//   credential: applicationDefault(),
-//   projectId: 'agvaapp'
-// })
-// end fcm services
-
+const moment = require('moment');
 
 const createLogsV2 = async (req, res) => {
   try {
@@ -380,101 +377,160 @@ const createLogsV2 = async (req, res) => {
 
 // get device alarm data by did
 const getAlertsById = async (req, res) => {
-  const { did } = req.params;
-  // Pagination
-  let { page, limit } = req.query;
-  page = parseInt(page) || 1;
-  limit = parseInt(limit) || 1000;
+  // const { did } = req.params;
+  // // Pagination
+  // let { page, limit } = req.query;
+  // page = parseInt(page) || 1;
+  // limit = parseInt(limit) || 1000;
 
-  if (limit <= 0) {
-    limit = 1000; // Set a default limit to prevent fetching too many records
-  }
+  // if (limit <= 0) {
+  //   limit = 1000; // Set a default limit to prevent fetching too many records
+  // }
 
-  const skip = (page - 1) * limit;
-  try {
-    // Fetch data with pagination and sorting applied directly in the query
-    const findDeviceById = await alert_ventilator_collection.find({ did })
-      .select({ __v: 0, createdAt: 0, updatedAt: 0 })
-      .sort({ "ack.date": -1 })
-      .skip(skip)
-      .limit(limit);
+  // const skip = (page - 1) * limit;
+  // try {
+  //   // Fetch data with pagination and sorting applied directly in the query
+  //   const findDeviceById = await alert_ventilator_collection.find({ did })
+  //     .select({ __v: 0, updatedAt: 0 })
+  //     .sort({ "ack.date": -1 })
+  //     .skip(skip)
+  //     .limit(limit);
+  //   // console.log(findDeviceById)
+  //   // Count total documents for pagination info
+  //   const totalCount = await alert_ventilator_collection.countDocuments({ did });
 
-    // Count total documents for pagination info
-    const totalCount = await alert_ventilator_collection.countDocuments({ did });
+  //   if (findDeviceById.length<1) {
+  //     // console.log(true)
+  //     return res.status(400).json({
+  //       status: 0,
+  //       statusCode: 400,
+  //       message: "Data not found",
+  //       data: []
+  //     })
+  //   }
+  //   // Process and format the result
+  //   const splitedArr = findDeviceById.map(item => ({
+  //     _id: item._id,
+  //     did: item.did,
+  //     type: item.type,
+  //     ack: {
+  //       msg: item.ack.msg,
+  //       code: item.ack.code,
+  //       date: item.ack.date.split('T')[0],
+  //       time: item.ack.date.split('T')[1], // Use ISO string for date-time splitting
+  //     },
+  //     priority: item.priority,
+  //   }));
 
-    if (findDeviceById.length<1) {
-      // console.log(true)
-      return res.status(400).json({
-        status: 0,
-        statusCode: 400,
-        message: "Data not found",
-        data: []
-      })
-    }
-    // Process and format the result
-    const splitedArr = findDeviceById.map(item => ({
-      _id: item._id,
-      did: item.did,
-      type: item.type,
-      ack: {
-        msg: item.ack.msg,
-        code: item.ack.code,
-        date: item.ack.date.split('T')[0],
-        time: item.ack.date.split('T')[1], // Use ISO string for date-time splitting
-      },
-      priority: item.priority,
-    }));
-
-    if (findDeviceById.length < 1) {
-      return res.status(400).json({
-        status: "FAIL",
-        statusCode: 400,
-        message: 'Data not found.',
-      });
-    }
-    // Send the response
-    if (!!req.query.startDate || !!req.query.endDate) {
+  //   if (findDeviceById.length < 1) {
+  //     return res.status(400).json({
+  //       status: "FAIL",
+  //       statusCode: 400,
+  //       message: 'Data not found.',
+  //     });
+  //   }
+  //   // Send the response
+  //   if (!!req.query.startDate || !!req.query.endDate) {
      
-      const filterAlertsByDate = (splitedArr, startDate, endDate) => {
-        // Create Date objects from the input strings
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999); // Set end date to the end of the day
+  //     const filterAlertsByDate = (splitedArr, startDate, endDate) => {
+  //       // Create Date objects from the input strings
+  //       const start = new Date(startDate);
+  //       const end = new Date(endDate);
+  //       end.setHours(23, 59, 59, 999); // Set end date to the end of the day
       
-        // Filter the data
-        return splitedArr.filter(item => {
-          const itemDate = new Date(item.ack.date);
-          return itemDate >= start && itemDate <= end;
-        });
-      };  
-      const filteredData = filterAlertsByDate(splitedArr, req.query.startDate, req.query.endDate)
+  //       // Filter the data
+  //       return splitedArr.filter(item => {
+  //         const itemDate = new Date(item.ack.date);
+  //         return itemDate >= start && itemDate <= end;
+  //       });
+  //     };  
+  //     const filteredData = filterAlertsByDate(splitedArr, req.query.startDate, req.query.endDate)
+  //     return res.status(200).json({
+  //       status: 1,
+  //       statusCode: 200,
+  //       message: 'Data retrieved successfully.',
+  //       data: {
+  //         findDeviceById: filteredData,
+  //       },
+  //       totalDataCount: totalCount,
+  //       totalPages: Math.ceil(totalCount / limit),
+  //       currentPage: page,
+  //     });
+  //   }
+      
+    try {
+      const { startDate, endDate, search, page, limit } = req.query;
+      const { did } = req.params;
+      // console.log(startDate == "")
+     
+      const pageNumber = parseInt(page) || 1; 
+      const limitNumber = parseInt(limit) || 1000; 
+      const skip = (pageNumber - 1) * limitNumber;
+
+      // Initialize the match stage with required filters
+      const matchStage = { did };
+
+      // Add optional date filter
+      if (!!startDate && !!endDate) {
+        matchStage.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate)
+        };
+      }
+      
+      // Add optional search filter
+      if (search && typeof search === "string") {
+        matchStage["ack.msg"] = { $regex: search, $options: "i" }; // Case-insensitive search
+      }
+
+      // MongoDB aggregation pipeline
+      let result = await alert_ventilator_collection.aggregate([
+        
+        { $match: matchStage },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limitNumber },
+        
+        {
+          $project: {
+            _id: 1,
+            did: 1,
+            "ack.msg": 1,
+            "ack.code": 1,
+            "ack.date": 1,
+            "ack.time": 1,
+            priority: 1,
+            createdAt: 1
+          }
+        }
+      ])
+      // Count total matching documents
+      const finalData = result.map((item) =>({
+        _id: item._id,
+        did: item.did,
+        type: item.type,
+        ack: 
+        {
+          msg: item.ack.msg,
+          code: item.ack.code,
+          date: item.ack.date.split('T')[0],
+          time: item.ack.date.split('T')[1], // Use ISO string for date-time splitting
+        },
+        priority: item.priority,      
+      }))
+      const totalCount = await alert_ventilator_collection.countDocuments(matchStage);
+      
       return res.status(200).json({
         status: 1,
         statusCode: 200,
         message: 'Data retrieved successfully.',
         data: {
-          findDeviceById: filteredData,
+          findDeviceById: finalData,
         },
         totalDataCount: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-        currentPage: page,
+        totalPages:Math.ceil(totalCount / limitNumber),
+        currentPage: pageNumber,
       });
-    }
-    
-
-    return res.status(200).json({
-      status: 1,
-      statusCode: 200,
-      message: 'Data retrieved successfully.',
-      data: {
-        findDeviceById: splitedArr,
-      },
-      totalDataCount: totalCount,
-      totalPages: Math.ceil(totalCount / limit),
-      currentPage: page,
-    });
-    
-
   } catch (error) {
     console.error('Error fetching data:', error);
     return res.status(500).json({
@@ -497,75 +553,78 @@ const getAlertsById = async (req, res) => {
 // get alarm data by did for new projects
 const getAlertsByIdV2 = async (req, res) => {
   try {
+    const { startDate, endDate, search, page, limit } = req.query;
     const { did } = req.params;
-    // Pagination
-    let { page, limit } = req.query;
-    if (!page || page === "undefined") {
-      page = 1;
-    }
-    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 9999;
-    }
+    console.log(startDate == "")
+   
+    const pageNumber = parseInt(page) || 1; 
+    const limitNumber = parseInt(limit) || 1000; 
+    const skip = (pageNumber - 1) * limitNumber;
 
-    const findDeviceById = await alert_ventilator_collectionV2.find({ did: did }).select({ __v: 0, createdAt: 0, updatedAt: 0 }).sort({ "ack.date": -1 });
+    // Initialize the match stage with required filters
+    const matchStage = { did };
 
-    //console.log(findDeviceById, 'findDeviceById');
-    if (!findDeviceById) {
-      return res.status(404).json({
-        status: 0,
-        statusCode: 404,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'device not found',
-            msg: 'device not found',
-            type: 'Client Error',
-          },
-        },
-      });
+    // Add optional date filter
+    if (!!startDate && !!endDate) {
+      matchStage.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+    
+    // Add optional search filter
+    if (search && typeof search === "string") {
+      matchStage["ack.msg"] = { $regex: search, $options: "i" }; // Case-insensitive search
     }
 
-    const paginateArray = (findDeviceById, page, limit) => {
-      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
-      return skip;
-    };
-    let finalArrData = paginateArray(findDeviceById, page, limit);
-    var splitedArr = [];
-    let modifiedArr = finalArrData.map((item) => {
-      let objItem = {
-        _id: item._id,
-        did: item.did,
-        type: item.type,
-        ack: {
-          msg: item.ack.msg,
-          code: item.ack.code,
-          date: item.ack.date.split('T')[0],
-          time: item.ack.date.split('T')[1],
-        },
-        priority: item.priority,
+    // MongoDB aggregation pipeline
+    const result = await alert_ventilator_collectionV2.aggregate([
+      
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limitNumber },
+      
+      {
+        $project: {
+          _id: 1,
+          did: 1,
+          "ack.msg": 1,
+          "ack.code": 1,
+          "ack.date": 1,
+          "ack.time": 1,
+          priority: 1,
+          createdAt: 1
+        }
       }
-      splitedArr.push(objItem)
-    })
+    ])
+    const finalData = result.map((item) =>({
+      _id: item._id,
+      did: item.did,
+      type: item.type,
+      ack: 
+      {
+        msg: item.ack.msg,
+        code: item.ack.code,
+        date: item.ack.date.split('T')[0],
+        time: item.ack.date.split('T')[1], // Use ISO string for date-time splitting
+      },
+      priority: item.priority,      
+    }))
+    // Count total matching documents
+    const totalCount = await alert_ventilator_collectionV2.countDocuments(matchStage);
 
-    if (findDeviceById.length < 1) {
-      return res.status(400).json({
-        status: "FAIL",
-        statusCode: 400,
-        message: 'Data not found.',
-      });
-    }
     return res.status(200).json({
       status: 1,
       statusCode: 200,
-      message: 'Data get successfully.',
+      message: 'Data retrieved successfully.',
       data: {
-        findDeviceById: splitedArr
+        findDeviceById: finalData,
       },
-      totalDataCount: findDeviceById.length,
-      totalPages: Math.ceil((findDeviceById.length) / limit),
-      currentPage: page
+      totalDataCount: totalCount,
+      totalPages:Math.ceil(totalCount / limitNumber),
+      currentPage: pageNumber,
     });
-
   }
   catch (err) {
     return res.status(500).json({
@@ -586,14 +645,9 @@ const getAlertsByIdV2 = async (req, res) => {
 // get device trends by deviceId
 const getTrendsById = async (req, res) => {
   try {
-    let { page, limit } = req.query;
-    // for search
-    var search = "";
-    if (req.query.search && req.query.search !== "undefined") {
-      search = req.query.search;
-    }
+    let { page, limit, startDate, endDate } = req.query;
 
-    // for pagination
+    // Default values for pagination
     if (!page || page === "undefined") {
       page = 1;
     }
@@ -601,28 +655,26 @@ const getTrendsById = async (req, res) => {
       limit = 9999999;
     }
 
-    const { did } = req.params;
-    const rawData = await trends_ventilator_collection.find({ did }).sort({ _id: -1 }).lean();
-
-    const uniqueDataMap = rawData.reduce((map, item) => map.set(item.time, item), new Map());
-
-    // Convert the map values back to an array
-    const findDeviceById = Array.from(uniqueDataMap.values());
-
-    if (!findDeviceById) {
-      return res.status(404).json({
-        status: 0,
-        statusCode: 404,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'device not found',
-            msg: 'device not found',
-            type: 'Client Error',
-          },
-        },
-      });
+    // Parse and validate date range
+    let dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter = {
+        createdAt: {
+          $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)), 
+          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+        }
+      };
     }
+
+    // Search query (if applicable)
+    let search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+
+    // Device ID
+    const { did } = req.params;
+
     if (!did) {
       return res.status(404).json({
         status: 0,
@@ -638,74 +690,39 @@ const getTrendsById = async (req, res) => {
       });
     }
 
-    //console.log(findDeviceById, 'findDeviceById');
-    if (!findDeviceById) {
+    // Fetch data from MongoDB with filters
+    const rawData = await trends_ventilator_collection
+      .find({ did, ...dateFilter }, {__v:0, _id:0, updatedAt:0})
+      .sort({ _id: -1 })
+      .lean();
+
+    // Deduplicate data by `time` field
+    const uniqueDataMap = rawData.reduce((map, item) => map.set(item.time, item), new Map());
+
+    // Convert the map values back to an array
+    const findDeviceById = Array.from(uniqueDataMap.values());
+
+    if (!findDeviceById || findDeviceById.length === 0) {
       return res.status(404).json({
         status: 0,
         statusCode: 404,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'device not found',
-            msg: 'device not found',
+            errMsg: 'No data found for the given filters',
+            msg: 'No data found for the given filters',
             type: 'Client Error',
           },
         },
       });
     }
-    // // for pagination
-    // const paginateArray = (findDeviceById, page, limit) => {
-    //   const skip = findDeviceById.slice((page - 1) * limit, page * limit);
-    //   return skip;
-    // };
 
-    // let finalData = paginateArray(findDeviceById, page, limit)
-    // // for count
-    // const count = findDeviceById.length
-    // // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
-    // // console.log(collectionName,'collectionName');
-
-    // // for dynamic UI data
-    // let data2;
-    // let checkCode = await trends_ventilator_collection.find({ did: did }).sort({ _id: -1 }).limit(1)
-    // checkCode = !!checkCode[0] ? checkCode[0] : []
-    // if (checkCode.type == "002" || "") {
-    //   data2 = [trendsDataKey[0]]
-    // } else if (checkCode.type == "003") {
-    //   data2 = [trendsDataKey[1]]
-    // }
-
-    // if (finalData.length > 0) {
-    //   return res.status(200).json({
-    //     status: 1,
-    //     statusCode: 200,
-    //     message: 'successfull',
-    //     //   data: {
-    //     //     findDeviceById: finalData
-    //     //   },
-    //     //   message: 'successfull'
-    //     // });
-    //     data: {
-    //       findDeviceById: finalData
-    //     },
-    //     data2: data2,
-    //     totalDataCount: count,
-    //     totalPages: Math.ceil(count / limit),
-    //     currentPage: page
-    //   })
-    // }
-    // return res.status(400).json({
-    //   status: 0,
-    //   statusCode: 400,
-    //   message: "Data not found",
-    //   data: []
-    // })
-
-    const paginateArray = (dataArray, page, limit) => {
+    // Paginate the data
+    const paginateArray = (findDeviceById, page, limit) => {
       const offset = (page - 1) * limit;
-      return dataArray.slice(offset, offset + limit);
+      return findDeviceById.slice(offset, offset + limit);
     };
-    
+
     const finalData = paginateArray(findDeviceById, page, limit);
     const count = findDeviceById.length;
     
@@ -765,48 +782,35 @@ const getTrendsById = async (req, res) => {
 // get device trends by deviceId
 const getTrendsByIdV2 = async (req, res) => {
   try {
-    let { page, limit } = req.query;
-    // for search
-    var search = "";
-    if (req.query.search && req.query.search !== "undefined") {
-      search = req.query.search;
-    }
+    let { page, limit, startDate, endDate } = req.query;
 
-    // for pagination
+    // Default values for pagination
     if (!page || page === "undefined") {
       page = 1;
     }
     if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 999999;
+      limit = 9999999;
+    }
+    
+    // Parse and validate date range
+    let dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter = {
+        createdAt: {
+          $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)), 
+          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+        }
+      };
+    }
+    
+    // Search query (if applicable)
+    let search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
     }
 
-    const did = req.params.did;
-    let findDeviceById;
-    
-    const projectCode = await trends_ventilator_collectionV2_model.find({ did: did }).sort({ _id: -1 }).limit(1);
-    findDeviceById = await trends_ventilator_collectionV2_model.find({ did: did }).sort({ _id: -1 }).limit(1000);
-    if (projectCode[0].type == "007") {
-      findDeviceById = await trends_ventilator_collectionV2_model.find({ did: did }, { time :1, averageLeak:1, did:1, fio2:1, ie:1, mean_Airway:1, mode:1, mve:1, mvi:1, peep:1, pip:1, respiratory_Rate:1, texp:1, tinsp:1, type:1, vti:1, vte:1, sPo2:1, pr:1, createdAt:1, updatedAt:1 }).sort({ _id: -1 }).limit(1000);
-    } else if (projectCode[0].type == "003") {
-      findDeviceById = await trends_ventilator_collectionV2_model.find(
-        { did: did }, 
-        { did:1,time:1,sPo2:1,pr:1,hr:1,ecgRR:1,iBP_S:1,iBP_D:1,cgm:1,etCo2:1,rr:1,nibp_S:1,nibp_D:1,temp1:1,temp2:1,iBP2_S:1,iBP2_D:1,type:1, createdAt:1, updatedAt:1 })
-      .sort({ _id: -1 }).limit(1000);
-    }
-    if (!findDeviceById) {
-      return res.status(404).json({
-        status: 0,
-        statusCode: 404,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'device not found',
-            msg: 'device not found',
-            type: 'Client Error',
-          },
-        },
-      });
-    }
+    // Device ID
+    const { did } = req.params;
     if (!did) {
       return res.status(404).json({
         status: 0,
@@ -821,22 +825,47 @@ const getTrendsByIdV2 = async (req, res) => {
         },
       });
     }
-
-    //console.log(findDeviceById, 'findDeviceById');
-    if (!findDeviceById) {
+    
+    const projectCode = await trends_ventilator_collectionV2_model.find({ did: did }).sort({ _id: -1 }).limit(1);
+    let rawData;
+    // Fetch data from MongoDB with filters
+    rawData = await trends_ventilator_collection
+      .find({ did, ...dateFilter })
+      .sort({ _id: -1 })
+      .lean();
+    if (projectCode[0].type == "007") {
+      rawData = await trends_ventilator_collectionV2_model.find({ did, ...dateFilter}, { time :1, averageLeak:1, did:1, fio2:1, ie:1, mean_Airway:1, mode:1, mve:1, mvi:1, peep:1, pip:1, respiratory_Rate:1, texp:1, tinsp:1, type:1, vti:1, vte:1, sPo2:1, pr:1, createdAt:1, updatedAt:1 })
+      .sort({ _id: -1 })
+      .lean();
+    } else if (projectCode[0].type == "003") {
+      rawData = await trends_ventilator_collectionV2_model.find(
+        { did, ...dateFilter }, 
+        { did:1,time:1,sPo2:1,pr:1,hr:1,ecgRR:1,iBP_S:1,iBP_D:1,cgm:1,etCo2:1,rr:1,nibp_S:1,nibp_D:1,temp1:1,temp2:1,iBP2_S:1,iBP2_D:1,type:1, createdAt:1, updatedAt:1 })
+      .sort({ _id: -1 }).lean();
+    }
+    
+    // Deduplicate data by `time` field
+    const uniqueDataMap = rawData.reduce((map, item) => map.set(item.time, item), new Map());
+    
+    // Convert the map values back to an array
+    const findDeviceById = Array.from(uniqueDataMap.values());
+    
+    if (!findDeviceById || findDeviceById.length === 0) {
       return res.status(404).json({
         status: 0,
         statusCode: 404,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'device not found',
-            msg: 'device not found',
+            errMsg: 'No data found for the given filters',
+            msg: 'No data found for the given filters',
             type: 'Client Error',
           },
         },
       });
     }
+    
+    
     // for pagination
     const paginateArray = (findDeviceById, page, limit) => {
       const skip = findDeviceById.slice((page - 1) * limit, page * limit);
@@ -1070,114 +1099,103 @@ const getLogsByIdV2 = async (req, res) => {
 
 const getEventsById = async (req, res) => {
   try {
-
     const { did } = req.params;
+    let { page, limit, search, sortBy } = req.query;
+    // for search
+    search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
 
-    let { page, limit} = req.query;
-    // Ensure valid page and limit values
-    if (isNaN(page) || page <= 0) page = 1;
-    if (isNaN(limit) || limit <= 0) limit = 9999;
+    // for pagination
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 999999;
+    }
 
-    const findDeviceById = await event_ventilator_collection
-      .find({ did })
-      .select('-createdAt -updatedAt -__v')
-      .sort({ _id: -1 });
-
-    const maxDate = new Date(Math.max(...findDeviceById.map(el => new Date(el.date))));
-
-    const diffInHours = Math.abs((Date.now() - maxDate.getTime()) / (1000 * 60 * 60));
-
-    const state = (diffInHours >= 24 || diffInHours < 0) ? 'inactive' : 'active';
-
-    //console.log(findDeviceById, 'findDeviceById');
-    if (!findDeviceById) {
-      return res.status(404).json({
+    if (!did) {
+      return res.status(400).json({
         status: 0,
-        statusCode: 404,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'device not found',
-            msg: 'device not found',
+            errMsg: 'Please fill all the details.',
+            msg: 'Please fill all the details.',
             type: 'Client Error',
           },
         },
       });
     }
+    
+    // Fetch data from the database
+    let debugDeventsData = await event_ventilator_collection
+      .find({ did: did }, { __v: 0, updatedAt: 0 }) // Exclude unnecessary fields
+      .sort({ _id: -1 }) // Sort to retain latest records first
+      .lean();
 
-    const paginateArray = (findDeviceById, page, limit) => {
-      const skip = findDeviceById.slice((page - 1) * limit, page * limit);
+    if (req.query.startDate && req.query.endDate) {
+      // Parse and convert dates to ISO format
+      const startDate = moment(req.query.startDate, "DD-MM-YYYY").startOf("day").toISOString();
+      const endDate = moment(req.query.endDate, "DD-MM-YYYY").endOf("day").toISOString();
+
+      // Filter events within the date range
+      debugDeventsData = debugDeventsData.filter(event => {
+        const eventDate = new Date(event.date).toISOString();
+        return eventDate >= startDate && eventDate <= endDate;
+      });
+    }
+
+    // Remove duplicates based on `did`, `createdAt`, and `message`
+    const uniqueEvents = [];
+    const seen = new Set();
+
+    for (const event of debugDeventsData) {
+      const identifier = `${event.did}-${new Date(event.createdAt).toISOString()}-${event.message}`;
+      if (!seen.has(identifier)) {
+        seen.add(identifier);
+        uniqueEvents.push(event);
+      }
+    }
+
+    // Map the filtered and unique data to the desired format
+    const resData = uniqueEvents.map(item => ({
+      did: item.did,
+      type: item.type,
+      message: item.message,
+      date: item.date.split("T")[0],
+      time: item.date.split("T")[1],
+    }));
+    // for pagination
+    const paginateArray = (resData, page, limit) => {
+      const skip = resData.slice((page - 1) * limit, page * limit);
       return skip;
     };
-    let finalArrData = paginateArray(findDeviceById, page, limit)
-    var splitedArr = [];
-    let modifiedArr = finalArrData.map((item) => {
-      let objItem = {
-        _id: item._id,
-        did: item.did,
-        type: item.type,
-        message: item.message,
-        date: item.date.split('T')[0],
-        time: item.date.split('T')[1],
-      }
-      splitedArr.push(objItem)
-    })
-    // console.log(Arr)
-    // console.log(modifiedArr)
-    if (findDeviceById.length < 1) {
-      return res.status(400).json({
-        status: "FAIL",
-        statusCode: 400,
-        message: 'Data not found.',
-      });
-    }
-    // console.log(splitedArr)
-    // Send the response
-    if (!!req.query.startDate || !!req.query.endDate) {
-      // console.log(true)
 
-      const filterEventsByDate = (splitedArr, startDate, endDate) => {
-        
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999); 
-      
-        
-        return splitedArr.filter(item => {
-          const itemDate = new Date(item.date);
-          return itemDate >= start && itemDate <= end;
-        });
-      };  
-      const filteredData = filterEventsByDate(splitedArr, req.query.startDate, req.query.endDate)
-      // console.log(11, filteredData)
+    let finalData = paginateArray(resData, page, limit)
+    // count data
+    const count = resData.length
+
+    if (finalData.length > 0) {
       return res.status(200).json({
-        status: 1,
         statusCode: 200,
-        data: {
-          findDeviceById: filteredData,
-        },
-        message: 'successfull',
-        //state:findDeviceById.find().sort({date:-1}).limit(1)
-        state: state,
-        totalDataCount: findDeviceById.length,
-        totalPages: Math.ceil((findDeviceById.length) / limit),
+        statusValue: "SUCCESS",
+        message: "Events get successfully!",
+        data: finalData,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
         currentPage: page
+      })
+    }
+    else {
+      return res.status(400).json({
+        statusCode: 200,
+        statusValue: "FAIL",
+        message: 'Events data not found.',
+        data: []
       });
     }
-
-    return res.status(200).json({
-      status: 1,
-      statusCode: 200,
-      data: {
-        findDeviceById: splitedArr,
-      },
-      message: 'successfull',
-      //state:findDeviceById.find().sort({date:-1}).limit(1)
-      state: state,
-      totalDataCount: findDeviceById.length,
-      totalPages: Math.ceil((findDeviceById.length) / limit),
-      currentPage: page
-    });
   }
   catch (err) {
     return res.status(500).json({
@@ -1192,8 +1210,8 @@ const getEventsById = async (req, res) => {
       },
     });
   }
-}
-
+};
+  
 
 const getEventsByDate = async (req, res) => {
   try {
@@ -3445,9 +3463,23 @@ const createEventsForDebug = async (req, res, next) => {
 // create or save device id from ventilators
 const getEventsForDebug = async (req, res, next) => {
   try {
-    const { project_code } = req.params;
+    const { did } = req.params;
+    let { page, limit, search, sortBy } = req.query;
+    // for search
+    search = "";
+    if (req.query.search && req.query.search !== "undefined") {
+      search = req.query.search;
+    }
+
+    // for pagination
+    if (!page || page === "undefined") {
+      page = 1;
+    }
+    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+      limit = 999999;
+    }
     
-    if (!project_code) {
+    if (!did) {
       return res.status(400).json({
         status: 0,
         data: {
@@ -3461,14 +3493,34 @@ const getEventsForDebug = async (req, res, next) => {
       });
     }
     // check duplicate events data
-    const eventsData = await event_ventilator_collection_debug.find({}).lean();
-    if (eventsData.length>0) {
-      return res.status(201).json({
+    const debugDeventsData = await event_ventilator_collection_debug.find({did:did},{__v:0, _id:0, createdAt:0, updatedAt:0}).sort({_id:-1}).lean()
+    const resData = debugDeventsData.map((item) => ({
+      did:item.did,
+      type:item.type,
+      date:item.date.split('T')[0],
+      time:item.date.split('T')[1],
+      message:item.message
+    }))
+    // for pagination
+    const paginateArray = (resData, page, limit) => {
+      const skip = resData.slice((page - 1) * limit, page * limit);
+      return skip;
+    };
+
+    let finalData = paginateArray(resData, page, limit)
+    // count data
+    const count = resData.length
+
+    if (finalData.length > 0) {
+      return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
-        message: 'Event has been added successfully!',
-        data: eventsData,
-      });
+        message: "Events get successfully!",
+        data: finalData,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page
+      })
     }
     else {
       return res.status(400).json({
@@ -3476,7 +3528,7 @@ const getEventsForDebug = async (req, res, next) => {
         statusValue: "FAIL",
         message: 'Events data not found.',
         data: []
-      }); I
+      });
     }
   }
   catch (err) {
@@ -3580,6 +3632,177 @@ const createEventsV2 = async (req, res, next) => {
     });
   }
 };
+
+
+const saveManueversData = async (req, res) => {
+  try {
+    const { flag, status, date_time, value } = req.body;
+    if (!flag || !status || !date_time || !value) {
+      return res.status(400).send({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! All fields are requiured."
+      })
+    }
+    const bodyDoc = new manueversModel({
+      flag:flag,
+      status:status,
+      value:value,
+      date_time:date_time,
+      type:"002"
+    })
+    const saveDoc = await bodyDoc.save();
+
+    if (!!saveDoc) {
+      return res.status(201).send({
+        statusCode: 201,
+        statusValue: "SUCCESS",
+        message: "Data save successfully.",
+        data: saveDoc
+      })
+    }
+    return res.status(400).send({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not saved."
+    })
+
+  } catch (error) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+          err: {
+              generatedTime: new Date(),
+              errMsg: err.stack,
+              msg: err.message,
+              type: err.name,
+          },
+      },
+  });
+  }
+}
+
+
+
+const getManueversData = async (req, res) => {
+  try {
+    const type = req.params.project_code
+    const getData = await manueversModel.find({})
+
+    if (getData.length>0) {
+      return res.status(200).send({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data get successfully.",
+        data: getData
+      })
+    }
+    return res.status(400).send({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not found."
+    })
+
+  } catch (error) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+          err: {
+              generatedTime: new Date(),
+              errMsg: err.stack,
+              msg: err.message,
+              type: err.name,
+          },
+      },
+  });
+  }
+}
+
+
+
+const getManueversDataV2 = async (req, res) => {
+  try {
+    const type = req.params.project_code
+    const getData = await manueversModelV2.find({type:type})
+
+    if (getData.length>0) {
+      return res.status(200).send({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Data get successfully.",
+        data: getData
+      })
+    }
+    return res.status(400).send({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not found."
+    })
+
+  } catch (error) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+          err: {
+              generatedTime: new Date(),
+              errMsg: err.stack,
+              msg: err.message,
+              type: err.name,
+          },
+      },
+  });
+  }
+}
+
+
+
+const saveManueversDataV2 = async (req, res) => {
+  try {
+    const { flag, status, date_time, value } = req.body;
+    if (!flag || !status || !date_time || !value) {
+      return res.status(400).send({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! All fields are requiured."
+      })
+    }
+    const bodyDoc = new manueversModelV2({
+      flag:flag,
+      status:status,
+      value:value,
+      date_time:date_time,
+      type:req.params.project_code
+    })
+    const saveDoc = await bodyDoc.save();
+
+    if (!!saveDoc) {
+      return res.status(201).send({
+        statusCode: 201,
+        statusValue: "SUCCESS",
+        message: "Data save successfully.",
+        data: saveDoc
+      })
+    }
+    return res.status(400).send({
+      statusCode: 400,
+      statusValue: "FAIL",
+      message: "Data not saved."
+    })
+
+  } catch (error) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+          err: {
+              generatedTime: new Date(),
+              errMsg: err.stack,
+              msg: err.message,
+              type: err.name,
+          },
+      },
+  });
+  }
+}
 
 
 const createTrends = async (req, res, next) => {
@@ -3745,7 +3968,7 @@ const createTrendsV2 = async (req, res) => {
         },
       });
     }
-
+    // console.log(req.body)
     var SaveTrends;
     if (req.params.project_code == "003") {
       const { did, time, spo2, pr, hr, ecgRR, iBP_S, iBP_D, cgm, etCo2, rr, nibp_S, nibp_D, temp1, temp2, iBP2_S, iBP2_D } = req.body;
@@ -3797,7 +4020,7 @@ const createTrendsV2 = async (req, res) => {
       SaveTrends = await trends.save(trends);
 
     } else if (req.params.project_code == "007") {
-      console.log(req.body)
+      // console.log(req.body)
       const { time, averageLeak, did, fio2, ie, mean_Airway, mode, mve, mvi, peep, pip, respiratory_Rate, texp, tinsp, type, vti, vte, sPo2, pr } = req.body;
       const trends = await new trends_ventilator_collectionV2_model({
         time: !!time ? time: "",
@@ -6041,5 +6264,9 @@ module.exports = {
   getLogsByIdV2,
   getAllDeviceIdForApp,
   createEventsForDebug,
-  getEventsForDebug
+  getEventsForDebug,
+  saveManueversData,
+  saveManueversDataV2,
+  getManueversData,
+  getManueversDataV2
 };

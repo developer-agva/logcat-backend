@@ -12,7 +12,9 @@ let accessToken = null;
 var request = require("request");
 const path = require('path');
 clientID = process.env.CLIENT_ID;
+console.log('Client Id: ', clientID)
 clientSecret = process.env.CLIENT_SECRET;
+console.log('Client-Secret Id:', clientSecret)
 
 var options = {
    method: 'POST',
@@ -36,28 +38,31 @@ request(options, function (error, response, body) {
    accessToken = body.access_token;
 });
 
+
 // Function to get access token
 const getAccessToken = async () => {
     try {
         const response = await axios.post('https://oauth.fatsecret.com/connect/token', null, {
             params: {
                 grant_type: 'client_credentials',
-                client_id: process.env.CLIENT_ID,
-                client_secret: process.env.CLIENT_SECRET,
+                client_id: clientID,
+                
+                client_secret: clientSecret,
             },
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
         });
         accessToken = response.data.access_token;
-        // console.log('Access Token:', accessToken);
+        console.log('Access Token:', accessToken);
     } catch (error) {
-        // console.error('Error obtaining access token:', error.response ? error.response.data : error.message);
+        console.error('Error obtaining access token:', error.response ? error.response.data : error.message);
     }
 };
 
 // Call getAccessToken initially to get the access token
 getAccessToken();
+// console.log(getAccessToken())
 
 // Middleware to check and refresh access token if needed
 const checkAccessToken = async (req, res, next) => {

@@ -1101,7 +1101,7 @@ const getDeviceVentilationTime = async (req, res) => {
 const addDeviceService = async (req, res) => {
   try {
     const schema = Joi.object({
-      deviceId: Joi.string().required(),
+      deviceId: Joi.string().allow("").optional(),
       message: Joi.string().required(),
       date: Joi.string().required(),
       serialNo: Joi.string().allow("").optional(),
@@ -1152,6 +1152,7 @@ const addDeviceService = async (req, res) => {
       tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",
       tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
     };
+    
 
     // check already exixts service request oe not
     const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }, { ticketStatus: "Open" }] });
@@ -1180,7 +1181,7 @@ const addDeviceService = async (req, res) => {
     const savedServices = await servicesModel.findOneAndUpdate({
       $and: [{ deviceId: req.body.deviceId }, { isVerified: false }]
     }, {
-      deviceId: req.body.deviceId,
+      deviceId: !!(req.body.deviceId) ? req.body.deviceId : "NA",
       ticket_number:`${ticketStr}-${ranNum}`,
       message: req.body.message,
       date: req.body.date,
@@ -1272,7 +1273,7 @@ const addServiceAndTicketDetails = async (req, res) => {
   try {
     const schema = Joi.object({
       // services data
-      deviceId: Joi.string().required(),
+      deviceId: Joi.string().allow("").optional(),
       message: Joi.string().allow("").optional(),
       date: Joi.string().allow("").optional(),
       serialNo: Joi.string().allow("").optional(),
@@ -1288,7 +1289,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       // ticket data
       service_engineer: Joi.string().required(),
       // issues: Joi.string().allow("").optional(),
-      pincode: Joi.string().required(),
+      pincode: Joi.string().allow("").optional(),
       // dept_name: Joi.string().allow("").required(),
       concerned_p_name: Joi.string().allow("").optional(),
       concerned_p_email: Joi.string().allow("").optional(),
@@ -1371,8 +1372,8 @@ const addServiceAndTicketDetails = async (req, res) => {
     
     // Get info details
     const getHospital = await Device.findOne({DeviceId:req.body.deviceId})
-    const getAddress = await aboutDeviceModel.findOne({deviceId:req.body.deviceId})
-    
+    const dispatchData = await aboutDeviceModel.findOne({$or:[{deviceId:req.body.deviceId},{serial_no:req.body.serialNumber}]})
+    const pincodeData = await registeredHospitalModel.findOne({Hospital_Name:req.body.hospitalName});
     // Get current date Format "dd-mm-yyyy"
     const getCurrentDate = () => {
       const today = new Date();
@@ -1387,7 +1388,7 @@ const addServiceAndTicketDetails = async (req, res) => {
     // End current date
 
     const serviceData = new servicesModel({
-      deviceId: req.body.deviceId,
+      deviceId: !!(req.body.deviceId) ? req.body.deviceId : "NA",
       ticket_number:`${ticketStr}-${ranNum}`,
       message: req.body.message,
       date: !!date ? date : "NA",
@@ -1408,7 +1409,7 @@ const addServiceAndTicketDetails = async (req, res) => {
     const saveDoc2 = await serviceData.save();
 
     const ticketData = new assignTicketModel({
-      deviceId:req.body.deviceId,
+      deviceId:!!(req.body.deviceId) ? req.body.deviceId : "NA",
       ticket_number:`${ticketStr}-${ranNum}`,
       ticket_owner:"support@agvahealthtech.com",
       // ticket_owner:"admin@gmail.com",
@@ -1416,7 +1417,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       ticket_status: "Open",
       service_engineer:req.body.service_engineer,
       // issues:req.body.issues,
-      pincode:req.body.pincode,
+      pincode:!!(req.body.pincode) ? req.body.pincode : pincodeData.Pincode,
       // dept_name:req.body.dept_name,
       concerned_p_name:req.body.concerned_p_name,
       concerned_p_email:req.body.concerned_p_email,
@@ -1426,7 +1427,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       waranty_status:!!(req.body.waranty_status) ? req.body.waranty_status : "NA",
       serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : "NA",
       tag:req.body.tag,
-      address:!!(req.body.address) ? req.body.address : "NA",
+      address:!!(req.body.address) ? req.body.address : (!!(dispatchData.address) ? dispatchData.address : "NA"),
       hospital_name:!!getHospital? getHospital.Hospital_Name : "NA",
       location: !!(req.body.location) ? req.body.location : "NA"
     });
@@ -1505,6 +1506,236 @@ const addServiceAndTicketDetails = async (req, res) => {
     })
   }
 }
+
+
+
+/**
+ * api      POST @/api/logger/logs/services/:project_code
+ * desc     @update for logger access only
+ */
+const updateServiceAndTicketDetails = async (req, res) => {
+  try {
+    // console.log(11, req.body)
+    const schema = Joi.object({
+      // services data
+      deviceId: Joi.string().allow("").optional(),
+      message: Joi.string().allow("").optional(),
+      date: Joi.string().allow("").optional(),
+      serialNo: Joi.string().allow("").optional(),
+      serialNumber: Joi.string().allow("").optional(),
+      name: Joi.string().allow("").optional(),
+      contactNo: Joi.string().allow("").optional(),
+      hospitalName: Joi.string().allow("").optional(),
+      wardNo: Joi.string().allow("").optional(),
+      email: Joi.string().allow("").optional(),
+      department: Joi.string().allow("").optional(),
+      remark:Joi.string().allow("").optional(),
+      serviceRaisedFrom:Joi.string().allow("").optional(),
+      
+      // ticket data
+      service_engineer: Joi.string().required(),
+      // issues: Joi.string().allow("").optional(),
+      pincode: Joi.string().allow("").optional(),
+      // dept_name: Joi.string().allow("").required(),
+      concerned_p_name: Joi.string().allow("").optional(),
+      concerned_p_email: Joi.string().allow("").optional(),
+      concerned_p_contact: Joi.string().allow("").optional(),
+      priority: Joi.string().valid('Critical', 'Medium', 'High'),
+      details: Joi.string().allow("").optional(),
+      waranty_status: Joi.string().allow("").optional(),
+      serialNumber: Joi.string().allow("").optional(),
+      tag: Joi.string().optional(),
+      address: Joi.string().allow("").optional(),
+      location: Joi.string().allow("").optional(),
+      toolsProvided: Joi.string().allow("").optional(),
+    })
+    let result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "Validation Error",
+        message: result.error.details[0].message,
+      })
+    }
+    console.log(11, req.body)
+    // Check Details
+    const ticket_number = req.params.ticket_number;
+    const servicesData = await servicesModel.findOne({ ticket_number: ticket_number });
+    const ticketData = await assignTicketModel.findOne({ ticket_number: ticket_number });
+    if (!servicesData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Invalid ticket Id!",
+      });
+    }
+
+    // define tag name
+    let tag1 = "General Service";
+    let tag2 = "Operating Support";
+    let tag3 = "Request for Consumables";
+    let tag4 = "Physical Damage";
+    let tag5 = "Issue in Ventilation";
+    let tag6 = "Performance Issues";
+    let tag7 = "Apply for CMC/AMC";
+
+    const msg = req.body.message;
+
+    const tags = {
+      tag1: !!(msg && msg.includes("General Service")) ? tag1 : "",
+      tag2: !!(msg && msg.includes("Operating Support")) ? tag2 : "",
+      tag3: !!(msg && msg.includes("Request for Consumables")) ? tag3 : "",
+      tag4: !!(msg && msg.includes("Physical Damage")) ? tag4 : "",
+      tag5: !!(msg && msg.includes("Issue in Ventilation")) ? tag5 : "",
+      tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",
+      tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
+    };
+
+    // check already exixts service request oe not
+    const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }, { ticketStatus: "Open" }] });
+    // console.log(11,checkData);
+    // console.log(12,req.body); 
+    if (!!checkData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Service request already raised.",
+      })
+    }
+
+    // console.log(11,tags)
+    // Set priority
+    let priority;
+    if (msg.includes("General Service") == true || msg.includes("Apply for CMC/AMC") == true) {
+      priority = "Medium";
+    }
+    priority = "High";
+
+    // get Hospital
+    const getHospital = await Device.findOne({DeviceId:req.body.deviceId})
+    const checkProdData = await productionModel.findOne({serialNumber:req.body.serialNumber});
+    // const  dispatchData = await  
+    
+    const updateServices = await servicesModel.findOneAndUpdate(
+      { ticket_number: ticket_number },
+      {
+        deviceId: !!(checkProdData.deviceId) ? checkProdData.deviceId : servicesData.deviceId,
+        message: !!(req.body.message) ? req.body.message : servicesData.message,
+        name: !!(req.body.name) ? req.body.name : servicesData.name,
+        contactNo: !!(req.body.contactNo) ? req.body.contactNo : servicesData.contactNo,
+        hospitalName: !!(req.body.hospitalName) ? req.body.hospitalName : servicesData.hospitalName,
+        wardNo: !!(req.body.wardNo) ? req.body.wardNo : servicesData.wardNo,
+        email: !!(req.body.email) ? req.body.email : servicesData.email,
+        department: !!(req.body.department) ? req.body.department : "NA",
+        remark: !!(req.body.remark) ? req.body.remark : servicesData.remark,
+        issues: !!tags ? tags : servicesData.issues,
+        priority: priority,
+        serviceRaisedFrom:!!(req.body.serviceRaisedFrom) ? req.body.serviceRaisedFrom : "Ventilator",
+        toolsProvided:!!(req.body.toolsProvided) ? req.body.toolsProvided : "NA"
+      }
+    )  
+
+    const updateTicket = await assignTicketModel.findOneAndUpdate(
+      { ticket_number: ticket_number },
+      {
+        deviceId: !!(checkProdData.deviceId) ? checkProdData.deviceId : servicesData.deviceId,
+        ticket_owner:"support@agvahealthtech.com",
+        // ticket_owner:"admin@gmail.com",
+        service_engineer:!!(req.body.service_engineer) ? req.body.service_engineer : ticketData.service_engineer,
+        // issues:req.body.issues,
+        pincode:!!(req.body.pincode) ? req.body.pincode : ticketData.pincode,
+        // dept_name:req.body.dept_name,
+        concerned_p_name:!!(req.body.concerned_p_name) ? req.body.concerned_p_name : ticketData.concerned_p_name,
+        concerned_p_email:!!(req.body.concerned_p_email) ? req.body.concerned_p_email : ticketData.concerned_p_email,
+        concerned_p_contact:!!(req.body.concerned_p_contact) ? req.body.concerned_p_contact : ticketData.concerned_p_contact,
+        priority:!!(req.body.priority) ? req.body.priority : ticketData.priority,
+        details:!!(req.body.details) ? req.body.details : ticketData.details,
+        waranty_status:!!(checkProdData.dateOfWarranty) ? checkProdData.dateOfWarranty : "NA",
+        serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : ticketData.serialNumber,
+        tag:!!(req.body.tag) ? req.body.tag : ticketData.tag,
+        address:!!(req.body.address) ? req.body.address : (!!(dispatchData.address) ? dispatchData.address : "NA"),
+        hospital_name:!!(req.body.hospitalName)? req.body.hospitalName : getHospital.Hospital_Name,
+        location: !!(req.body.location) ? req.body.location : ticketData.location
+      }
+    )    
+
+    if (!updateServices) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Ticket data not added!",
+      });
+    }
+    // console.log(22, false)
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data updated successfully.",
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+
+/**
+ * api      GET @/api/logger/logs/services/:project_code
+ * desc     @getBySingle for logger access only
+ */
+const getServiceAndTicketDetailsByTicketnum = async (req, res) => {
+  try {
+    const ticket_number = req.params.ticket_number;
+    // Check Details
+    const servicesData = await servicesModel.findOne({ ticket_number: ticket_number }, {issues:0, createdAt:0, updatedAt:0, __v:0});
+    const ticketData = await assignTicketModel.findOne({ ticket_number: ticket_number });
+    if (servicesData.length<1) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error!! Invalid ticket Id!",
+      });
+    }
+    
+    const { 
+      ticket_owner, priority, concerned_p_contact, concerned_p_email, concerned_p_name,
+      details, service_engineer, address, pincode, serialNumber, location 
+    } = ticketData?._doc || {};
+
+    const mergedData = {
+      ...servicesData?._doc || {},
+      ticket_owner, priority, concerned_p_contact, concerned_p_email, concerned_p_name,
+      details, service_engineer, address, pincode, serialNumber, location,
+    }
+    console.log(mergedData)
+    
+    // console.log(22, false)
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data updated successfully.",
+    })
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
 
 
 const addTicketDetails = async (req, res) => {
@@ -7233,5 +7464,7 @@ module.exports = {
   getTicketCounts,
   updateTicketStatus2,
   getTicketPincodeList,
-  getTicketDataCount
+  getTicketDataCount,
+  updateServiceAndTicketDetails,
+  getServiceAndTicketDetailsByTicketnum
 }

@@ -55,7 +55,11 @@ const {
   getLogsByIdV2,
   getAllDeviceIdForApp,
   createEventsForDebug,
-  getEventsForDebug
+  getEventsForDebug,
+  saveManueversData,
+  saveManueversDataV2,
+  getManueversData,
+  getManueversDataV2
 } = require("../controller/logs");
 // New controller
 const logController = require('../controller/logController.js');
@@ -94,6 +98,9 @@ router.post('/services/:project_code', deviceController.addDeviceService);  // S
 router.post('/services/v2/:project_code', deviceController.addDeviceServiceV2);  // v2-version
 router.post('/services/add-ticket-details/:ticket_number', isAuth, deviceController.addTicketDetails)  // step 2 for assign ticket or add details
 router.post('/services/add-service-and-ticket-details/:project_code', deviceController.addServiceAndTicketDetails)
+router.put('/services/update-service-and-ticket-details/:ticket_number', deviceController.updateServiceAndTicketDetails)  // for update rec on web
+router.get('/services/get-service-and-ticket-details/:ticket_number', deviceController.getServiceAndTicketDetailsByTicketnum)  // for update rec on web
+
 
 // step 1 for ventilator   done
 router.post('/services/verify-sms-otp/:project_code', deviceController.verifyOtpSms); // step 2 for ventilator  done
@@ -238,7 +245,8 @@ router.post("/debug-events/:project_code",
   body('ack.*.timestamp').notEmpty(),
   createEventsForDebug);
 
-  router.get("/get-debug-events/:project_code", getEventsForDebug);  
+  router.get("/get-debug-events/:did", getEventsForDebug);
+  router.get("/v2/get-debug-events/:did", getEventsForDebug);  
 
 // new route for all upcomming products
 router.post("/v2/events/:productCode",
@@ -255,6 +263,14 @@ router.post("/trends/:project_code",
   body('ack.*.code').notEmpty(),
   body('ack.*.timestamp').notEmpty(),
 createTrends);
+
+
+router.post("/manuevers/v2/:project_code", saveManueversDataV2);
+router.post("/manuevers/:project_code", saveManueversData);
+
+router.get("/manuevers/:project_code", getManueversData);
+router.get("/manuevers/v2/:project_code", getManueversDataV2);
+
 
 router.post("/trends/v2/:project_code", createTrendsV2);  // v2-version
 
@@ -280,7 +296,7 @@ router.get("/v2/deviceTrends/:did", getTrendsByIdV2);  // v2-version
 router.get("/deviceAlerts/:did", getAlertsById);
 router.get("/v2/deviceAlerts/:did", getAlertsByIdV2);   // v2-version
 
-router.get("/deviceEvents/:did", getEventsById);
+router.get("/deviceEvents/:did", getEventsById);  // updated
 router.get("/v2/deviceEvents/:did", getEventsByIdV2);    // v2-version
 router.get("/deviceEvents/get-events-by-date", getEventsById)
 

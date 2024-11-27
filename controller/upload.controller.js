@@ -151,20 +151,24 @@ exports.uploadQualityReport = async (req, res) => {
 exports.uploadTicketAttachmentFile = async (req, res) => {
     res.json(req.file);
     console.log(req.file)
-
-    // const newAttachment = {
-    //     location: req.file.location,
-    //     bucket: req.file.bucket,
-    //     key: req.file.key
-    // }
-
-    // await servicesModel.findOneAndUpdate(
-    //     { ticket_number: req.params.ticket_number },
-    //     { $push: { attachment: newAttachment} },
-    //     { upsert:true }
-    // )
 }
 
+// upload quality report for production modules
+exports.updateTicketAttachmentFile = async (req, res) => {
+    res.json(req.file);
+    console.log(req.file)
+    const getData = await servicesModel.findOne({ticket_number:req.params.ticket_number})
+    await assignTicketModel.findOneAndUpdate(
+        { ticket_number:getData.ticket_number },
+        { 
+            ticket_number:getData.ticket_number,
+            deviceId:!!(getData.deviceId) ? getData.deviceId : "",
+            service_engineer:!!(getData.email) ? getData.email : "",
+            location:req.file.location
+        },
+        { upsert: true }
+    )
+}
 
 // upload invoice pdf for accounts modules
 exports.uploadInvoicePdf = async (req, res) => {
