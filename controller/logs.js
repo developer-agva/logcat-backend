@@ -35,7 +35,7 @@ const trends_ventilator_collectionV2_model = require('../model/trends_ventilator
 ///
 const admin = require("firebase-admin");
 // Initialize Firebase Admin SDK
-const serviceAccount = require("../agvaapp-firebase-adminsdk-u6pru-1e70064b68.json");
+const serviceAccount = require("../agvaapp-firebase-adminsdk-u6pru-e6ff30c340.json");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
@@ -642,35 +642,176 @@ const getAlertsByIdV2 = async (req, res) => {
 }
 
 
-// get device trends by deviceId
+// // get device trends by deviceId
+// const getTrendsById = async (req, res) => {
+//   try {
+//     let { page, limit, startDate, endDate } = req.query;
+
+//     // Default values for pagination
+//     if (!page || page === "undefined") {
+//       page = 1;
+//     }
+//     if (!limit || limit === "undefined" || parseInt(limit) === 0) {
+//       limit = 9999999;
+//     }
+
+//     // Parse and validate date range
+//     let dateFilter = {};
+//     if ((startDate || startDate !== "undefined" || startDate !== null) && (endDate || endDate !== "undefined" || endDate !== null)) {
+//       dateFilter = {
+//         createdAt: {
+//           $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)), 
+//           $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+//         }
+//       };
+//     }
+
+//     // Search query (if applicable)
+//     let search = "";
+//     if (req.query.search && req.query.search !== "undefined") {
+//       search = req.query.search;
+//     }
+
+//     // Device ID
+//     const { did } = req.params;
+
+//     if (!did) {
+//       return res.status(404).json({
+//         status: 0,
+//         statusCode: 404,
+//         data: {
+//           err: {
+//             generatedTime: new Date(),
+//             errMsg: 'deviceId not found',
+//             msg: 'deviceId not found',
+//             type: 'Client Error',
+//           },
+//         },
+//       });
+//     }
+
+//     // Fetch data from MongoDB with filters
+//     const rawData = await trends_ventilator_collection
+//       .find({ did, ...dateFilter }, {__v:0, _id:0})
+//       .sort({ _id: -1 })
+//       .lean();
+
+//     // Deduplicate data by `time` field
+//     const uniqueDataMap = rawData.reduce((map, item) => map.set(item.time, item), new Map());
+
+//     // Convert the map values back to an array
+//     const findDeviceById = Array.from(uniqueDataMap.values());
+
+//     if (!findDeviceById || findDeviceById.length === 0) {
+//       return res.status(404).json({
+//         status: 0,
+//         statusCode: 404,
+//         data: {
+//           err: {
+//             generatedTime: new Date(),
+//             errMsg: 'No data found for the given filters',
+//             msg: 'No data found for the given filters',
+//             type: 'Client Error',
+//           },
+//         },
+//       });
+//     }
+
+//     // Paginate the data
+//     const paginateArray = (findDeviceById, page, limit) => {
+//       const offset = (page - 1) * limit;
+//       return findDeviceById.slice(offset, offset + limit);
+//     };
+
+//     const finalData = paginateArray(findDeviceById, page, limit);
+//     const count = findDeviceById.length;
+    
+//     const checkCode = await trends_ventilator_collection
+//       .findOne({ did })
+//       .sort({ _id: -1 })
+//       .lean() || {}; // Fetch the most recent document or default to an empty object
+    
+//     // Determine UI data based on `checkCode.type`
+//     let data2;
+//     if (checkCode.type === "002" || checkCode.type === "") {
+//       data2 = [trendsDataKey[0]];
+//     } else if (checkCode.type === "003") {
+//       data2 = [trendsDataKey[1]];
+//     }
+    
+//     // Handle the response
+//     if (finalData.length > 0) {
+//       return res.status(200).json({
+//         status: 1,
+//         statusCode: 200,
+//         message: 'Successful',
+//         data: {
+//           findDeviceById: finalData,
+//           data2: data2,
+//           totalDataCount: count,
+//           totalPages: Math.ceil(count / limit),
+//           currentPage: page
+//         }
+//       });
+//     }
+    
+//     return res.status(400).json({
+//       status: 0,
+//       statusCode: 400,
+//       message: "Data not found",
+//       data: []
+//     });
+    
+//   }
+//   catch (err) {
+//     return res.status(500).json({
+//       status: -1,
+//       data: {
+//         err: {
+//           generatedTime: new Date(),
+//           errMsg: err.stack,
+//           msg: err.message,
+//           type: err.name,
+//         },
+//       },
+//     });
+//   }
+// }
+
 const getTrendsById = async (req, res) => {
   try {
     let { page, limit, startDate, endDate } = req.query;
 
     // Default values for pagination
-    if (!page || page === "undefined") {
-      page = 1;
-    }
-    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 9999999;
-    }
+    page = page && !isNaN(page) ? parseInt(page, 10) : 1;
+    limit = limit && !isNaN(limit) && parseInt(limit, 10) > 0 ? parseInt(limit, 10) : 9999999;
 
     // Parse and validate date range
     let dateFilter = {};
-    if (startDate && endDate) {
-      dateFilter = {
-        createdAt: {
-          $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)), 
-          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
-        }
-      };
+    if (startDate || endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (!isNaN(start) && !isNaN(end)) {
+        dateFilter = {
+          createdAt: {
+            $gte: new Date(start.setHours(0, 0, 0, 0)),
+            $lte: new Date(end.setHours(23, 59, 59, 999)),
+          },
+        };
+      }
+       else {
+        return res.status(400).json({
+          status: 0,
+          statusCode: 400,
+          message: "Invalid startDate or endDate",
+          data: [],
+        });
+      }
     }
 
     // Search query (if applicable)
-    let search = "";
-    if (req.query.search && req.query.search !== "undefined") {
-      search = req.query.search;
-    }
+    let search = req.query.search && req.query.search !== "undefined" ? req.query.search : "";
 
     // Device ID
     const { did } = req.params;
@@ -679,21 +820,16 @@ const getTrendsById = async (req, res) => {
       return res.status(404).json({
         status: 0,
         statusCode: 404,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'deviceId not found',
-            msg: 'deviceId not found',
-            type: 'Client Error',
-          },
-        },
+        message: "deviceId not found",
+        data: [],
       });
     }
 
     // Fetch data from MongoDB with filters
     const rawData = await trends_ventilator_collection
-      .find({ did, ...dateFilter }, {__v:0, _id:0, updatedAt:0})
+      .find({ did, ...dateFilter }, { __v: 0, _id: 0 })
       .sort({ _id: -1 })
+      .limit(1000)
       .lean();
 
     // Deduplicate data by `time` field
@@ -706,31 +842,23 @@ const getTrendsById = async (req, res) => {
       return res.status(404).json({
         status: 0,
         statusCode: 404,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'No data found for the given filters',
-            msg: 'No data found for the given filters',
-            type: 'Client Error',
-          },
-        },
+        message: "No data found for the given filters",
+        data: [],
       });
     }
 
     // Paginate the data
-    const paginateArray = (findDeviceById, page, limit) => {
+    const paginateArray = (data, page, limit) => {
       const offset = (page - 1) * limit;
-      return findDeviceById.slice(offset, offset + limit);
+      return data.slice(offset, offset + limit);
     };
 
     const finalData = paginateArray(findDeviceById, page, limit);
     const count = findDeviceById.length;
-    
-    const checkCode = await trends_ventilator_collection
-      .findOne({ did })
-      .sort({ _id: -1 })
-      .lean() || {}; // Fetch the most recent document or default to an empty object
-    
+
+    // Fetch the most recent document
+    const checkCode = (await trends_ventilator_collection.findOne({ did }).sort({ _id: -1 }).lean()) || {};
+
     // Determine UI data based on `checkCode.type`
     let data2;
     if (checkCode.type === "002" || checkCode.type === "") {
@@ -738,32 +866,21 @@ const getTrendsById = async (req, res) => {
     } else if (checkCode.type === "003") {
       data2 = [trendsDataKey[1]];
     }
-    
+
     // Handle the response
-    if (finalData.length > 0) {
-      return res.status(200).json({
-        status: 1,
-        statusCode: 200,
-        message: 'Successful',
-        data: {
-          findDeviceById: finalData,
-          data2: data2,
-          totalDataCount: count,
-          totalPages: Math.ceil(count / limit),
-          currentPage: page
-        }
-      });
-    }
-    
-    return res.status(400).json({
-      status: 0,
-      statusCode: 400,
-      message: "Data not found",
-      data: []
+    return res.status(200).json({
+      status: 1,
+      statusCode: 200,
+      message: "Successful",
+      data: {
+        findDeviceById: finalData,
+        data2: data2,
+        totalDataCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+      },
     });
-    
-  }
-  catch (err) {
+  } catch (err) {
     return res.status(500).json({
       status: -1,
       data: {
@@ -776,39 +893,46 @@ const getTrendsById = async (req, res) => {
       },
     });
   }
-}
+};
+
 
 
 // get device trends by deviceId
 const getTrendsByIdV2 = async (req, res) => {
   try {
+    
     let { page, limit, startDate, endDate } = req.query;
 
     // Default values for pagination
-    if (!page || page === "undefined") {
-      page = 1;
-    }
-    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 9999999;
-    }
-    
+    page = page && !isNaN(page) ? parseInt(page, 10) : 1;
+    limit = limit && !isNaN(limit) && parseInt(limit, 10) > 0 ? parseInt(limit, 10) : 9999999;
+
     // Parse and validate date range
     let dateFilter = {};
-    if (startDate && endDate) {
-      dateFilter = {
-        createdAt: {
-          $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)), 
-          $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
-        }
-      };
-    }
-    
-    // Search query (if applicable)
-    let search = "";
-    if (req.query.search && req.query.search !== "undefined") {
-      search = req.query.search;
+    if (startDate || endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (!isNaN(start) && !isNaN(end)) {
+        dateFilter = {
+          createdAt: {
+            $gte: new Date(start.setHours(0, 0, 0, 0)),
+            $lte: new Date(end.setHours(23, 59, 59, 999)),
+          },
+        };
+      }
+       else {
+        return res.status(400).json({
+          status: 0,
+          statusCode: 400,
+          message: "Invalid startDate or endDate",
+          data: [],
+        });
+      }
     }
 
+    // Search query (if applicable)
+    let search = req.query.search && req.query.search !== "undefined" ? req.query.search : "";
     // Device ID
     const { did } = req.params;
     if (!did) {
@@ -827,11 +951,26 @@ const getTrendsByIdV2 = async (req, res) => {
     }
     
     const projectCode = await trends_ventilator_collectionV2_model.find({ did: did }).sort({ _id: -1 }).limit(1);
+    if (projectCode.length<1) {
+      return res.status(404).json({
+        status: 0,
+        statusCode: 404,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'deviceId not found in this project',
+            msg: 'deviceId not found',
+            type: 'Client Error',
+          },
+        },
+      });
+    }
     let rawData;
     // Fetch data from MongoDB with filters
     rawData = await trends_ventilator_collection
       .find({ did, ...dateFilter })
       .sort({ _id: -1 })
+      .limit(1000)
       .lean();
     if (projectCode[0].type == "007") {
       rawData = await trends_ventilator_collectionV2_model.find({ did, ...dateFilter}, { time :1, averageLeak:1, did:1, fio2:1, ie:1, mean_Airway:1, mode:1, mve:1, mvi:1, peep:1, pip:1, respiratory_Rate:1, texp:1, tinsp:1, type:1, vti:1, vte:1, sPo2:1, pr:1, createdAt:1, updatedAt:1 })
@@ -842,6 +981,14 @@ const getTrendsByIdV2 = async (req, res) => {
         { did, ...dateFilter }, 
         { did:1,time:1,sPo2:1,pr:1,hr:1,ecgRR:1,iBP_S:1,iBP_D:1,cgm:1,etCo2:1,rr:1,nibp_S:1,nibp_D:1,temp1:1,temp2:1,iBP2_S:1,iBP2_D:1,type:1, createdAt:1, updatedAt:1 })
       .sort({ _id: -1 }).lean();
+    } else if(projectCode[0].type != "003" || projectCode[0].type == "007" || projectCode[0].type == undefined){
+      // console.log(projectCode[0].type !== ("003" || "007")
+      return res.status(400).json({
+        status: 0,
+        statusCode: 400,
+        message: "Invalid startDate or endDate",
+        data: [],
+      });
     }
     
     // Deduplicate data by `time` field
@@ -1096,24 +1243,10 @@ const getLogsByIdV2 = async (req, res) => {
 }
 
 
-
 const getEventsById = async (req, res) => {
   try {
     const { did } = req.params;
-    let { page, limit, search, sortBy } = req.query;
-    // for search
-    search = "";
-    if (req.query.search && req.query.search !== "undefined") {
-      search = req.query.search;
-    }
-
-    // for pagination
-    if (!page || page === "undefined") {
-      page = 1;
-    }
-    if (!limit || limit === "undefined" || parseInt(limit) === 0) {
-      limit = 999999;
-    }
+    let { page, limit, search, startDate, endDate } = req.query;
 
     if (!did) {
       return res.status(400).json({
@@ -1121,83 +1254,118 @@ const getEventsById = async (req, res) => {
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'Please fill all the details.',
-            msg: 'Please fill all the details.',
-            type: 'Client Error',
+            errMsg: "Please fill all the details.",
+            msg: "Please fill all the details.",
+            type: "Client Error",
           },
         },
       });
     }
-    
-    // Fetch data from the database
-    let debugDeventsData = await event_ventilator_collection
-      .find({ did: did }, { __v: 0, updatedAt: 0 }) // Exclude unnecessary fields
-      .sort({ _id: -1 }) // Sort to retain latest records first
-      .lean();
 
-    if (req.query.startDate && req.query.endDate) {
-      // Parse and convert dates to ISO format
-      const startDate = moment(req.query.startDate, "DD-MM-YYYY").startOf("day").toISOString();
-      const endDate = moment(req.query.endDate, "DD-MM-YYYY").endOf("day").toISOString();
+    // Default values for query parameters
+    search = search || "";
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 100;
 
-      // Filter events within the date range
-      debugDeventsData = debugDeventsData.filter(event => {
-        const eventDate = new Date(event.date).toISOString();
-        return eventDate >= startDate && eventDate <= endDate;
-      });
-    }
+    // Parse and convert dates to ISO format
+    const startIsoDate = startDate
+      ? moment(startDate, "DD-MM-YYYY").startOf("day").toISOString()
+      : null;
+    const endIsoDate = endDate
+      ? moment(endDate, "DD-MM-YYYY").endOf("day").toISOString()
+      : null;
 
-    // Remove duplicates based on `did`, `createdAt`, and `message`
-    const uniqueEvents = [];
-    const seen = new Set();
+    // Build the aggregation pipeline
+    const pipeline = [
+      // Match the `did` and optionally filter by date range
+      {
+        $match: {
+          did: did,
+          ...(startIsoDate && endIsoDate && {
+            createdAt: { $gte: new Date(startIsoDate), $lte: new Date(endIsoDate) },
+          }),
+        },
+      },
+      // Filter by search term in the `message` field (case-insensitive)
+      {
+        $match: {
+          message: { $regex: search, $options: "i" },
+        },
+      },
+      // Project only necessary fields
+      {
+        $project: {
+          did: 1,
+          type: 1,
+          message: 1,
+          date: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          },
+          time: {
+            $dateToString: { format: "%H:%M:%S", date: "$createdAt" },
+          },
+        },
+      },
+      // Remove duplicates based on `did`, `message`, and `createdAt`
+      {
+        $group: {
+          _id: {
+            did: "$did",
+            message: "$message",
+            createdAt: "$date",
+          },
+          did: { $first: "$did" },
+          type: { $first: "$type" },
+          message: { $first: "$message" },
+          date: { $first: "$date" },
+          time: { $first: "$time" },
+        },
+      },
+      // Sort by the most recent events
+      {
+        $sort: { date: -1, time: -1 },
+      },
+      // Pagination
+      {
+        $facet: {
+          metadata: [{ $count: "total" }, { $addFields: { page, limit } }],
+          data: [{ $skip: (page - 1) * limit }, { $limit: limit }],
+        },
+      },
+    ];
 
-    for (const event of debugDeventsData) {
-      const identifier = `${event.did}-${new Date(event.createdAt).toISOString()}-${event.message}`;
-      if (!seen.has(identifier)) {
-        seen.add(identifier);
-        uniqueEvents.push(event);
-      }
-    }
+    // Execute the aggregation pipeline
+    const result = await event_ventilator_collection.aggregate(pipeline).exec();
 
-    // Map the filtered and unique data to the desired format
-    const resData = uniqueEvents.map(item => ({
-      did: item.did,
-      type: item.type,
-      message: item.message,
-      date: item.date.split("T")[0],
-      time: item.date.split("T")[1],
-    }));
-    // for pagination
-    const paginateArray = (resData, page, limit) => {
-      const skip = resData.slice((page - 1) * limit, page * limit);
-      return skip;
-    };
+    const metadata = result[0]?.metadata[0] || { total: 0, page, limit };
+    const data = result[0]?.data || [];
 
-    let finalData = paginateArray(resData, page, limit)
-    // count data
-    const count = resData.length
-
-    if (finalData.length > 0) {
+    // Prepare response
+    if (data.length > 0) {
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
-        message: "Events get successfully!",
-        data: finalData,
-        totalDataCount: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: page
-      })
-    }
-    else {
-      return res.status(400).json({
+        message: "Events fetched successfully!",
+        data: data.map((item) => ({
+          did: item.did,
+          type: item.type,
+          message: item.message,
+          date: item.date,
+          time: item.time,
+        })),
+        totalDataCount: metadata.total,
+        totalPages: Math.ceil(metadata.total / limit),
+        currentPage: metadata.page,
+      });
+    } else {
+      return res.status(200).json({
         statusCode: 200,
         statusValue: "FAIL",
-        message: 'Events data not found.',
-        data: []
+        message: "No events found.",
+        data: [],
       });
     }
-  }
-  catch (err) {
+  } catch (err) {
     return res.status(500).json({
       status: -1,
       data: {
@@ -1211,6 +1379,7 @@ const getEventsById = async (req, res) => {
     });
   }
 };
+
   
 
 const getEventsByDate = async (req, res) => {
@@ -1225,9 +1394,6 @@ const getEventsByDate = async (req, res) => {
     }
 
     const findDeviceById = await event_ventilator_collection.find({ did: did }).select({ createdAt: 0, updatedAt: 0, __v: 0 }).sort({ _id: -1 });
-
-    
-   
 
     
     const paginateArray = (findDeviceById, page, limit) => {
@@ -2984,7 +3150,7 @@ const createAlertsNew = async (req, res) => {
             .then(async (response) => {
               // console.log(13, message)
               await fcmNotificationModel.findOneAndUpdate(
-                { token: "2sfsr3564dve512" }, 
+                { token: "4364364fsdfdfd" }, 
                 { notification: message.notification, data: message.data, token: message.token }, 
                 { upsert: true }
               )
@@ -2995,7 +3161,7 @@ const createAlertsNew = async (req, res) => {
             });
         });
       }
-
+       
       // Check if email needs to be sent once per day with 1-hour interval
       const ackArr = req.body.ack;
       const checkAck = ackArr.some(item => ["ACK0824", "ACK0786", "ACK0789", "ACK0782"].includes(item.code));
@@ -3067,7 +3233,7 @@ const createAlertsNew = async (req, res) => {
           if (ackMatched) {
             allEmails.forEach(item => {
               // Use the ackMatched.msg in the email
-              sendDeviceAlertEmail(item.email, req.body.did, ackMatched.msg, formattedDate, formattedTime);
+              // sendDeviceAlertEmail(item.email, req.body.did, ackMatched.msg, formattedDate, formattedTime);
             });
       
             // Update the database to indicate that the email has been sent

@@ -23,6 +23,9 @@ const apiKey = client.authentications["api-key"];
 apiKey.apiKey = process.env.API_KEY;
 
 // end sendin blue
+// graphQL
+const { graphqlHTTP } = require('express-graphql');
+const schema = require('./graphql');
 
 
 // importing router
@@ -74,6 +77,14 @@ app.use(
     cookie: { expires: 60 * 60 * 1000 },
   })
 );
+
+// for graphQL middleware
+app.use("/graphql", 
+  graphqlHTTP({
+    schema,
+    graphiql: true, // Enable GraphiQL GUI for testing
+  })
+)
 
 // adding static folder
 app.use(express.static(path.join(__dirname, "public")));
@@ -261,7 +272,11 @@ const trends_ventilator_collection_backup = require("./model/trends_ventilator_c
 const alert_ventilator_collection = require('./model/alert_ventilator_collection.js')
 const alert_ventilator_collection_backup = require('./model/alert_ventilator_collection_backup.js');
 const productionModel = require("./model/productionModel.js")
-const todayActiveDeviceCountModel = require('./model/todayActiveDeviceCountModel.js')
+const todayActiveDeviceCountModel = require('./model/todayActiveDeviceCountModel.js');
+const statusModel = require('./model/statusModel.js');
+const sendDeviceInactiveEmail = require('./helper/sendDeviceInactiveEmail.js');
+const aboutDeviceModel = require('./model/aboutDeviceModel.js');
+const { boolean } = require('joi');
 
 async function shiftAlarmData() {
   try {
@@ -655,10 +670,76 @@ async function todayActiveDeviceDemoCountAgvaPro() {
 cron.schedule('0 7,17,22 * * *', () => {
   console.log('Running cron job for today active demo devices count hour hourly basis');
   todayActiveDeviceDemoCountAgvaPro();
-}); 0
+});
 // todayActiveDeviceDemoCountAgvaPro();
-// End cron-job
 
+async function sendEmailForLastInactiveDevice() {
+  try {
+    const statusData = await statusModel.find({$and:[{message: "INACTIVE"},{lastActive:{$ne:"--"}}]},{deviceId:1, message:1, lastActive:1, total_hours:1, _id:0});
+    // console.log(11, inactiveDevices)
+    const now = new Date();
+    const inactiveDevices = statusData.filter((device) => {
+      const lastActiveDate = new Date(device.lastActive);
+      const hoursDiff = (now - lastActiveDate) / (1000 * 60 * 60);
+      return hoursDiff > 24;
+    })
+    // console.log(inactiveDevices)
+    
+    
+    
+    const demoDevices = await aboutDeviceModel
+      .find({ purpose: "Demo" }, { deviceId: 1, hospital_name: 1, serial_no: 1 })
+      .lean();
+
+    // const inactiveDevices = await someInactiveDeviceModel.find({ /* your query */ });
+
+    const plainInactiveDevices = inactiveDevices.map((device) => device.toObject()); // Convert to plain objects.
+
+    const commonDevices = plainInactiveDevices.filter((inactiveDevice) =>
+      demoDevices.some((demoDevice) => demoDevice.deviceId === inactiveDevice.deviceId)
+    );
+    
+    const mergedData = commonDevices.map((device) => {
+      const matchingDevice = demoDevices.find((demo) => demo.deviceId === device.deviceId);
+      // console.log(11, matchingDevice)
+
+      if (matchingDevice) {
+        const { hospital_name, serial_no } = matchingDevice;
+        return {
+          ...device,
+          hospital_name,
+          serial_no,
+        };
+      }
+
+      return null;
+    }).filter(Boolean);
+    // console.log(11, mergedData)
+    const tableContent = mergedData?.map((item,index) => {
+      return(
+        `<tr key =${index}>
+          <td>${item.serial_no}</td>
+          <td>${item.deviceId}</td>
+          <td>${item.hospital_name}</td>
+          <td>${item.total_hours}</td>
+          <td>${item.message}</td>
+      </tr>`)
+    }).join(" ")
+    await sendDeviceInactiveEmail("support@agvahealthtech.com", tableContent) // support@agvahealthtech.com
+    // console.log(tableContent)
+
+  } catch (error) {
+    console.log('Error in calculating the today active demo devices count agva pro hourly basis', error);
+  }
+}
+// sendEmailForLastInactiveDevice()
+// Schedule a cron job to run at 8:00 AM every day
+cron.schedule('0 8 * * *', () => {
+  console.log('Running cron job at 8:00 AM...');
+  sendEmailForLastInactiveDevice();
+});
+
+// End cron-job
 
 
 // Start code for 

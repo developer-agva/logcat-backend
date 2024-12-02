@@ -15,14 +15,6 @@ const trends_ventilator_collectionSchema = new mongoose.Schema(
     did: {
       type: String,
       required: [true, "Device id is required."],
-      // validate: {
-      //     validator: function (v) {
-      //     return /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})|([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4})$/.test(
-      //         v
-      //     );
-      //     },
-      //     message: "{VALUE} is not a valid device id.",
-      // },
     },
     time: {
       type: String,
