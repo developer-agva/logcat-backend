@@ -73,71 +73,119 @@ const checkAccessToken = async (req, res, next) => {
 };
 
 
-// router.get('/fatsecret/search', );
-// // Route to search for foods
-router.get('/fatsecret/search-food-by-name', checkAccessToken, async (req, res) => {
+// // router.get('/fatsecret/search', );
+// // // Route to search for foods
+// router.get('/fatsecret/search-food-by-name', checkAccessToken, async (req, res) => {
+//     try {
+//         const { food } = req.query;
+//         if (food == "" || food == undefined || food == null) {
+//             return res.status(400).json({
+//                 statusCode: 400,
+//                 statusValue: "FAIL",
+//                 message:"Data not found",
+//                 data:[]
+//             })
+//         }
+
+//         const response = await axios.get('https://platform.fatsecret.com/rest/server.api', {
+//             params: {
+//                 format: 'json',
+//                 method: 'foods.search',
+//                 search_expression: food,
+//             },
+//             headers: {
+//                 'Authorization': `Bearer ${accessToken}`,
+//                 'Content-Type': 'application/json',
+//             },
+//         });
+//         const responseData = response.data.foods.food;
+//         // console.log(123, responseData)
+//         // Function for extract nutrition info
+//         const extractNutritionInfo = (item) => {
+//             const regex = /Calories:\s*([\d.]+kcal)\s*\|\s*Fat:\s*([\d.]+g)\s*\|\s*Carbs:\s*([\d.]+g)\s*\|\s*Protein:\s*([\d.]+g)/;
+//             const match = item.food_description.match(regex);
+//             if (match) {
+//                 const result = {
+//                     Calories: match[1],
+//                     Fat: match[2],
+//                     Carbs: match[3],
+//                     Protein: match[4]
+//                 };
+//                 if (item.brand_name) {
+//                     result.brand_name = item.brand_name;
+//                     result.food_description = item.food_description;
+//                     result.food_name = item.food_name;
+//                 }
+//                 return result;
+//             }
+//             return null;
+//         };
+        
+//         const result = responseData.map(item => extractNutritionInfo(item)).filter(info => (info.brand_name !== undefined && info.food_description !== undefined));
+        
+//         return res.status(200).json({
+//             statusCode: 200,
+//             statusValue: "SUCCESS",
+//             message:"Data get successfully!",
+//             data:!!result.length ? result : []
+//         })
+        
+//     } catch (error) {
+//         console.error('Error fetching data from FatSecret API:', error.response ? error.response.data : error.message);
+//         res.status(500).json({ error: 'An error occurred while fetching data from FatSecret API' });
+//     }
+// });
+
+router.get('/openfoodfacts/search-food-by-name', async (req, res) => {
     try {
         const { food } = req.query;
-        if (food == "" || food == undefined || food == null) {
+        if (!food) {
             return res.status(400).json({
                 statusCode: 400,
                 statusValue: "FAIL",
-                message:"Data not found",
-                data:[]
-            })
+                message: "Food query is required",
+                data: []
+            });
         }
 
-        const response = await axios.get('https://platform.fatsecret.com/rest/server.api', {
+        const response = await axios.get('https://world.openfoodfacts.org/cgi/search.pl', {
             params: {
-                format: 'json',
-                method: 'foods.search',
-                search_expression: food,
-            },
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
+                search_terms: food,
+                json: true,
             },
         });
-        const responseData = response.data.foods.food;
-        // console.log(123, responseData)
-        // Function for extract nutrition info
-        const extractNutritionInfo = (item) => {
-            const regex = /Calories:\s*([\d.]+kcal)\s*\|\s*Fat:\s*([\d.]+g)\s*\|\s*Carbs:\s*([\d.]+g)\s*\|\s*Protein:\s*([\d.]+g)/;
-            const match = item.food_description.match(regex);
-            if (match) {
-                const result = {
-                    Calories: match[1],
-                    Fat: match[2],
-                    Carbs: match[3],
-                    Protein: match[4]
-                };
-                if (item.brand_name) {
-                    result.brand_name = item.brand_name;
-                    result.food_description = item.food_description;
-                    result.food_name = item.food_name;
-                }
-                return result;
-            }
-            return null;
-        };
-        
-        const result = responseData.map(item => extractNutritionInfo(item)).filter(info => (info.brand_name !== undefined && info.food_description !== undefined));
+
+        const products = response.data.products;
+
+        // Extract relevant data
+        const result = products.map((product) => {
+            return {
+                name: product.product_name || "N/A",
+                brand: product.brands || "N/A",
+                calories: product.nutriments["energy-kcal_100g"] || "N/A",
+                fat: product.nutriments["fat_100g"] || "N/A",
+                carbs: product.nutriments["carbohydrates_100g"] || "N/A",
+                protein: product.nutriments["proteins_100g"] || "N/A",
+                image_url: product.image_url || null,
+            };
+        });
         
         return res.status(200).json({
             statusCode: 200,
             statusValue: "SUCCESS",
-            message:"Data get successfully!",
-            data:!!result.length ? result : []
-        })
-        
+            message: "Data fetched successfully!",
+            data: result,
+        });
     } catch (error) {
-        console.error('Error fetching data from FatSecret API:', error.response ? error.response.data : error.message);
-        res.status(500).json({ error: 'An error occurred while fetching data from FatSecret API' });
+        console.error('Error fetching data from Open Food Facts API:', error.message);
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "FAIL",
+            message: "Error fetching data from Open Food Facts API",
+            data: [],
+        });
     }
 });
-
-
-
 
 
 module.exports = router

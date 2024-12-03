@@ -3667,15 +3667,20 @@ const getEventsForDebug = async (req, res, next) => {
       time:item.date.split('T')[1],
       message:item.message
     }))
+    
+    const uniqueRec = resData.filter((item, index, self) => index === self.findIndex(t => t.did === item.did && t.message === item.message) )
     // for pagination
-    const paginateArray = (resData, page, limit) => {
-      const skip = resData.slice((page - 1) * limit, page * limit);
+  //   const uniqueRecords = resData.filter((item, index, self) => 
+  //     index === self.findIndex(t => t.did === item.did && t.message === item.message)
+  // );
+    const paginateArray = (uniqueRec, page, limit) => {
+      const skip = uniqueRec.slice((page - 1) * limit, page * limit);
       return skip;
     };
 
-    let finalData = paginateArray(resData, page, limit)
+    let finalData = paginateArray(uniqueRec, page, limit)
     // count data
-    const count = resData.length
+    const count = uniqueRec.length
 
     if (finalData.length > 0) {
       return res.status(200).json({

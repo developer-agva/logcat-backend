@@ -25,6 +25,7 @@ const createNewLog = async (req, res) => {
             });
         }
         const { deviceId, message, version, file, date } = req.body;
+
         const logData = new logModel(req.body);
         const saveDoc = await logData.save();
         if (!saveDoc) {
@@ -53,6 +54,7 @@ const createNewLog = async (req, res) => {
     }
 };
 
+
 // for new products route
 const createNewLogV2 = async (req, res) => {
     try {
@@ -77,9 +79,9 @@ const createNewLogV2 = async (req, res) => {
         const logData = new logModelV2({
             deviceId:req.body.deviceId,
             message:req.body.message,
-            version:req.body.version,
-            file:req.body.file,
-            date:req.body.file,
+            version:!!(req.body.version) ? req.body.version : "NA",
+            file:!!(req.body.file) ? req.body.file : "NA",
+            date:req.body.date,
             productCode:req.params.productCode
         })
         const saveDoc = await logData.save();

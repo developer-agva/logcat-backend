@@ -1088,15 +1088,24 @@ const updateUserExperiencee = async (req, res) => {
  */
 const updateUserProfile = async (req, res) => {
   try {
-    let {userId, name, email} = req.body;
-    let arr = name.split(" ");
+    // console.log(req.body)
     const checkUser = await Users.findOne({_id:req.body.userId})
     // console.log("_id :", req.body._id, Users._id)
-    const updateUser = await Users.findByIdAndUpdate({_id:req.body.userId},{
-      firstName:arr[0]? arr[0] : checkUser.firstName,
-      lastName:arr[1]? arr[1] : checkUser.lastName,
-      email:req.body.email,
-    }, { new:true });
+    const updateUser = await Users.findOneAndUpdate({_id:req.body.userId},
+      { 
+        firstName:!!(req.body.firstName) ? req.body.firstName : checkUser.firstName,
+        lastName:!!(req.body.lastName) ? req.body.lastName : checkUser.lastName,
+        email:!!(req.body.email) ? req.body.email : checkUser.email,
+        contactNumber:!!(req.body.contactNumber) ? req.body.contactNumber : checkUser.contactNumber,
+        department:!!(req.body.department) ? req.body.department : checkUser.department,  
+        speciality:!!(req.body.speciality) ? req.body.speciality : checkUser.speciality,  
+        employeeId:!!(req.body.employeeId) ? req.body.employeeId : checkUser.employeeId,
+        designation:!!(req.body.designation) ? req.body.designation : checkUser.designation,
+        accountStatus:!!(req.body.accountStatus) ? req.body.accountStatus : checkUser.accountStatus,
+        securityCode:!!(req.body.securityCode) ? req.body.securityCode : checkUser.securityCode,
+        // secur:!!(req.body.securityCode) ? req.body.securityCode : checkUser.securityCode,
+      }, 
+      { new:true })
     if (!updateUser) {
       return res.status(404).json({
         statusCode: 404,
@@ -1532,17 +1541,7 @@ const getUserProfileById = async (req, res) => {
       message:"Get user profile successfully!",
       // data:userData
       data:{
-        _id:userData._id,
-        firstName:userData.firstName,
-        lastName:userData.lastName,
-        email:userData.email,
-        hospitalName:userData.hospitalName,
-        designation:userData.designation,
-        contactNumber:userData.contactNumber,
-        department:userData.department,
-        speciality:userData.speciality,
-        passwordHash:userData.passwordHash,
-        profile:profile,
+       ...(userData._doc ?? {})
       }
     });
 
