@@ -3286,20 +3286,20 @@ const createAlertsNew = async (req, res) => {
  */
 const createAlertsNewV2 = async (req, res) => {
   try {
-    // console.log(11,req.body)
-    if (req.params.productCode == "002") {
-      return res.status(404).json({
-        status: 404,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: 'Product code must be 003 || 004 || 005 || 006',
-            msg: 'Product code must be 003 || 004 || 005 || 006',
-            type: 'MongoDb Error',
-          },
-        },
-      });
-    }
+    console.log(11,req.body)
+    // if (req.params.productCode == "002") {
+    //   return res.status(404).json({
+    //     status: 404,
+    //     data: {
+    //       err: {
+    //         generatedTime: new Date(),
+    //         errMsg: 'Product code must be 003 || 004 || 005 || 006',
+    //         msg: 'Product code must be 003 || 004 || 005 || 006',
+    //         type: 'MongoDb Error',
+    //       },
+    //     },
+    //   });
+    // }
 
     const { did, type, ack, date } = req.body
 

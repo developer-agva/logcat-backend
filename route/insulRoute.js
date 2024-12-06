@@ -39,38 +39,38 @@ request(options, function (error, response, body) {
 });
 
 
-// Function to get access token
-const getAccessToken = async () => {
-    try {
-        const response = await axios.post('https://oauth.fatsecret.com/connect/token', null, {
-            params: {
-                grant_type: 'client_credentials',
-                client_id: clientID,
+// // Function to get access token
+// const getAccessToken = async () => {
+//     try {
+//         const response = await axios.post('https://oauth.fatsecret.com/connect/token', null, {
+//             params: {
+//                 grant_type: 'client_credentials',
+//                 client_id: clientID,
                 
-                client_secret: clientSecret,
-            },
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-        });
-        accessToken = response.data.access_token;
-        console.log('Access Token:', accessToken);
-    } catch (error) {
-        console.error('Error obtaining access token:', error.response ? error.response.data : error.message);
-    }
-};
+//                 client_secret: clientSecret,
+//             },
+//             headers: {
+//                 'Content-Type': 'application/x-www-form-urlencoded',
+//             },
+//         });
+//         accessToken = response.data.access_token;
+//         console.log('Access Token:', accessToken);
+//     } catch (error) {
+//         console.error('Error obtaining access token:', error.response ? error.response.data : error.message);
+//     }
+// };
 
-// Call getAccessToken initially to get the access token
-getAccessToken();
-// console.log(getAccessToken())
+// // Call getAccessToken initially to get the access token
+// getAccessToken();
+// // console.log(getAccessToken())
 
 // Middleware to check and refresh access token if needed
-const checkAccessToken = async (req, res, next) => {
-    if (!accessToken) {
-        await getAccessToken();
-    }
-    next();
-};
+// const checkAccessToken = async (req, res, next) => {
+//     if (!accessToken) {
+//         await getAccessToken();
+//     }
+//     next();
+// };
 
 
 // // router.get('/fatsecret/search', );
@@ -156,25 +156,34 @@ router.get('/openfoodfacts/search-food-by-name', async (req, res) => {
         });
 
         const products = response.data.products;
-
+        // console.log(11, response.data.products)
         // Extract relevant data
-        const result = products.map((product) => {
+        let result = products.map((product) => {
             return {
                 name: product.product_name || "N/A",
                 brand: product.brands || "N/A",
-                calories: product.nutriments["energy-kcal_100g"] || "N/A",
-                fat: product.nutriments["fat_100g"] || "N/A",
-                carbs: product.nutriments["carbohydrates_100g"] || "N/A",
-                protein: product.nutriments["proteins_100g"] || "N/A",
-                image_url: product.image_url || null,
+                calories: product.nutriments["energy-kcal_100g"] ? product.nutriments["energy-kcal_100g"].toString() : "N/A",
+                fat: product.nutriments["fat_100g"] ? product.nutriments["fat_100g"].toString() : "N/A",
+                carbs: product.nutriments["carbohydrates_100g"] ? product.nutriments["carbohydrates_100g"].toString() : "N/A",
+                protein: product.nutriments["proteins_100g"] ? product.nutriments["proteins_100g"].toString() : "N/A",
+                image_url: product.image_url || "",
             };
-        });
+        }).slice(0, 10)
+        // console.log(response.data)
+
+        if(result.length > 0) {
+            result = result.filter((item) => {
+                return (item.name !== "N/A" && item.brand !== "N/A" && item.calories !== "N/A" && item.fat !== "N/A")
+            })
+        }
+        
         
         return res.status(200).json({
             statusCode: 200,
             statusValue: "SUCCESS",
             message: "Data fetched successfully!",
             data: result,
+            // data2: response.data
         });
     } catch (error) {
         console.error('Error fetching data from Open Food Facts API:', error.message);

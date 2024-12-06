@@ -6,6 +6,8 @@ const Projects = require('../model/project.js');
 const Joi = require('joi');
 const logModelV2 = require('../model/logModelV2.js');
 
+
+
 const createNewLog = async (req, res) => {
     try {
         const { project_code } = req.params;
@@ -110,15 +112,6 @@ const createNewLogV2 = async (req, res) => {
         });
     }
 };
-
-
-
-
-
-
-
-
-
 
 
 module.exports = {
