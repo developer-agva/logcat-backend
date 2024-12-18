@@ -128,7 +128,16 @@ const ServiceSchema = mongoose.Schema({
     toolsProvided: {
         type: String,
         default: ""
+    },
+    closedOn: {
+        type: String,
+        default: ""
+    },
+    serviceDoc: {
+        type: String,
+        default: ""
     }
+
     // attachment: [
     //     {
     //         location:{ type: String, default: "NA" },

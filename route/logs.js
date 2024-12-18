@@ -3,16 +3,16 @@ const multer = require("multer");
 const { body } = require('express-validator');
 var maxSize = 1 * 1024 * 1024
 
-// FILE UPLOAD WITH MULTER 
-const storage = multer.diskStorage({
-  destination: "./public/uploads/",
-  filename: function (req, file, cb) {
-    cb(null, file.originalname)
-  }
-});
+// // FILE UPLOAD WITH MULTER 
+// const storage = multer.diskStorage({
+//   destination: "./public/uploads/",
+//   filename: function (req, file, cb) {
+//     cb(null, file.originalname)
+//   }
+// });
 
-var upload = multer({ storage: storage, limits: { fileSize: maxSize } });
-var uploadFunc = upload.single("filePath")
+// var upload = multer({ storage: storage, limits: { fileSize: maxSize } });
+// var uploadFunc = upload.single("filePath")
 const router = express.Router();
 const {
   createLogs,
@@ -71,6 +71,10 @@ const { isAuth, isSuperAdmin, isAdmin } = require("../middleware/authMiddleware"
 const { validateHeader } = require("../middleware/validateMiddleware");
 const hospitalController = require("../controller/hospitalController");
 
+const upload = require('../helper/upload.helper');
+const uploadController = require('../controller/upload.controller');
+// const uploadController = require("../controller/"
+
 // Unprotected routes
 // old API
 router.post("/:project_code", logController.createNewLog);
@@ -112,8 +116,10 @@ router.post('/services/change-ticket-status/:project_code', deviceController.upd
 
 router.get('/services/get-all', isAuth, deviceController.getAllServices);
 router.get('/services/get-ticket-counts', deviceController.getTicketCounts);  // for count tickets
+router.get('/services/get-ticket-weekly-data-count', deviceController.getTicketWeeklyCounts);
 router.get('/services/get-ticket-graph-data-counts', deviceController.getTicketDataCount);
 router.get('/services/get-ticket-pincodes', deviceController.getTicketPincodeList);
+// router.post('/services/upload-service-doc/:ticket_number', upload.single('file'), uploadController.uploadServiceDocument);
 // router.put('/services/update-ticket/:id', deviceController.updateTicketById);
 
 

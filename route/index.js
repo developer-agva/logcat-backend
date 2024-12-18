@@ -27,9 +27,13 @@ router.get('/get-uploaded-files/:deviceId', isAuth, uploadController.getFileByDe
 
 router.post('/upload-ticket-file', upload.single('file'), uploadController.uploadTicketAttachmentFile);
 router.post('/update-ticket-file/:ticket_number', upload.single('file'), uploadController.updateTicketAttachmentFile);
+router.post('/upload-service-doc/:ticket_number', upload.single('file'), uploadController.uploadServiceDocument);
 
 
+router.post('/upload-app', upload.single('file'), uploadController.uploadAndroidApp);
+router.get('/get-app-list/:project_code', uploadController.getAppHistory);
 // router.get('/get-s3bucket-file', uploadController.getS3bucketData);
+
 
  // for upload error handling
 router.post('/upload-single-v2', uploadController.uploadSingleV2);

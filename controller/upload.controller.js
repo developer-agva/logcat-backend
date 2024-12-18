@@ -28,6 +28,7 @@ const User = require('../model/users');
 const exp = require('constants');
 const assignTicketModel = require('../model/assignTicketModel');
 const servicesModel = require('../model/servicesModel');
+const appHistorytModel = require('../model/androidAppHistoryModel');
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 
@@ -69,6 +70,69 @@ exports.addProjectWithImage = async (req, res) => {
     // console.log(11,newObj)
 }
 
+exports.uploadAndroidApp = async (req, res) => {
+    // req.file contains a file object
+    res.json(req.file);
+    // console.log(req.file.fieldname, req.params.deviceId)
+    const bodyDoc = new appHistorytModel({
+        project_code:req.body.project_code,
+        app_url:req.file.location,
+        dateTime:req.body.dateTime,
+        version:req.body.version
+    })
+    const saveDoc = await bodyDoc.save();
+}
+
+exports.getAppHistory = async (req, res) => {
+    try {
+        const project_code = req.params.project_code;
+        if (!project_code) {
+            return res.status(401).json({
+                statusCode: 401,
+                statusValue: "FAIL",
+                message: "Error! provide project code",
+            });
+        }
+        // check project
+        const checkData = await appHistorytModel.find({project_code:project_code}).sort({_id:-1});
+        if (checkData.length<1) {
+            return res.status(404).json({
+                statusCode: 404,
+                statusValue: "SUCCESS",
+                message: "Data not found.",
+                data:[]
+            }); 
+        }
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "Data get successfully.",
+            data:checkData
+        }); 
+    } catch (err) {
+        return res.status(500).json({
+          statusCode: 500,
+          statusValue: "FAIL",
+          message: "Internal server error",
+          data: {
+            generatedTime: new Date(),
+            errMsg: err.stack,
+          },
+        });
+    }
+}
+
+exports.uploadServiceDocument = async (req, res) => {
+    // req.file contains a file object
+    res.json(req.file);
+    await servicesModel.findOneAndUpdate(
+        {ticket_number:req.params.ticket_number},
+        {
+            serviceDoc: !!req.file.location ? req.file.location : "",
+            // remark:!!req.body.remark ? req.body.remark : ""
+        }
+    )
+}
 
 exports.addFeaturedProdWithImage = async (req, res) => {
     // req.file contains a file object

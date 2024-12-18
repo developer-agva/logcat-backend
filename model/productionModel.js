@@ -12,7 +12,7 @@ const productionSchema = new mongoose.Schema({
     iopr: { type: String, default: "" },
     serialNumber: { type: String, required: true, default: "" },
     manufacturingDate: {type: String, required: true, default: ""},
-    dispatchDate: {type: String, required: true, default: ""},
+    dispatchDate: {type: String, default: ""},
     hospitalName: { type: String, default: "" },
     dateOfWarranty: { type: String, default: "" },
     address: { type: String, default: "" },

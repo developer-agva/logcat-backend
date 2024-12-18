@@ -22,6 +22,7 @@ const jwtr = new JWTR(redisClient);
 require("dotenv").config({ path: "../.env" });
 var unirest = require("unirest");
 const axios = require('axios');
+const moment = require("moment");
 
 /**
  * api      POST @/devices/register
@@ -1279,7 +1280,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       serialNo: Joi.string().allow("").optional(),
       name: Joi.string().allow("").optional(),
       contactNo: Joi.string().allow("").optional(),
-      hospitalName: Joi.string().allow("").optional(),
+      hospitalName: Joi.string().required(),
       wardNo: Joi.string().allow("").optional(),
       email: Joi.string().allow("").optional(),
       department: Joi.string().allow("").optional(),
@@ -1291,7 +1292,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       // issues: Joi.string().allow("").optional(),
       pincode: Joi.string().allow("").optional(),
       // dept_name: Joi.string().allow("").required(),
-      concerned_p_name: Joi.string().allow("").optional(),
+      concerned_p_name: Joi.string().required(),
       concerned_p_email: Joi.string().allow("").optional(),
       concerned_p_contact: Joi.string().allow("").optional(),
       priority: Joi.string().valid('Critical', 'Medium', 'High'),
@@ -1338,7 +1339,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       tag3: !!(msg && msg.includes("Request for Consumables")) ? tag3 : "",
       tag4: !!(msg && msg.includes("Physical Damage")) ? tag4 : "",
       tag5: !!(msg && msg.includes("Issue in Ventilation")) ? tag5 : "",
-      tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",
+      tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",  
       tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
     };
 
@@ -1391,7 +1392,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       deviceId: !!(req.body.deviceId) ? req.body.deviceId : "NA",
       ticket_number:`${ticketStr}-${ranNum}`,
       message: req.body.message,
-      date: !!date ? date : "NA",
+      date: !!date ? date : "--",
       serialNo: otpValue,
       name: req.body.name,
       contactNo: req.body.contactNo,
@@ -1427,7 +1428,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       waranty_status:!!(req.body.waranty_status) ? req.body.waranty_status : "NA",
       serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : "NA",
       tag:req.body.tag,
-      address:!!(req.body.address) ? req.body.address : (!!(dispatchData.address) ? dispatchData.address : "NA"),
+      address:req.body?.address ?? dispatchData?.address ?? "NA",
       hospital_name:!!getHospital? getHospital.Hospital_Name : "NA",
       location: !!(req.body.location) ? req.body.location : "NA"
     });
@@ -1592,6 +1593,7 @@ const updateServiceAndTicketDetails = async (req, res) => {
     };
 
     // check already exixts service request oe not
+    const dispatchData = await aboutDeviceModel.findOne({$or:[{deviceId:req.body.deviceId},{serial_no:req.body.serialNo}]})
     const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }, { ticketStatus: "Open" }] });
     // console.log(11,checkData);
     // console.log(12,req.body); 
@@ -1649,11 +1651,11 @@ const updateServiceAndTicketDetails = async (req, res) => {
         concerned_p_email:!!(req.body.concerned_p_email) ? req.body.concerned_p_email : ticketData.concerned_p_email,
         concerned_p_contact:!!(req.body.concerned_p_contact) ? req.body.concerned_p_contact : ticketData.concerned_p_contact,
         priority:!!(req.body.priority) ? req.body.priority : ticketData.priority,
-        details:!!(req.body.details) ? req.body.details : ticketData.details,
+        // details:!!(req.body.details) ? req.body.details : ticketData.details,
         waranty_status:!!(checkProdData.dateOfWarranty) ? checkProdData.dateOfWarranty : "NA",
         serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : ticketData.serialNumber,
         tag:!!(req.body.tag) ? req.body.tag : ticketData.tag,
-        address:!!(req.body.address) ? req.body.address : (!!(dispatchData.address) ? dispatchData.address : "NA"),
+        address:req.body?.address ?? dispatchData?.address ?? "NA",
         hospital_name:!!(req.body.hospitalName)? req.body.hospitalName : getHospital.Hospital_Name,
         location: !!(req.body.location) ? req.body.location : ticketData.location
       }
@@ -2420,11 +2422,28 @@ const updateTicketStatus2 = async (req, res) => {
         message: "Error!! ticket not found.",
       });
     }
+
+    const getCurrentDateTime = () => {
+      const now = new Date();
+  
+      const day = String(now.getDate()).padStart(2, '0'); // Day (01–31)
+      const month = String(now.getMonth() + 1).padStart(2, '0'); // Month (01–12)
+      const year = now.getFullYear(); // Year (yyyy)
+  
+      const hours = String(now.getHours()).padStart(2, '0'); // Hours (00–23)
+      const minutes = String(now.getMinutes()).padStart(2, '0'); // Minutes (00–59)
+  
+      return `${day}-${month}-${year} ${hours}:${minutes}`;
+    };
+  
+    const closedOn = getCurrentDateTime(); // Output: "dd-mm-yyyy HH:MM"
+  
     const updateDoc = await servicesModel.findOneAndUpdate(
       { ticket_number: req.body.ticket_number },
       {
         ticketStatus: req.body.ticketStatus,
-        remark: !!(req.body.remark) ? req.body.remark : "NA"
+        remark: !!(req.body.remark) ? req.body.remark : "NA",
+        closedOn:!!(req.body.ticketStatus && req.body.ticketStatus === "Closed") ? closedOn : "--"
       },
       {upsert: true}
     );
@@ -2528,7 +2547,7 @@ const closeTicket = async (req, res) => {
         message: "Ticket has been closed successfully."
       })
     }
-    await servicesModel.findOneAndUpdate({ $and: [{ otp: req.body.otp }, { deviceId: req.body.deviceId }] }, { ticketStatus: "Closed", remark: "Ticket has been closed by Phone call" });
+    await servicesModel.findOneAndUpdate({ $and: [{ otp: req.body.otp }, { deviceId: req.body.deviceId }] }, { ticketStatus: "Closed", remark: req.body.remark });
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -2598,16 +2617,17 @@ const getAllServices = async (req, res) => {
 
     // const resDataa = await servicesModel.find({})
     // console.log(resDataa)
+    const userList = await User.find({},{email:1, firstName:1, lastName:1});
+    // console.log(userList)
     const resData = await servicesModel.aggregate([
       {
         $lookup: {
-          from:"assign_tickets",
+          from: "assign_tickets",
           localField: "ticket_number",
           foreignField: "ticket_number",
           as: "ticketInfo"
         }
       },
-      
       {
         $match: {
           $and: [
@@ -2625,13 +2645,27 @@ const getAllServices = async (req, res) => {
           ],
         },
       },
-    
       {
-        $sort: {
-          createdAt:-1
+        $addFields: {
+          // Assign priority for sorting ticketStatus: Open -> 1, Hold -> 2, Closed -> 3
+          statusPriority: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$ticketStatus", "Open"] }, then: 1 },
+                { case: { $eq: ["$ticketStatus", "Hold"] }, then: 2 },
+                { case: { $eq: ["$ticketStatus", "Closed"] }, then: 3 },
+              ],
+              default: 4 // Default priority if no match
+            }
+          }
         }
       },
-      // Sort the ticketInfo array by createdAt and select the last one
+      {
+        $sort: {
+          statusPriority: 1, // Sort by status priority first
+          createdAt: -1      // Then sort by creation date in descending order
+        }
+      },
       {
         $addFields: {
           ticketInfo: {
@@ -2644,37 +2678,48 @@ const getAllServices = async (req, res) => {
           }
         }
       },
-      
       {
         $project: {
-          "issues":0,
-          "__v":0,
-          "UID":0,
-          "createdAt":0,
-          "updatedAt":0,
-          "ticketInfo.__v":0,
-          // "ticketInfo.createdAt":0,
-          "ticketInfo.updatedAt":0,
+          "issues": 0,
+          "__v": 0,
+          "UID": 0,
+          "createdAt": 0,
+          "updatedAt": 0,
+          "ticketInfo.__v": 0,
+          "ticketInfo.updatedAt": 0,
         }
       }
-    ])
-
-    // for pagination
+    ]);
+    
+    // Pagination logic
     const paginateArray = (resData, page, limit) => {
       const skip = resData.slice((page - 1) * limit, page * limit);
       return skip;
     };
+    
+    let finalData = paginateArray(resData, page, limit);
+    // Count the total data
+    const count = resData.length;
 
-    let finalData = paginateArray(resData, page, limit)
-    // count data
-    const count = finalData.length
+    const enrichedData = finalData.map((ticket) => {
+      const matchingUser = userList.find(
+        user => user.email.toLowerCase() === (ticket.ticketInfo?.service_engineer || "").toLowerCase()
+        // user.email.toLowerCase() === (ticket.ticketInfo?.ticket_owner || "").toLowerCase()
+      )
+      return {
+        ...ticket,
+        firstName:matchingUser?.firstName || "",
+        lastName:matchingUser?.lastName || ""
+      }
+    })
+    
 
     if (finalData.length > 0) {
       return res.status(200).json({
         statusCode: 200,
         statusValue: "SUCCESS",
         message: "Services get successfully!",
-        data: finalData,
+        data: enrichedData,
         totalDataCount: count,
         totalPages: Math.ceil(count / limit),
         currentPage: page
@@ -2828,6 +2873,126 @@ const getTicketCounts = async (req, res) => {
 
 
 
+/**
+ * api   GET@/api/logger/logs/services/get-ticket-counts
+ * desc  @getTicketCounts for logger access only
+ */
+const getTicketWeeklyCounts = async (req, res) => {
+  try {
+    const serviceData = await servicesModel.find({},{deviceId:1, ticketStatus:1, ticket_number:1, createdAt:1});
+    function getWeeklyTicketCount(serviceData) {
+      const now = moment()
+      const weeks = { w1:0, w2:0, w3:0, w4:0 }
+
+      const statusCount = {
+        Open: {...weeks},
+        Hold: {...weeks},
+        Closed: {...weeks}
+      }
+
+      serviceData.forEach(ticket => {
+        const ticketDate = moment(ticket.createdAt)
+        const diffInWeeks = Math.floor(now.diff(ticketDate, 'days')/7)
+
+        if(diffInWeeks < 4) {
+          const weekKey = `w${4-diffInWeeks}`;
+          statusCount[ticket.ticketStatus][weekKey]++;
+        }
+      })
+
+      return statusCount;
+    }
+
+    const resData = getWeeklyTicketCount(serviceData);
+    if (req.query.filter == "Open") {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Count get successfully!",
+        data:[
+          {
+            "duration":"w1",
+            "count":resData.Open.w1, 
+          },
+          {
+            "duration":"w2",
+            "count":resData.Open.w2
+          },
+          {
+            "duration":"w3",
+            "count":resData.Open.w3
+          },
+          {
+            "duration":"w4",
+            "count":resData.Open.w4
+          }
+        ]
+      })
+    } else if (req.query.filter == "Hold") {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Count get successfully!",
+        data:[
+          {
+            "duration":"w1",
+            "count":resData.Hold.w1, 
+          },
+          {
+            "duration":"w2",
+            "count":resData.Hold.w2
+          },
+          {
+            "duration":"w3",
+            "count":resData.Hold.w3
+          },
+          {
+            "duration":"w4",
+            "count":resData.Hold.w4
+          }
+        ]
+      })
+    } else if (req.query.filter == "Closed") {
+      return res.status(200).json({
+        statusCode: 200,
+        statusValue: "SUCCESS",
+        message: "Count get successfully!",
+        data:[
+          {
+            "duration":"w1",
+            "count":resData.Closed.w1, 
+          },
+          {
+            "duration":"w2",
+            "count":resData.Closed.w2
+          },
+          {
+            "duration":"w3",
+            "count":resData.Closed.w3
+          },
+          {
+            "duration":"w4",
+            "count":resData.Closed.w4
+          }
+        ]
+      })
+    }
+    
+
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
 const getTicketDataCount = async (req, res) => {
   try {
     
@@ -2945,6 +3110,8 @@ const getTicketDataCount = async (req, res) => {
     })
   }
 }
+
+
 
 
 
@@ -7466,5 +7633,6 @@ module.exports = {
   getTicketPincodeList,
   getTicketDataCount,
   updateServiceAndTicketDetails,
-  getServiceAndTicketDetailsByTicketnum
+  getServiceAndTicketDetailsByTicketnum,
+  getTicketWeeklyCounts
 }
