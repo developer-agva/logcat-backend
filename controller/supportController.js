@@ -491,11 +491,21 @@ const getTicketDetails = async (req, res) => {
                 }
             }
         ])
+        let resObj = resData[0];
+        const getUserData = await User.findOne({email:resObj.ticketInfo.service_engineer})
+        const result = resData.map((item) => {
+            return {
+                ...item,
+                firstName:getUserData?.firstName || "NA",
+                lastName:getUserData?.lastName || "NA"
+            }
+        })
+        // console.log(11, result)
         return res.status(200).json({
             statusCode: 200,
             statusValue: "SUCCESS",
             message: "Data get successfully.",
-            data: resData[0]
+            data: result[0]
         })
     } catch (err) {
         return res.status(500).json({

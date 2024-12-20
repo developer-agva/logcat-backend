@@ -1343,7 +1343,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       tag6: !!(msg && msg.includes("Performance Issues")) ? tag6 : "",  
       tag7: !!(msg && msg.includes("Apply for CMC/AMC")) ? tag7 : "",
     };
-
+    
     // check already exixts service request oe not
     const checkData = await servicesModel.findOne({ $and: [{ deviceId: req.body.deviceId }, { message: req.body.message }, { isVerified: true }, { ticketStatus: "Open" }] });
     // console.log(11,checkData);
@@ -2398,7 +2398,7 @@ const updateTicketStatus2 = async (req, res) => {
     const schema = Joi.object({
       ticket_number: Joi.string().required(),
       ticketStatus: Joi.string().required(),
-      remark:Joi.string().allow("").optional(),
+      remark_2:Joi.string().allow("").optional(),
     });
     
     // Validate request body
@@ -2446,7 +2446,7 @@ const updateTicketStatus2 = async (req, res) => {
       { ticket_number: req.body.ticket_number },
       {
         ticketStatus: req.body.ticketStatus,
-        remark: !!(req.body.remark) ? req.body.remark : "NA",
+        remark_2: !!(req.body.remark_2) ? req.body.remark_2 : "NA",
         closedOn:!!(req.body.ticketStatus && req.body.ticketStatus === "Closed") ? closedOn : "--"
       },
       {upsert: true}

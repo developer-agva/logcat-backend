@@ -79,6 +79,10 @@ const ServiceSchema = mongoose.Schema({
         type: String,
         default: "",
     },
+    remark_2:{
+        type: String,
+        default: "",
+    },
     issues:[
         {
             tag1:{ type:String, default:"" },
