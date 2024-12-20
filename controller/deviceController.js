@@ -1303,6 +1303,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       address: Joi.string().allow("").optional(),
       location: Joi.string().allow("").optional(),
       toolsProvided: Joi.string().allow("").optional(),
+      productName: Joi.string().allow("").optional(),
     })
     let result = schema.validate(req.body);
     if (result.error) {
@@ -1405,12 +1406,13 @@ const addServiceAndTicketDetails = async (req, res) => {
       issues: tags,
       priority: priority,
       serviceRaisedFrom:!!(req.body.serviceRaisedFrom) ? req.body.serviceRaisedFrom : "Ventilator",
-      toolsProvided:!!(req.body.toolsProvided) ? req.body.toolsProvided : "NA" 
+      toolsProvided: req.body.toolsProvided || "NA",
+      productName:req.body.productName || "NA", 
     })
     const saveDoc2 = await serviceData.save();
 
     const ticketData = new assignTicketModel({
-      deviceId:!!(req.body.deviceId) ? req.body.deviceId : "NA",
+      deviceId: req.body.deviceId || "NA",
       ticket_number:`${ticketStr}-${ranNum}`,
       ticket_owner:"support@agvahealthtech.com",
       // ticket_owner:"admin@gmail.com",
@@ -1418,19 +1420,19 @@ const addServiceAndTicketDetails = async (req, res) => {
       ticket_status: "Open",
       service_engineer:req.body.service_engineer,
       // issues:req.body.issues,
-      pincode:!!(req.body.pincode) ? req.body.pincode : pincodeData.Pincode,
+      pincode:req.body.pincode || "NA",
       // dept_name:req.body.dept_name,
-      concerned_p_name:req.body.concerned_p_name,
-      concerned_p_email:req.body.concerned_p_email,
-      concerned_p_contact:req.body.concerned_p_contact,
-      priority:req.body.priority,
-      details:req.body.details,
-      waranty_status:!!(req.body.waranty_status) ? req.body.waranty_status : "NA",
-      serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : "NA",
-      tag:req.body.tag,
-      address:req.body?.address ?? dispatchData?.address ?? "NA",
-      hospital_name:!!getHospital? getHospital.Hospital_Name : "NA",
-      location: !!(req.body.location) ? req.body.location : "NA"
+      concerned_p_name:req.body.concerned_p_name || "NA",
+      concerned_p_email:req.body.concerned_p_email || "NA",
+      concerned_p_contact:req.body.concerned_p_contact || "NA",
+      priority:req.body.priority || "NA",
+      details:req.body.details || "NA",
+      waranty_status: req.body.waranty_status || "NA",
+      serialNumber: req.body.serialNumber || "NA",
+      tag:req.body.tag || "NA",
+      address: req.body.address || "NA",
+      hospital_name:req.body.hospitalName || "NA",
+      location: req.body.location || "NA"
     });
 
     const saveDoc = await ticketData.save();
@@ -1549,6 +1551,7 @@ const updateServiceAndTicketDetails = async (req, res) => {
       address: Joi.string().allow("").optional(),
       location: Joi.string().allow("").optional(),
       toolsProvided: Joi.string().allow("").optional(),
+      productName: Joi.string().allow("").optional()
     })
     let result = schema.validate(req.body);
     if (result.error) {
@@ -1621,43 +1624,44 @@ const updateServiceAndTicketDetails = async (req, res) => {
     const updateServices = await servicesModel.findOneAndUpdate(
       { ticket_number: ticket_number },
       {
-        deviceId: !!(checkProdData.deviceId) ? checkProdData.deviceId : servicesData.deviceId,
-        message: !!(req.body.message) ? req.body.message : servicesData.message,
-        name: !!(req.body.name) ? req.body.name : servicesData.name,
-        contactNo: !!(req.body.contactNo) ? req.body.contactNo : servicesData.contactNo,
-        hospitalName: !!(req.body.hospitalName) ? req.body.hospitalName : servicesData.hospitalName,
-        wardNo: !!(req.body.wardNo) ? req.body.wardNo : servicesData.wardNo,
-        email: !!(req.body.email) ? req.body.email : servicesData.email,
-        department: !!(req.body.department) ? req.body.department : "NA",
-        remark: !!(req.body.remark) ? req.body.remark : servicesData.remark,
-        issues: !!tags ? tags : servicesData.issues,
-        priority: priority,
-        serviceRaisedFrom:!!(req.body.serviceRaisedFrom) ? req.body.serviceRaisedFrom : "Ventilator",
-        toolsProvided:!!(req.body.toolsProvided) ? req.body.toolsProvided : "NA"
+        deviceId: req.body.deviceId || "NA",
+        message: req.body.message || "NA",
+        name: req.body.name || "NA",
+        contactNo: req.body.contactNo || "NA",
+        hospitalName: req.body.hospitalName || "NA",
+        wardNo: req.body.wardNo || "NA",
+        email: req.body.email || "NA",
+        department: req.body.department || "NA",
+        remark: req.body.remark || "NA",
+        issues: tags || servicesData.issues,
+        priority: priority || "NA",
+        serviceRaisedFrom: req.body.serviceRaisedFrom || "Ventilator",
+        toolsProvided: req.body.toolsProvided || "NA",
+        productName: req.body.productName || servicesData.productName || "NA"
       }
     )  
 
     const updateTicket = await assignTicketModel.findOneAndUpdate(
       { ticket_number: ticket_number },
       {
-        deviceId: !!(checkProdData.deviceId) ? checkProdData.deviceId : servicesData.deviceId,
+        deviceId: req.body.deviceId || "NA",
         ticket_owner:"support@agvahealthtech.com",
         // ticket_owner:"admin@gmail.com",
         service_engineer:!!(req.body.service_engineer) ? req.body.service_engineer : ticketData.service_engineer,
         // issues:req.body.issues,
-        pincode:!!(req.body.pincode) ? req.body.pincode : ticketData.pincode,
+        pincode: req.body.pincode || ticketData.pincode || "NA",
         // dept_name:req.body.dept_name,
-        concerned_p_name:!!(req.body.concerned_p_name) ? req.body.concerned_p_name : ticketData.concerned_p_name,
-        concerned_p_email:!!(req.body.concerned_p_email) ? req.body.concerned_p_email : ticketData.concerned_p_email,
-        concerned_p_contact:!!(req.body.concerned_p_contact) ? req.body.concerned_p_contact : ticketData.concerned_p_contact,
-        priority:!!(req.body.priority) ? req.body.priority : ticketData.priority,
+        concerned_p_name: req.body.concerned_p_name || ticketData.concerned_p_name || "NA",
+        concerned_p_email: req.body.concerned_p_email || ticketData.concerned_p_email || "NA",
+        concerned_p_contact: req.body.concerned_p_contact || ticketData.concerned_p_contact || "NA",
+        priority: req.body.priority || ticketData.priority || "NA",
         // details:!!(req.body.details) ? req.body.details : ticketData.details,
-        waranty_status:!!(checkProdData.dateOfWarranty) ? checkProdData.dateOfWarranty : "NA",
-        serialNumber:!!(req.body.serialNumber) ? req.body.serialNumber : ticketData.serialNumber,
-        tag:!!(req.body.tag) ? req.body.tag : ticketData.tag,
-        address:req.body?.address ?? dispatchData?.address ?? "NA",
-        hospital_name:!!(req.body.hospitalName)? req.body.hospitalName : getHospital.Hospital_Name,
-        location: !!(req.body.location) ? req.body.location : ticketData.location
+        waranty_status: req.body.waranty_status || "NA",
+        serialNumber: req.body.serialNumber || ticketData.serialNumber || "NA",
+        tag: req.body.tag || ticketData.tag || "NA",
+        address:req.body.address || "NA",
+        hospital_name: req.body.hospitalName || "NA",
+        location: req.body.location || ticketData.location || "NA"
       }
     )    
 

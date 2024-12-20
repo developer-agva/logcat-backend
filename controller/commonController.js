@@ -24,6 +24,7 @@ const prodActivityLogModel = require('../model/productionActivityLogModel.js');
 const dispatchActivityLogModel = require('../model/dispatchActivityLogModel.js');
 const fcmTokenModel = require('../model/fcmTockenModel.js');
 const fcmNotificationModel = require('../model/fcmNotificationModel.js');
+const ventilatorConfModel = require('../model/ventilatorConfigModel.js');
 
 
 /**
@@ -357,6 +358,7 @@ const getDeviceSerialNumber = async (req, res) => {
   }
 }
 
+
 /**
 * api      GET @/common/get-serial-number-list
 * desc     @getDeviceSerialNumber for public access
@@ -486,6 +488,36 @@ const getDispatchLogsData = async (req, res) => {
   }
 }
 
+const getVentilatorConfList = async (req, res) => {
+  try {
+    const getData = await ventilatorConfModel.findOne({Product_Code:req.params.product_code});
+    console.log()
+    if (!getData) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Opps something went wrong!",
+      })
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data get successfully.",
+      data:getData,
+    })
+    
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error.",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+}
 
 
 
@@ -498,5 +530,6 @@ module.exports = {
     getDispatchLogsData,
     sendFcmToken,
     getFcmNotification,
-    deleteFcmNotification
+    deleteFcmNotification,
+    getVentilatorConfList
 }

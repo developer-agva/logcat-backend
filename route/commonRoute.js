@@ -25,6 +25,8 @@ router.delete("/delete-notification/:id", commonController.deleteFcmNotification
 router.get("/get-all-locations", locationCotroller.getAllLocations);
 router.get("/get-geocode-location/:pincode", locationCotroller.getGeoCodeByPincode);
 
+router.get("/get-ventilator_conf_list/:product_code", commonController.getVentilatorConfList);
+
 
 
 module.exports = router;

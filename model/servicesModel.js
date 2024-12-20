@@ -136,6 +136,10 @@ const ServiceSchema = mongoose.Schema({
     serviceDoc: {
         type: String,
         default: ""
+    },
+    productName: { 
+        type: String,
+        default: ""
     }
 
     // attachment: [
