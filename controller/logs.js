@@ -3757,7 +3757,7 @@ const createEventsV2 = async (req, res, next) => {
     //   did: did,
     //   message: message,
     //   type: type,
-    //   date: date,
+    //   date: date,  Initiating Shutdown Process Standby process success
     // });
     const events = await event_ventilator_collection_v2.findOneAndUpdate(
       { did: "d3wr53vht7f" },
@@ -3782,12 +3782,19 @@ const createEventsV2 = async (req, res, next) => {
     const seconds = String(currentDateTime.getSeconds()).padStart(2, '0');
 
     const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
-
-    return res.status(201).json({
-      status: 201,
-      message: 'Event has been added successfully!',
-    })
+    if (req.body.message === ("Initiating Shutdown Process" || "Standby process success" || "Ventilator Started")) {
+      await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "INACTIVE", lastActive: formattedDateTime } })
+      return res.status(201).json({
+        status: 201,
+        message: 'Event has been added successfully!',
+      })
+    } else {
+      await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
+      return res.status(201).json({
+        status: 201,
+        message: 'Event has been added successfully!',
+      })
+    }
   }
   catch (err) {
     return res.status(500).json({

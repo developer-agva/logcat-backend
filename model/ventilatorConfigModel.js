@@ -14,7 +14,7 @@ const ventilatorConfSchema = new mongoose.Schema({
     Pressure_Sensor: { type: String, required: true },
     Flow_Sensor: { type: String, required: true },
     Oxygen_Sensor: { type: String, required: true },
-    Proportional_Valve: { type: String, required: true },
+    Proportional_Valve: { type: String, required: true },   
     NeoNate_Sensor: { type: String, required: true },
     Nebuliser_TYPE: { type: String, required: true },
     SpO2_Sensor: { type: String, required: true },

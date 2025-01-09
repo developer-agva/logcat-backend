@@ -1328,11 +1328,11 @@ const addServiceAndTicketDetails = async (req, res) => {
     let tag2 = "Operating Support";
     let tag3 = "Request for Consumables";
     let tag4 = "Physical Damage";
-    let tag5 = "Issue in Ventilation";
+    let tag5 = "Issue in Ventilation";  
     let tag6 = "Performance Issues";
     let tag7 = "Apply for CMC/AMC";
 
-    const msg = req.body.message;
+    const msg = req.body.message;   
 
     const tags = {
       tag1: !!(msg && msg.includes("General Service")) ? tag1 : "",

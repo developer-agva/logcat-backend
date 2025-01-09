@@ -492,15 +492,26 @@ const getTicketDetails = async (req, res) => {
             }
         ])
         let resObj = resData[0];
-        const getUserData = await User.findOne({email:resObj.ticketInfo.service_engineer})
+        // Extract service engineer information
+        const serviceEngineer = resObj?.ticketInfo?.service_engineer;
+
+        let getUserData = null;
+        if (serviceEngineer) {
+            // Attempt to fetch user data only if serviceEngineer is defined
+            getUserData = await User.findOne({ email: serviceEngineer });
+        } else {
+            console.warn("Service engineer information is missing. Defaulting to 'NA'.");
+        }
+
+        // Map over resData and add firstName and lastName
         const result = resData.map((item) => {
             return {
                 ...item,
-                firstName:getUserData?.firstName || "NA",
-                lastName:getUserData?.lastName || "NA"
-            }
-        })
-        // console.log(11, result)
+                firstName: getUserData?.firstName || "NA",
+                lastName: getUserData?.lastName || "NA",
+            };
+        });
+        
         return res.status(200).json({
             statusCode: 200,
             statusValue: "SUCCESS",

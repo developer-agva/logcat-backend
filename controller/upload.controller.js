@@ -28,13 +28,13 @@ const User = require('../model/users');
 const exp = require('constants');
 const assignTicketModel = require('../model/assignTicketModel');
 const servicesModel = require('../model/servicesModel');
-const appHistorytModel = require('../model/androidAppHistoryModel');
+const appHistorytModel = require('../model/androidAppHistoryModel');  
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 
 
 exports.uploadSingle = async (req, res) => {
-    // req.file contains a file object
+    // req.file contains a file object  
     res.json(req.file);
     // console.log(req.file.fieldname, req.params.deviceId)
         

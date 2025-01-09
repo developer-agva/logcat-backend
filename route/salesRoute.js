@@ -3,7 +3,7 @@ const router = express.Router();
 const salesController = require('../controller/salesController');
 const upload = require('../helper/upload.helper');
 const uploadController = require('../controller/upload.controller');
-
+const trackDevicesController = require("../controller/trackDevicesController");
                                                                                                                                                                                                                                                                                    
 // Route for  
 router.post('/expense/add', salesController.addExpense);
@@ -36,6 +36,15 @@ router.get('/sales/user-data', salesController.getUserData);   // Done
 
 router.get('/sales/get-single-user-data/:userId', salesController.getUserData);
 router.post('/expense/upload-exp-bill/:_id', upload.single('file'), uploadController.uploadExpenseBill);
+
+
+// route for track devices
+router.post('/sales/save-device-track-history', trackDevicesController.saveDeviceTrackingHistory);
+router.get('/sales/get-device-track-history/:deviceId', trackDevicesController.getDeviceTrackingHistoryById);
+router.get('/sales/get-all-device-track-history/:type', trackDevicesController.getDeviceTrackingHistory);
+router.put('/sales/update-device-track-history/:id', trackDevicesController.updateDeviceTrackingHistoryById);
+
+
 
 // Route for update device overview
 // router.get('/sales/user-data', );
