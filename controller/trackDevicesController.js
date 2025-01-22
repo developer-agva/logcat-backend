@@ -256,7 +256,7 @@ const getDeviceTrackingHistoryById = async (req, res) => {
 const getDeviceTrackingHistory = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
-        const limit = parseInt(req.query.limit, 10) || 10;
+        const limit = parseInt(req.query.limit, 10) || 20;
         const skip = (page - 1) * limit;
         const search = req.query.search;
 

@@ -23,7 +23,10 @@ require("dotenv").config({ path: "../.env" });
 var unirest = require("unirest");
 const axios = require('axios');
 const moment = require("moment");
+const {triggerEmail} = require("../helper/sendEmailOnCreateTicket.js");
 
+// sendEmailOnCreateTicket.sendEmailOnCreateTicket("sp10595@gamil.com", "ticket-assign", "did", "2025-01-22", "10:40 AM");
+// triggerEmail("salim@agvahealthtech.com", "ticket-assign", "did", "2025-01-22", "10:40 AM")
 /**
  * api      POST @/devices/register
  * desc     @register for logger access only
@@ -1314,6 +1317,7 @@ const addServiceAndTicketDetails = async (req, res) => {
       })
     }
     const project_code = req.query.project_code
+    // triggerEmail("salim@agvahealthtech.com", "ticket-assign", "did", "2025-01-22", "10:40 AM")
     // console.log(11,req.body)
     // var serialNo = Math.floor(1000 + Math.random() * 9000);
     // for otp sms on mobile
@@ -1444,7 +1448,12 @@ const addServiceAndTicketDetails = async (req, res) => {
       });
     }
 
+    const service_engineer = req.body.service_engineer;
+    const message = req.body.message || "NA"; 
+    const hospitalName = req.body.hospitalName || "NA";
+
     const getLastData = await servicesModel.find({ contactNo: req.body.contactNo }).sort({ createdAt: -1 }).limit(1);
+    // await triggerEmail("salim@agvahealthtech.com", `${ticketStr}-${ranNum}`, '${req.body.message}', "2025-01-22", "10:40 AM");
     // console.log(11, getLastData) 
     if (getLastData) {
       // console.log('enter', true)
@@ -1475,6 +1484,8 @@ const addServiceAndTicketDetails = async (req, res) => {
       });
 
       if (sendSms) {
+        
+        await triggerEmail(service_engineer, `${ticketStr}-${ranNum}`, message, date, hospitalName, priority)
         // findlast inserted data
         return res.status(201).json({
           statusCode: 201,
@@ -4508,6 +4519,7 @@ const { registerDevice } = require('./RegisterDevice');
 const todayActiveDevicesCountModel = require('../model/todayActiveDeviceCountModel');
 const { get } = require('https');
 const assignTicketModel = require('../model/assignTicketModel');
+const sendEmailOnCreateTicket = require('../helper/sendEmailOnCreateTicket');
 // const { ConfigurationServicePlaceholders } = require('aws-sdk/lib/config_service_placeholders');
 
 // const jwtr = require("jwtr-redis").default;

@@ -3737,7 +3737,7 @@ const createEventsV2 = async (req, res, next) => {
     }
     //console.log(modelReference,'modelReference');
     const { did, type, message, date } = req.body;
-    // console.log(123, req.body)
+    // console.log(check, req.body)
     // console.log(`did : ${did}`)
     if (!did || !type || !message || !date) {
       return res.status(400).json({
@@ -3782,13 +3782,23 @@ const createEventsV2 = async (req, res, next) => {
     const seconds = String(currentDateTime.getSeconds()).padStart(2, '0');
 
     const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    if (req.body.message === ("Initiating Shutdown Process" || "Standby process success" || "Ventilator Started")) {
+    
+    const checkIsUpdated = await event_ventilator_collection_v2.findOne({did:did},{did:1, message:1, date:1, type:1},{sort:{updatedAt:-1}})
+
+    // console.log('check data', checkIsUpdated)
+    
+    // if (checkIsUpdated.message =="Initiating Shutdown Process" || "Standby process success" || "Ventilator Started")) {
+    if (checkIsUpdated.message === "Initiating Shutdown Process" || checkIsUpdated.message === "Standby process success" || checkIsUpdated.message === "Ventilator Started") {
+      // console.log('check-body data 1', req.body)
+      console.log(true)
       await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "INACTIVE", lastActive: formattedDateTime } })
       return res.status(201).json({
         status: 201,
         message: 'Event has been added successfully!',
       })
     } else {
+      // console.log('check-body data 2', req.body)
+      console.log(false)
       await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
       return res.status(201).json({
         status: 201,
