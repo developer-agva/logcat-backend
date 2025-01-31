@@ -262,6 +262,50 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("A user disconnected");
   });
+  // logic for sending diagnostic data
+
+  socket.on("DataSendingAndroidDiagnostic", (data) => {
+    // console.log(data)
+    socket.broadcast.emit("DataReceivingReactDiagnostic", data);
+  })
+
+  // when android send reverts 
+  socket.on("AndroidSendingCommand", (data) => {
+    console.log("AndroidCommand", data)
+    socket.broadcast.emit("ReactReceiveCommand", data);
+  });
+
+  // when react send commands
+  socket.on("ReactSendingCommand", (data) => {
+    console.log("ReactCommand", data)
+    socket.broadcast.emit("AndroidReceiveCommand", data);
+  })
+
+  socket.on("ReactSendingRange", (data) => {
+    console.log("ReactRange", data)
+    socket.broadcast.emit("AndroidReceivingRange", data);
+  })
+
+  socket.on("AndroidSendingRange", (data) => {
+    console.log("AndroidRange", data)
+    socket.broadcast.emit("ReactReceivingRange", data);
+  })
+
+  // debug case
+  socket.on("AndroidSendingDebugCommand", (data) => {
+    console.log("AndroidDebug", data)
+    socket.broadcast.emit("ReactReceivingDebugCommand", data);
+  })
+
+  socket.on("ReactSendingDebugCommand", (data) => {
+    console.log("ReactDebug", data)
+    socket.broadcast.emit("AndroidReceivingDebugCommand", data);
+  })
+
+  socket.on("DataSendingAndroidDebug", (data) => {
+    // console.log(data)
+    socket.broadcast.emit("DataReceivingReactDebug", data);
+  })
 });
 // Socket end
 
@@ -313,32 +357,61 @@ cron.schedule('0 0 * * *', () => {
   shiftAlarmData();
 });
 
-async function shiftTrendsData() {
-  try {
-    // Check document count in source collection
-    const count = await trends_ventilator_collection.countDocuments();
-    if (count > 50000) {
-      const excessDocuments = count - 50000;
 
-      // Fetch excess documents (oldest first)
-      const excessData = await trends_ventilator_collection.find({}).sort({ _id: 1 }).limit(excessDocuments);
+const mongoose = require("mongoose");
+async function moveOldTrendsData() {
+    const db = mongoose.connection.db;
 
-      // Insert excess data into the backup collection
-      if (excessData.length > 0) {
-        await trends_ventilator_collection_backup.insertMany(excessData);
+    try {
+        // Step 1: Find the _id of the 100,000th most recent document
+        const thresholdDoc = await db.collection("trends_ventilator_collections")
+            .find({})
+            .sort({ _id: -1 })  // Sort in descending order (most recent first)
+            .skip(100000)        // Skip the latest 100,000 documents
+            .limit(1)
+            .toArray();
 
-        // Remove the excess data from the source collection
-        const excessIds = excessData.map(doc => doc._id);
-        await trends_ventilator_collection.deleteMany({ _id: { $in: excessIds } });
-        console.log(`Shifted ${excessDocuments} documents to backup collection.`);
-      } else {
-        console.log('No excess data to shift.');
-      }
+        if (thresholdDoc.length === 0) {
+            console.log("No data to move.");
+            return;
+        }
+
+        const thresholdId = thresholdDoc[0]._id; // Get the _id of the 100,000th most recent document
+
+        // Step 2: Move all older documents to backup collection
+        const bulkOps = await db.collection("trends_ventilator_collections")
+            .find({ _id: { $lt: thresholdId } })
+            .toArray();
+
+        if (bulkOps.length > 0) {
+            // Insert the documents into backup collection
+            await db.collection("trends_ventilator_collection_backups").insertMany(bulkOps);
+
+            // Step 3: Remove the moved documents from the original collection
+            await db.collection("trends_ventilator_collections").deleteMany({ _id: { $lt: thresholdId } });
+
+            console.log(`${bulkOps.length} documents moved to trends_ventilator_collection_backups and deleted from trends_ventilator_collections.`);
+        } else {
+            console.log("No old records found to move.");
+        }
+
+    } catch (error) {
+        console.error("Error while moving data:", error);
     }
-  } catch (error) {
-    console.error('Error in shifting trends data:', error);
-  }
 }
+
+// Call the function after DB connection is established
+// moveOldTrendsData();
+
+cron.schedule('0 0 * * *', () => {
+    console.log("Running trends data migration job...");
+    moveOldTrendsData();
+});
+
+
+
+
+// shiftTrendsData();
 
 // Schedule the cron job to run once a day at midnight
 cron.schedule('0 2 * * *', () => {

@@ -3790,17 +3790,20 @@ const createEventsV2 = async (req, res, next) => {
     // if (checkIsUpdated.message =="Initiating Shutdown Process" || "Standby process success" || "Ventilator Started")) {
     if (checkIsUpdated.message === "Initiating Shutdown Process" || checkIsUpdated.message === "Standby process success" || checkIsUpdated.message === "Ventilator Started") {
       // console.log('check-body data 1', req.body)
-      console.log(true)
+      // console.log(true)
       await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "INACTIVE", lastActive: formattedDateTime } })
       return res.status(201).json({
         status: 201,
         message: 'Event has been added successfully!',
       })
-    } else {
-      // console.log('check-body data 2', req.body)
-      console.log(false)
-      await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
+    } else if (checkIsUpdated.message === "Battery Critically Low") {
       return res.status(201).json({
+        status: 201,
+        message: 'Event has been added successfully!',
+      })
+    } else {
+       await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
+       return res.status(201).json({
         status: 201,
         message: 'Event has been added successfully!',
       })

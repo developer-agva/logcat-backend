@@ -23,6 +23,9 @@ router.get('/get-device-overview/:DeviceId', deviceController.getDeviceOverviewF
 router.put('/update-device-overview/:DeviceId', deviceController.updateDeviceOverviewForSalesById);  // Update single device overview for sales
 
 router.put('/payment-update', deviceController.updatePaymentStatus);
+router.get('/payment-update-for-email', deviceController.updatePaymentStatus2);
+router.put('/send-req-for-device-lock', deviceController.sendReqForDeviceLockOrUnlock);
+router.get('/get-lock-unlock-devices', deviceController.getLockUnlockDevices);
 
 router.get('/get-details/:DeviceId', deviceController.getDeviceById);
 router.delete('/delete-byid/:DeviceId', deviceController.deleteSingleDevice);

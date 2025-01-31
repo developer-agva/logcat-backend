@@ -31,7 +31,7 @@ const alert_ventilator_schemaV2 = new mongoose.Schema({
     { timestamps: true }
 );
 
-alert_ventilator_schemaV2.index({'type': 1})
+alert_ventilator_schemaV2.index({type: 1, did: 1, _id: 1 })
 
 const alert_ventilator_collectionV2 = mongoose.model('alert_ventilator_collection_v2', alert_ventilator_schemaV2);
 

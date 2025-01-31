@@ -24,6 +24,7 @@ var unirest = require("unirest");
 const axios = require('axios');
 const moment = require("moment");
 const {triggerEmail} = require("../helper/sendEmailOnCreateTicket.js");
+const {sendOtpForDeviceLock} = require("../helper/sendOtp.js")
 
 // sendEmailOnCreateTicket.sendEmailOnCreateTicket("sp10595@gamil.com", "ticket-assign", "did", "2025-01-22", "10:40 AM");
 // triggerEmail("salim@agvahealthtech.com", "ticket-assign", "did", "2025-01-22", "10:40 AM")
@@ -98,14 +99,233 @@ const createDevice = async (req, res) => {
 };
 
 
+// send req for device lock or unlock
+
+const sendReqForDeviceLockOrUnlock = async (req, res) => {
+  try {
+
+    const {DeviceId, isPaymentDone, isLocked, email} = req.body;
+    let checkDeviceId = await Device.findOne({ DeviceId: req.body.DeviceId })
+    console.log(11, checkDeviceId)
+    let prodData = await productionModel.findOne({deviceId:req.body.DeviceId});
+    console.log(22, prodData)
+    
+    if (!checkDeviceId) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "DeviceId not registered."
+      })
+    }
+
+    // define variables
+    let Hospital_Name = "NA";
+    let serialNumber = "NA";
+
+    if (prodData) {
+      if (prodData.serialNumber || prodData.serialNumber === null) {
+        serialNumber = prodData.serialNumber
+      }
+    }
+
+    if (checkDeviceId) {
+      if (checkDeviceId || checkDeviceId.Hospital_Name === null) {
+        Hospital_Name = checkDeviceId.Hospital_Name
+      }
+    }
+
+    await sendOtpForDeviceLock(email, DeviceId, isPaymentDone, isLocked, Hospital_Name, serialNumber);
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Req sent via email."
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+// send req for device lock or unlock
+
+const getLockUnlockDevices = async (req, res) => {
+  try {
+    
+    let { page, limit, search, sortBy } = req.query;
+    
+    search = search && search !== "undefined" ? search : "";
+    page = page && page !== "undefined" ? parseInt(page) : 1;
+    limit = limit && limit !== "undefined" && parseInt(limit) !== 0 ? parseInt(limit) : 500;
+    
+    // Create the regex for the search term if it's provided
+    const searchRegex = search ? new RegExp(search, "i") : null;
+    
+    // Get status data with aggregation
+    const statusData = await statusModel.aggregate([
+      {
+        $lookup: {
+          from: "registerdevices",
+          localField: "deviceId",
+          foreignField: "DeviceId",
+          as: "deviceInfo",
+        },
+      },
+      {
+        $lookup: {
+          from: "about_devices",
+          localField: "deviceId",
+          foreignField: "deviceId",
+          as: "aboutDeviceInfo",
+        },
+      },
+      {
+        $addFields: {
+          deviceInfo: { $arrayElemAt: ["$deviceInfo", 0] },
+          aboutDeviceInfo: { $arrayElemAt: ["$aboutDeviceInfo", 0] },
+          messageOrder: {
+            $cond: {
+              if: { $eq: ["$message", "ACTIVE"] },
+              then: 1, 
+              else: 2 
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          deviceId: 1,
+          message: 1,
+          Hospital_Name: { $ifNull: ["$deviceInfo.Hospital_Name", "--"] },
+          isLocked: { $ifNull: ["$deviceInfo.isLocked", "--"] },
+          isPaymentDone: { $ifNull: ["$deviceInfo.isPaymentDone", "--"] },
+          serial_no: { $ifNull: ["$aboutDeviceInfo.serial_no", "--"] },
+          messageOrder:1,
+        },
+      },
+      {
+        $sort: { messageOrder: 1 }
+      },  
+      ...(searchRegex ? [{
+        $match: {
+          $or: [
+            { deviceId: { $regex: searchRegex } },
+            { message: { $regex: searchRegex } },
+            { Hospital_Name: { $regex: searchRegex } },
+            { serial_no: { $regex: searchRegex } }
+          ]
+        }
+      }] : [])
+    ]);
+
+    const statusData2 = await statusModelV2.aggregate([
+      {
+        $lookup: {
+          from: "registerdevices",
+          localField: "deviceId",
+          foreignField: "DeviceId",
+          as: "deviceInfo",
+        },
+      },
+      {
+        $lookup: {
+          from: "about_devices",
+          localField: "deviceId",
+          foreignField: "deviceId",
+          as: "aboutDeviceInfo",
+        },
+      },
+      {
+        $addFields: {
+          deviceInfo: { $arrayElemAt: ["$deviceInfo", 0] },
+          aboutDeviceInfo: { $arrayElemAt: ["$aboutDeviceInfo", 0] },
+          messageOrder: {
+            $cond: {
+              if: { $eq: ["$message", "ACTIVE"] },
+              then: 1, 
+              else: 2 
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          deviceId: 1,
+          message: 1,
+          Hospital_Name: { $ifNull: ["$deviceInfo.Hospital_Name", "--"] },
+          isLocked: { $ifNull: ["$deviceInfo.isLocked", "--"] },
+          isPaymentDone: { $ifNull: ["$deviceInfo.isPaymentDone", "--"] },
+          serial_no: { $ifNull: ["$aboutDeviceInfo.serial_no", "--"] },
+          messageOrder:1,
+        },
+      },
+      {
+        $sort: { messageOrder: 1 },
+      },
+      
+      ...(searchRegex ? [{
+        $match: {
+          $or: [
+            { deviceId: { $regex: searchRegex } },
+            { message: { $regex: searchRegex } },
+            { Hospital_Name: { $regex: searchRegex } },
+            { serial_no: { $regex: searchRegex } }
+          ]
+        }
+      }] : [])
+    ]);
+
+    const mergedData = [...statusData, ...statusData2];
+    
+    
+    if (sortBy === "true") {
+      mergedData = mergedData.filter(item => item.isLocked === true);
+    } else if (sortBy === "false") {
+      mergedData = mergedData.filter(item => item.isLocked === false);
+    }
+
+    // Pagination logic
+    const totalRecords = mergedData.length;
+    const totalPages = Math.ceil(totalRecords / limit);
+    const paginatedData = mergedData.slice((page - 1) * limit, page * limit);
+    
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Devices retrieved successfully.",
+      data: paginatedData,
+      totalRecords,
+      currentPage: page,
+      totalPages
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
 const updatePaymentStatus = async (req, res) => {
   try {
     const schema = Joi.object({
       DeviceId: Joi.string().required(),
-      isPaymentDone: Joi.string().optional(),
-      isLocked: Joi.boolean().optional(),
+      isPaymentDone:Joi.string().optional(),
+      isLocked:Joi.boolean().optional(),
     })
-    // console.log(req.body)
     let result = schema.validate(req.body);
 
     if (result.error) {
@@ -115,9 +335,49 @@ const updatePaymentStatus = async (req, res) => {
         message: result.error.details[0].message,
       })
     }
-
+    
     //check deviceId
     const checkDeviceId = await Device.findOne({ DeviceId: req.body.DeviceId })
+    if (!checkDeviceId) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue:"FAIL",
+        message: "DeviceId not registered."
+      })
+    }
+
+    const deviceData = await Device.findOneAndUpdate(
+      { DeviceId: req.body.DeviceId },
+      { 
+        isPaymentDone: !!(req.body.isPaymentDone) ? req.body.isPaymentDone : "true",
+        isLocked: !!(req.body.isLocked) ? req.body.isLocked : false
+     },
+      { upsert: true, new: true }
+    );
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      data: deviceData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+const updatePaymentStatus2 = async (req, res) => {
+  try {
+
+    const {DeviceId, isPaymentDone, isLocked} = req.query; 
+    //check deviceId
+    const checkDeviceId = await Device.findOne({ DeviceId: DeviceId })
     if (!checkDeviceId) {
       return res.status(404).json({
         statusCode: 404,
@@ -127,18 +387,18 @@ const updatePaymentStatus = async (req, res) => {
     }
 
     const deviceData = await Device.findOneAndUpdate(
-      { DeviceId: req.body.DeviceId },
+      { DeviceId: DeviceId },
       {
-        isPaymentDone: !!(req.body.isPaymentDone) ? req.body.isPaymentDone : "true",
-        isLocked: !!(req.body.isLocked) ? req.body.isLocked : false
+        isPaymentDone: !!(isPaymentDone) ? isPaymentDone : "true",
+        isLocked: !!(isLocked) ? isLocked : false
       },
       { upsert: true, new: true }
     );
     return res.status(200).json({
-      statusCode: 200,
+      // statusCode: 200,
       statusValue: "SUCCESS",
       message:!!(deviceData.isPaymentDone === "true" && deviceData.isLocked == false) ? "Device has been unlocked successfully.":"Device has been locked successfully.",
-      data: deviceData
+      // data: deviceData
     });
   } catch (err) {
     return res.status(500).json({
@@ -521,6 +781,7 @@ const deleteSingleDevice = async (req, res) => {
 const getDeviceById = async (req, res) => {
   try {
     const { DeviceId } = req.params;
+    // console.log(111111)
     if (!DeviceId) {
       return res.status(400).json({
         statusCode: 400,
@@ -537,7 +798,10 @@ const getDeviceById = async (req, res) => {
         message: "DeviceId not registered.",
       })
     }
-    const data2 = await statusModel.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    let data2 = await statusModel.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    if (!data2) {
+      data2 = await statusModelV2.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
+    }
     data = {
       '_id': data._id,
       'DeviceId': data.DeviceId,
@@ -546,9 +810,9 @@ const getDeviceById = async (req, res) => {
       'Department_Name': data.Department_Name,
       'Doctor_Name': data.Doctor_Name,
       'Hospital_Name': data.Hospital_Name,
-      'IMEI_NO': data.IMEI_NO,
-      'message': data2.message,
-      'Ward_No': data.Ward_No,
+      'IMEI_NO': data.IMEI_NO || "",
+      'message': data2.message || "",
+      'Ward_No': data.Ward_No || "",
       'isAssigned': data.isAssigned,
       'address': data2.address,
       'health': data2.health,
@@ -7650,5 +7914,8 @@ module.exports = {
   getTicketDataCount,
   updateServiceAndTicketDetails,
   getServiceAndTicketDetailsByTicketnum,
-  getTicketWeeklyCounts
+  getTicketWeeklyCounts,
+  sendReqForDeviceLockOrUnlock,
+  getLockUnlockDevices,
+  updatePaymentStatus2
 }

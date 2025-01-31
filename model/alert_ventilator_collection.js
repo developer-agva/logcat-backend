@@ -50,7 +50,7 @@ const mongoose = require('mongoose');
             schemaOptions
         )
 
-        alert_ventilator_collectionSchema.index({'type': 1})
+        alert_ventilator_collectionSchema.index({type: 1, did: 1, _id: 1});
                 
         const alert_ventilator_collection = mongoose.model('alert_ventilator_collection', alert_ventilator_collectionSchema)
         
