@@ -133,6 +133,7 @@ router.post('/status/:project_code', deviceController.saveStatus);
 // new route for all upcomming products
 router.post('/v2/status/:productCode', deviceController.saveStatusV2); // v2-version
 
+
 router.get('/deviceOverview/:deviceId/:project_code', isAuth, deviceController.getDeviceOverviewById);
 router.post('/add-dispatch-details/:project_code', deviceController.addAboutDevice);
 router.post('/return-device/:project_code', deviceController.returnDevice);

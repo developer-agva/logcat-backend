@@ -25,6 +25,7 @@ const axios = require('axios');
 const moment = require("moment");
 const {triggerEmail} = require("../helper/sendEmailOnCreateTicket.js");
 const {sendOtpForDeviceLock} = require("../helper/sendOtp.js")
+// const moment = require("moment-timezone");
 
 // sendEmailOnCreateTicket.sendEmailOnCreateTicket("sp10595@gamil.com", "ticket-assign", "did", "2025-01-22", "10:40 AM");
 // triggerEmail("salim@agvahealthtech.com", "ticket-assign", "did", "2025-01-22", "10:40 AM")
@@ -2888,7 +2889,7 @@ const getAllServices = async (req, res) => {
     const loggedInUser = await User.findById({ _id: verified.user });
     // console.log(11, loggedInUser)
     let ticketAccess = {}
-    if (!!loggedInUser && ((loggedInUser.userType === "Support" && loggedInUser.email === "support@agvahealthtech.com") || loggedInUser.userType === "Admin" || loggedInUser.userType === "Super-Admin")) {
+    if (!!loggedInUser && ((loggedInUser.userType === "Support" && loggedInUser.email === "support@agvahealthtech.com") || loggedInUser.userType === "Admin" || loggedInUser.userType === "Super-Admin" || loggedInUser.userType === "Marketing-Admin")) {
       ticketAccess = {}
     } else {
       ticketAccess = { $or: [{ "email": loggedInUser.email }, { "ticketInfo.service_engineer": loggedInUser.email }] }
@@ -3739,6 +3740,7 @@ const saveStatus = async (req, res) => {
   }
 }
 
+
 // new api for all upcomming products
 const saveStatusV2 = async (req, res) => {
   try {
@@ -3783,6 +3785,33 @@ const saveStatusV2 = async (req, res) => {
         upsert: true,
       }
     );
+   
+    // generate history code
+    const moment = require("moment-timezone");
+    const currentDateTimeIST = moment().tz("Asia/Kolkata").format("YYYY-MM-DD HH:mm:ss");
+    const currentDate = currentDateTimeIST.split(" ")[0];
+    // console.log(123, currentDateTimeIST)
+    const getData = await statusModelV2.findOne({ deviceId: req.body.deviceId }).lean();
+    if(getData) {
+      await statusModelV2History.findOneAndUpdate(
+        {deviceId:req.body.deviceId,activeDate:currentDate},
+        { $set: { 
+          lastActive: currentDateTimeIST,
+          activeDate:currentDate,
+          message: req.body.message,
+          health: req.body.health,
+          last_hours: req.body.last_hours || "",
+          total_hours: req.body.total_hours || "",
+          address: req.body.address || "",
+          type: req.params.productCode
+        } },
+        { upsert: true });
+      return res.status(201).json({
+        statusCode: 201,
+        statusValue: "SUCCESS",
+        message: "Data added successfully."
+      })
+    }
     return res.status(201).json({
       statusCode: 201,
       statusValue: "SUCCESS",
@@ -4784,6 +4813,7 @@ const todayActiveDevicesCountModel = require('../model/todayActiveDeviceCountMod
 const { get } = require('https');
 const assignTicketModel = require('../model/assignTicketModel');
 const sendEmailOnCreateTicket = require('../helper/sendEmailOnCreateTicket');
+const statusModelV2History = require('../model/statusModelV2History.js');
 // const { ConfigurationServicePlaceholders } = require('aws-sdk/lib/config_service_placeholders');
 
 // const jwtr = require("jwtr-redis").default;
@@ -6487,6 +6517,7 @@ const getWMYDemoDataCountForAgvaPro = async (req, res) => {
     });
   }
 }
+
 
 
 const getActiveDevicesCountForAgvaPro = async (req, res) => {

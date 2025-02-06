@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const deviceController = require('../controller/deviceController');
 const locationController = require('../controller/locationController');
+const demoDeviceController = require("../controller/demoDeviceController.js");
 const router = express.Router();
 const { isAuth, isAdmin } = require("../middleware/authMiddleware.js");
 // const File = require("../model/File.js");
@@ -88,6 +89,23 @@ router.post("/upload-files", upload.single("file"), (req, res) => {
   });
 });
   
+
+// sales/lead route
+router.get("/demo-device-count-details/:product_code", demoDeviceController.getDeviceCountDetails)
+router.get("/demo-device-count-details-for-graph/:product_code", demoDeviceController.getDeviceCountDetailsForGraph)
+
+
+router.post("/add-lead-data", demoDeviceController.addInitialLead);
+router.put("/update-lead-data/:leadId", demoDeviceController.updateLeadById);
+router.post("/add-schedule-demo/:leadId", demoDeviceController.updateScheduledDemoByLeadId);
+router.post("/add-dispatch-demo/:leadId", demoDeviceController.updateDispatchDemoByLeadId);
+router.post("/add-for-sales/:leadId", demoDeviceController.addDeviceForSalesByLeadId);
+router.post("/add-demo-complete-data/:leadId", demoDeviceController.addDemoCompletedByLeadId);
+router.get("/get-all-leads", demoDeviceController.getAllLeads);
+router.get("/get-single-lead/:leadId", demoDeviceController.getLeadById);
+
+router.get("/get-leads-count", demoDeviceController.getLeadsCount);
+
 
 
 module.exports = router
