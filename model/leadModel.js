@@ -127,6 +127,7 @@ const leadSchema = mongoose.Schema({
         deliveryNoteImageUrl: { type: String, default: "" },
         expectedDeliveryDate: { type: String, default: "" },
         invoiceNumber: { type: String, default: "" },
+        addedDate: { type: String, default: "" }
      }],
 },
     { timestamps: true })

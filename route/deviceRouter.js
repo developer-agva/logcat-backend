@@ -100,6 +100,9 @@ router.put("/update-lead-data/:leadId", demoDeviceController.updateLeadById);
 router.post("/add-schedule-demo/:leadId", demoDeviceController.updateScheduledDemoByLeadId);
 router.post("/add-dispatch-demo/:leadId", demoDeviceController.updateDispatchDemoByLeadId);
 router.post("/add-for-sales/:leadId", demoDeviceController.addDeviceForSalesByLeadId);
+router.post("/add-for-sales-confirmed/:leadId", demoDeviceController.addDeviceForSalesConfirmedByLeadId);
+router.post("/add-dispatch-for-sales/:leadId", demoDeviceController.addDispatchForSalesByLeadId);
+
 router.post("/add-demo-complete-data/:leadId", demoDeviceController.addDemoCompletedByLeadId);
 router.get("/get-all-leads", demoDeviceController.getAllLeads);
 router.get("/get-single-lead/:leadId", demoDeviceController.getLeadById);

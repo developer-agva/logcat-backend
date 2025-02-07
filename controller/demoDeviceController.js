@@ -749,6 +749,165 @@ const addDeviceForSalesByLeadId = async (req, res) => {
 };
 
 
+const addDispatchForSalesByLeadId = async (req, res) => {
+  try {
+    const { leadId } = req.params;
+
+    // Define Joi validation schema for dispatchSalesDevice
+    const schema = Joi.object({
+      serialNumbers: Joi.array().items(Joi.string()).required(),
+      deviceIds: Joi.array().items(Joi.string()).required(),
+      deliveringVia: Joi.string().required(),
+      docketNo: Joi.string().required(),
+      expectedDeliveryDate: Joi.string().required(),
+      invoiceNumber: Joi.string().required(),
+    });
+
+    // Validate request body
+    const result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      });
+    }
+
+    const {
+      serialNumbers,
+      deviceIds,
+      deliveringVia,
+      docketNo,
+      expectedDeliveryDate,
+      invoiceNumber,
+    } = req.body;
+
+    // Get current date for addedDate field
+    const leadAddedDate = new Date().toISOString().split("T")[0];
+
+    // Find and update the lead document (overwrite `dispatchSalesDevice`)
+    const updatedLead = await leadModel.findOneAndUpdate(
+      { leadId },
+      {
+        $set: {
+          dispatchSalesDevice: [
+            {
+              serialNumbers,
+              deviceIds,
+              deliveringVia,
+              docketNo,
+              expectedDeliveryDate,
+              invoiceNumber,
+              addedDate: leadAddedDate,
+            },
+          ],
+        },
+      },
+      { new: true }
+    );
+
+    // If lead not found, return error
+    if (!updatedLead) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "Lead not found.",
+      });
+    }
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Dispatch sales data updated successfully.",
+      data: updatedLead,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      },
+    });
+  }
+};
+
+
+const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
+  try {
+    const { leadId } = req.params;
+    
+    // Define Joi validation schema
+    const schema = Joi.object({
+      advanceAmount: Joi.string().required(),
+      paymentProof: Joi.string().required(),
+      commitedDeliveryDate: Joi.string().required(),
+      scheduleOfPayment: Joi.string().required(),
+      remainingAmount: Joi.string().required(),
+      // salesStatus: Joi.string().required(),
+    });
+
+    // Validate request body
+    const result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      });
+    }
+
+    const {
+      advanceAmount,
+      paymentProof,
+      commitedDeliveryDate,
+      scheduleOfPayment,
+      remainingAmount,
+    } = req.body;
+
+    const lead = await leadModel.findOne({ leadId });
+    if (!lead) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "Lead not found.",
+      });
+    }
+    // Update the lead document with new sales data
+    if (lead.sales && lead.sales.length > 0) {
+      lead.sales[0].advanceAmount = advanceAmount;
+      lead.sales[0].paymentProof = paymentProof;
+      lead.sales[0].commitedDeliveryDate = commitedDeliveryDate;
+      lead.sales[0].scheduleOfPayment = scheduleOfPayment;
+      lead.sales[0].remainingAmount = remainingAmount;
+      lead.sales[0].salesStatus = "Confirmed";
+    }
+
+    await lead.save();
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Sales updated successfully.",
+      data: lead,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      },
+    });
+  }
+};
+
 
 const addDemoCompletedByLeadId = async (req, res) => {
   try {
@@ -868,5 +1027,7 @@ module.exports = {
   getLeadsCount,
   updateDispatchDemoByLeadId,
   addDemoCompletedByLeadId,
-  addDeviceForSalesByLeadId
+  addDeviceForSalesByLeadId,
+  addDeviceForSalesConfirmedByLeadId,
+  addDispatchForSalesByLeadId
 }
