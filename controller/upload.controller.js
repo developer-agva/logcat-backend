@@ -29,6 +29,7 @@ const exp = require('constants');
 const assignTicketModel = require('../model/assignTicketModel');
 const servicesModel = require('../model/servicesModel');
 const appHistorytModel = require('../model/androidAppHistoryModel');  
+const leadModel = require('../model/leadModel');
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
 
@@ -82,6 +83,79 @@ exports.uploadAndroidApp = async (req, res) => {
     })
     const saveDoc = await bodyDoc.save();
 }
+
+
+exports.uploadVisitingCard = async (req, res) => {
+    try {
+        // Validate if file exists
+        if (!req.file || !req.file.location) {
+            return res.status(400).json({
+                statusCode: 400,
+                statusValue: "FAIL",
+                message: "No file uploaded or invalid file data.",
+            });
+        }
+        res.json(req.file);
+    } catch (error) {
+        console.error("Error uploading visiting card:", error);
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "ERROR",
+            message: "Internal server error. Please try again later.",
+        });
+    }
+};
+
+
+exports.uploadDeliveryNote = async (req, res) => {
+    try {
+        const { leadId } = req.params;
+
+        // Validate if file exists
+        if (!req.file || !req.file.location) {
+            return res.status(400).json({
+                statusCode: 400,
+                statusValue: "FAIL",
+                message: "No file uploaded or invalid file data.",
+            });
+        }
+
+        // Find the lead in the database
+        const leadData = await leadModel.findOne({ leadId });
+        if (!leadData) {
+            return res.status(400).json({
+                statusCode: 400,
+                statusValue: "FAIL",
+                message: "Error! Wrong leadId",
+            });
+        }
+
+        // Update lead with visiting card image URL
+        const updatedLead = await leadModel.findOneAndUpdate(
+            { leadId },
+            { $set: { visitingCardImageUrl: req.file.location } },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            statusCode: 200,
+            statusValue: "SUCCESS",
+            message: "Visiting card uploaded successfully.",
+            data: {
+                leadId: updatedLead.leadId,
+                visitingCardImageUrl: updatedLead.visitingCardImageUrl,
+            },
+        });
+    } catch (error) {
+        console.error("Error uploading visiting card:", error);
+        return res.status(500).json({
+            statusCode: 500,
+            statusValue: "ERROR",
+            message: "Internal server error. Please try again later.",
+        });
+    }
+};
+
 
 exports.getAppHistory = async (req, res) => {
     try {

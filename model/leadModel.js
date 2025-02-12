@@ -128,7 +128,21 @@ const leadSchema = mongoose.Schema({
         expectedDeliveryDate: { type: String, default: "" },
         invoiceNumber: { type: String, default: "" },
         addedDate: { type: String, default: "" }
-     }],
+    }],
+    paymentUpdates:[{
+        serialNumbers: [{ type: String, default: "" }],
+        deviceIds: [{ type: String, default: "" }],
+        totalAmount: { type: String, default: "" },
+        advanceAmount: { type: String, default: "" },
+        remainingAmount: { type: String, default: "" },
+        paymentReceived: { type: String, default: "0" },
+        paymentTerms: { type: String, default: "" },
+        paymentMode: { type: String, default: "" },
+        paymentImageUrl: { type: String, default: "" },
+        nextExpectedPaymentDate: { type: String, default: "" },
+        addedDate: { type: String, default: "" }
+    }],
+
 },
     { timestamps: true })
 

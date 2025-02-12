@@ -102,6 +102,7 @@ router.post("/add-dispatch-demo/:leadId", demoDeviceController.updateDispatchDem
 router.post("/add-for-sales/:leadId", demoDeviceController.addDeviceForSalesByLeadId);
 router.post("/add-for-sales-confirmed/:leadId", demoDeviceController.addDeviceForSalesConfirmedByLeadId);
 router.post("/add-dispatch-for-sales/:leadId", demoDeviceController.addDispatchForSalesByLeadId);
+router.post("/add-payment-updates/:leadId", demoDeviceController.addPaymentUpdatesByLeadId);
 
 router.post("/add-demo-complete-data/:leadId", demoDeviceController.addDemoCompletedByLeadId);
 router.get("/get-all-leads", demoDeviceController.getAllLeads);

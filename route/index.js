@@ -38,5 +38,12 @@ router.get('/get-app-list/:project_code', uploadController.getAppHistory);
  // for upload error handling
 router.post('/upload-single-v2', uploadController.uploadSingleV2);
 
+
+// for sales
+router.post('/upload-visiting-card', upload.single('file'), uploadController.uploadVisitingCard);
+router.post('/upload-delivery-note/:leadId', upload.single('file'), uploadController.uploadVisitingCard);
+
+
+
 module.exports = router;
 

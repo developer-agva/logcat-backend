@@ -228,32 +228,94 @@ const getDeviceCountDetailsForGraph = async (req, res) => {
     // console.log("data1", deviceIds);
 
     // Get all registered devices where Hospital_Name is not 'AgVa Healthcare'
-    const notIncludedIds = await trackSoldDemoDeviceModel.distinct("deviceId", {
-      type: product_code,
-      purpose: { $in: ["Demo", "Sold"] }
-    });
+    const dispatchDemoDevices = await leadModel.aggregate([
+      {
+        $match: {
+          "dispatchDemo.0": { $exists: true },
+          // "dispatchDemo.0": { $exists: true } 
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          deviceIds: {
+            $reduce: {
+              input: "$dispatchDemo",
+              initialValue: [],
+              in: { $concatArrays: ["$$value", "$$this.deviceIds"] }
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          allDeviceIds: { $push: "$deviceIds" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          allDeviceIds: { $reduce: { input: "$allDeviceIds", initialValue: [], in: { $concatArrays: ["$$value", "$$this"] } } }
+        }
+      }
+    ]);
+    
+    const demoDevices = [...new Set(dispatchDemoDevices[0].allDeviceIds)]
+    
+    const dispatchSalesDevices = await leadModel.aggregate([
+      {
+        $match: {
+          "dispatchSalesDevice.0": { $exists: true },
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          deviceIds: {
+            $reduce: {
+              input: "$dispatchSalesDevice",
+              initialValue: [],
+              in: { $concatArrays: ["$$value", "$$this.deviceIds"] }
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          allDeviceIds: { $push: "$deviceIds" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          allDeviceIds: { $reduce: { input: "$allDeviceIds", initialValue: [], in: { $concatArrays: ["$$value", "$$this"] } } }
+        }
+      }
+    ]);
+    
+    const salesDevices = [...new Set(dispatchSalesDevices[0].allDeviceIds)]
+    const demoAndSalesIds = [...demoDevices, ...salesDevices]
 
-    const demoDeviceIds = await trackSoldDemoDeviceModel.distinct("deviceId", {
-      type: product_code,
-      purpose: "Demo"
-    });
+    // console.log(123, notIncludedIds)
+    const filteredDeviceIds = deviceIds.filter(deviceId => !demoAndSalesIds.includes(deviceId));
 
-    // console.log(123, notIncludedIds.length)
+    const productionDeviceIds = [...new Set(filteredDeviceIds)]
 
-    const deviceIdsFromnotIncludedIds = notIncludedIds.map(item => item.deviceId);
-    const filteredDeviceIds = deviceIds.filter(deviceId => !deviceIdsFromnotIncludedIds.includes(deviceId));
-
-    const productionCount = [...new Set(filteredDeviceIds)]
-    console.log(123, productionCount.length)
-
-
+    // /**-----TOTAL DEVICE COUNT-------*/
+    const deviceStatus = await statusModelV2.distinct("deviceId", { type: product_code })
+    const totalDevices = deviceStatus
+    
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Device counts retrieved successfully.",
-      data1: {
-        demoCount: demoDeviceIds.length,
-        productionCount: productionCount.length
+      data: {
+        demoCount: demoDevices.length,
+        salesCount: salesDevices.length,
+        productionCount: productionDeviceIds.length,
+        totalDeviceCount: totalDevices.length
       }
     });
 
@@ -274,29 +336,35 @@ const getDeviceCountDetailsForGraph = async (req, res) => {
 const addInitialLead = async (req, res) => {
   try {
     const { product_code } = req.params;
-    const {
-      hospitalName,
-      email,
-      contact,
-      leadSource,
-      dealerName,
-      address,
-      state,
-      city,
-      concernPersonName,
-      concernPersonContact,
-      pincode,
-      leadType
-    } = req.body;
-
-    if (!hospitalName || !email || !contact || !leadSource || !dealerName ||
-      !address || !state || !city || !concernPersonName || !concernPersonContact || !pincode || !leadType) {
+    const schema = Joi.object({
+      hospitalName: Joi.string().required(),
+      email: Joi.string().required(),
+      contact: Joi.string().required(),
+      leadSource: Joi.string().required(),
+      dealerName: Joi.string().required(),
+      address: Joi.string().required(),
+      state: Joi.string().required(),
+      city: Joi.string().required(),
+      concernPersonName: Joi.string().required(),
+      concernPersonContact: Joi.string().required(),
+      pincode: Joi.string().required(),
+      leadType: Joi.string().required(),
+      visitingCardImageUrl: Joi.string().allow("").optional()
+    });
+    
+    // Validate request body
+    const result = schema.validate(req.body);
+    
+    if (result.error) {
       return res.status(400).json({
         statusCode: 400,
         statusValue: "FAIL",
-        message: "All fields are required.",
+        message: result.error.details[0].message,
       });
     }
+    
+     const {hospitalName,email,contact,leadSource,dealerName,address,state,
+      city,concernPersonName,concernPersonContact,pincode,leadType,visitingCardImageUrl} = req.body;
 
     const leadId = Math.floor(1000 + Math.random() * 9000).toString();
     const leadAddedDate = new Date().toISOString().split('T')[0];
@@ -314,8 +382,10 @@ const addInitialLead = async (req, res) => {
       concernPersonContact,
       pincode,
       leadAddedDate,
-      leadType
+      leadType,
+      visitingCardImageUrl: visitingCardImageUrl || ""
     })
+    
     const saveDoc = await bodydoc.save();
     if (saveDoc) {
       return res.status(201).json({
@@ -481,7 +551,8 @@ const updateLeadById = async (req, res) => {
       concernPersonName,
       concernPersonContact,
       pincode,
-      leadType
+      leadType,
+      visitingCardImageUrl
     } = req.body;
 
     // Check if lead exists
@@ -509,7 +580,8 @@ const updateLeadById = async (req, res) => {
         concernPersonName,
         concernPersonContact,
         pincode,
-        leadType
+        leadType,
+        visitingCardImageUrl:visitingCardImageUrl || existingLead.visitingCardImageUrl
       },
       { new: true }
     );
@@ -612,6 +684,7 @@ const updateDispatchDemoByLeadId = async (req, res) => {
       docketNo: Joi.string().required(),
       expectedDeliveryDate: Joi.string().required(),
       deliveringVia: Joi.string().required(),
+      deliveryNoteImageUrl: Joi.string().allow("").optional()
     });
     
     // Validate request body
@@ -625,7 +698,7 @@ const updateDispatchDemoByLeadId = async (req, res) => {
       });
     }
 
-    const { dispatchedFrom, serialNumbers, deviceIds, docketNo, expectedDeliveryDate, deliveringVia } = req.body;
+    const { dispatchedFrom, serialNumbers, deviceIds, docketNo, expectedDeliveryDate, deliveringVia, deliveryNoteImageUrl } = req.body;
     const updatedLead = await leadModel.findOneAndUpdate(
       { leadId },
       {
@@ -636,7 +709,8 @@ const updateDispatchDemoByLeadId = async (req, res) => {
             deviceIds,
             docketNo,
             expectedDeliveryDate,
-            deliveringVia
+            deliveringVia,
+            deliveryNoteImageUrl: deliveryNoteImageUrl || ""
           }]
         }
       },
@@ -685,6 +759,7 @@ const addDeviceForSalesByLeadId = async (req, res) => {
       remark: Joi.string().allow("").optional(),
       warrantyDuration: Joi.string().allow("").optional(),
       paymentType: Joi.string().allow("").optional(),
+      poImageUrl: Joi.string().allow("").optional(),
     });
     
     // Validate request body
@@ -698,7 +773,7 @@ const addDeviceForSalesByLeadId = async (req, res) => {
       });
     }
 
-    const { totalAmount, expectedDeliveryDate, accessories, paymentTerms, remark, warrantyDuration, paymentType} = req.body;
+    const { totalAmount, expectedDeliveryDate, accessories, paymentTerms, remark, warrantyDuration, paymentType, poImageUrl} = req.body;
     const leadAddedDate = new Date().toISOString().split('T')[0];
     const updatedLead = await leadModel.findOneAndUpdate(
       { leadId },
@@ -713,7 +788,8 @@ const addDeviceForSalesByLeadId = async (req, res) => {
             warrantyDuration,
             paymentType,
             salesStatus: "Pending",
-            addedDate: leadAddedDate
+            addedDate: leadAddedDate,
+            poImageUrl: poImageUrl || ""
           }]
         }
       },
@@ -836,6 +912,117 @@ const addDispatchForSalesByLeadId = async (req, res) => {
 };
 
 
+const addPaymentUpdatesByLeadId = async (req, res) => {
+  try {
+    const { leadId } = req.params;
+
+    // Define Joi validation schema for dispatchSalesDevice
+    const schema = Joi.object({
+      serialNumbers: Joi.array().items(Joi.string()).required(),
+      deviceIds: Joi.array().items(Joi.string()).required(),
+      paymentReceived: Joi.string().required(),
+      paymentTerms: Joi.string().allow("").optional(),
+      paymentMode: Joi.string().required(),
+      paymentImageUrl: Joi.string().required(),
+      nextPaymentDate: Joi.string().optional(),
+    });
+
+    // Validate request body
+    const result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: result.error.details[0].message,
+      });
+    }
+
+    const {
+      serialNumbers,
+      deviceIds,
+      paymentTerms,
+      paymentMode,
+      nextPaymentDate,
+      paymentImageUrl,
+      paymentReceived
+    } = req.body;
+    
+    // Calculate remainingAmount
+    const leadData = await leadModel.findOne({ leadId }, { sales: 1, paymentUpdates: 1 });
+
+    if (!leadData) {
+      return res.status(404).json({ message: "Lead not found" });
+    }
+
+    const totalAmt = parseFloat(leadData.sales[0]?.totalAmount) || 0;
+    const advanceAmt = parseFloat(leadData.sales[0]?.advanceAmount) || 0;
+
+    // Sum all previous paymentReceived values
+    const paymentReceivedTotal = leadData.paymentUpdates?.reduce((acc, curr) => {
+      return acc + (parseFloat(curr.paymentReceived) || 0);
+    }, 0) || 0;
+
+    // Calculate remainingAmount as totalAmt - (advanceAmt + all previous paymentReceived amounts)
+    let remainingAmount = (totalAmt - (advanceAmt + paymentReceivedTotal)).toString();
+
+    // Subtract the new paymentReceived value from remainingAmount
+    remainingAmount = (parseFloat(remainingAmount) - (parseFloat(paymentReceived) || 0)).toString();
+    // Get current date for addedDate field
+    const leadAddedDate = new Date().toISOString().split("T")[0];
+
+    // Find and update the lead document (overwrite `dispatchSalesDevice`)
+    const updatedLead = await leadModel.findOneAndUpdate(
+      { leadId },
+      {
+        $push: {
+          paymentUpdates: {
+            serialNumbers,
+            deviceIds,
+            totalAmount: totalAmt,
+            advanceAmount: advanceAmt,
+            remainingAmount,
+            paymentReceived,
+            paymentTerms,
+            paymentMode,
+            nextExpectedPaymentDate: nextPaymentDate || "",
+            addedDate:leadAddedDate,
+            paymentImageUrl: paymentImageUrl || ""
+          },
+        },
+      },
+      { new: true }
+    );
+
+    // If lead not found, return error
+    if (!updatedLead) {
+      return res.status(404).json({
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "Lead not found.",
+      });
+    }
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Dispatch sales data updated successfully.",
+      data: updatedLead,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      },
+    });
+  }
+};
+
+
 const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
   try {
     const { leadId } = req.params;
@@ -847,7 +1034,6 @@ const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
       commitedDeliveryDate: Joi.string().required(),
       scheduleOfPayment: Joi.string().required(),
       remainingAmount: Joi.string().required(),
-      // salesStatus: Joi.string().required(),
     });
 
     // Validate request body
@@ -866,6 +1052,7 @@ const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
       commitedDeliveryDate,
       scheduleOfPayment,
       remainingAmount,
+      // poImageUrl
     } = req.body;
 
     const lead = await leadModel.findOne({ leadId });
@@ -884,6 +1071,7 @@ const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
       lead.sales[0].scheduleOfPayment = scheduleOfPayment;
       lead.sales[0].remainingAmount = remainingAmount;
       lead.sales[0].salesStatus = "Confirmed";
+      // lead.sales[0].poImageUrl = poImageUrl
     }
 
     await lead.save();
@@ -918,6 +1106,7 @@ const addDemoCompletedByLeadId = async (req, res) => {
       expectedSalesDate: Joi.string().required(),
       amountQuoted: Joi.string().required(),
       expectedClosingAmount: Joi.string().required(),
+      feedBackReportImageUrl: Joi.string().allow("").optional()
     });
     
     const result = schema.validate(req.body);
@@ -929,7 +1118,7 @@ const addDemoCompletedByLeadId = async (req, res) => {
         message: result.error.details[0].message,
       });
     }
-    const { feedBack, expectedSalesDate, amountQuoted, expectedClosingAmount } = req.body;
+    const { feedBack, expectedSalesDate, amountQuoted, expectedClosingAmount, feedBackReportImageUrl } = req.body;
 
     const updatedLead = await leadModel.findOneAndUpdate(
       { leadId },
@@ -939,7 +1128,8 @@ const addDemoCompletedByLeadId = async (req, res) => {
             feedBack,
             expectedSalesDate,
             amountQuoted,
-            expectedClosingAmount
+            expectedClosingAmount,
+            feedBackReportImageUrl: feedBackReportImageUrl || ""
           }]
         }
       },
@@ -1029,5 +1219,6 @@ module.exports = {
   addDemoCompletedByLeadId,
   addDeviceForSalesByLeadId,
   addDeviceForSalesConfirmedByLeadId,
-  addDispatchForSalesByLeadId
+  addDispatchForSalesByLeadId,
+  addPaymentUpdatesByLeadId
 }
