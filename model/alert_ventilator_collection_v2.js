@@ -9,7 +9,7 @@ const alert_ventilator_schemaV2 = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ["002","003","004","005", "006", "007"],
+        enum: ["002","003","004","005", "006", "007", "008", "009"],
         required: [true, "type is required."]
     },
     ack:{
