@@ -38,7 +38,11 @@ const statusSchema = mongoose.Schema({
     activeDate:{
         type: String,
         default:""
-    }
+    },
+    purpose:{
+        type: String,
+        default: ""
+    },
 },
     { timestamps: true })
 

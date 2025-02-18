@@ -91,8 +91,13 @@ router.post("/upload-files", upload.single("file"), (req, res) => {
   
 
 // sales/lead route
-router.get("/demo-device-count-details/:product_code", demoDeviceController.getDeviceCountDetails)
-router.get("/demo-device-count-details-for-graph/:product_code", demoDeviceController.getDeviceCountDetailsForGraph)
+router.get("/demo-device-count-details/:product_code", demoDeviceController.getDeviceCountDetails);
+router.get("/total-device-count-details/:product_code", demoDeviceController.getTotalDeviceCountDetails);
+router.get("/device-summay-list/:product_code", demoDeviceController.getDeviceSummaryList);
+
+router.get("/demo-device-count-details-for-graph/:product_code", demoDeviceController.getDeviceCountDetailsForGraph);
+router.get("/get-year-month-wise-data-count/:product_code", demoDeviceController.getYearMonthWiseDataCount);
+router.get("/get-year-month-wise-data-count-for-devices/:product_code", demoDeviceController.getYearMonthWiseDataCountForDevices);   // for demo prod sold devices
 
 
 router.post("/add-lead-data", demoDeviceController.addInitialLead);

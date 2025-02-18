@@ -47,7 +47,11 @@ const statusSchema = mongoose.Schema({
     lastActive:{
         type: String,
         default:"--"
-    }
+    },
+    purpose:{
+        type: String,
+        default: ""
+    },
 },
     { timestamps: true })
 
