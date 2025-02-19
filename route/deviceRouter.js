@@ -97,7 +97,11 @@ router.get("/device-summay-list/:product_code", demoDeviceController.getDeviceSu
 
 router.get("/demo-device-count-details-for-graph/:product_code", demoDeviceController.getDeviceCountDetailsForGraph);
 router.get("/get-year-month-wise-data-count/:product_code", demoDeviceController.getYearMonthWiseDataCount);
-router.get("/get-year-month-wise-data-count-for-devices/:product_code", demoDeviceController.getYearMonthWiseDataCountForDevices);   // for demo prod sold devices
+router.get("/get-year-month-wise-data-count-for-devices/:product_code", demoDeviceController.getYearMonthWiseDataCountForDevices); // for demo prod sold devices
+
+router.get("/get-weekly-dispatch-device-count/:product_code", demoDeviceController.getWeeklyDispatchedDevicesCount);
+router.get("/get-monthly-dispatch-device-count/:product_code", demoDeviceController.getMonthlyDispatchedDevicesCount);
+router.get("/get-dispatch-device-chart-data/:product_code", demoDeviceController.getDispatchDeviceChartData);
 
 
 router.post("/add-lead-data", demoDeviceController.addInitialLead);
@@ -114,7 +118,6 @@ router.get("/get-all-leads", demoDeviceController.getAllLeads);
 router.get("/get-single-lead/:leadId", demoDeviceController.getLeadById);
 
 router.get("/get-leads-count", demoDeviceController.getLeadsCount);
-
 
 
 module.exports = router

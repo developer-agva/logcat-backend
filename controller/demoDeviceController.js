@@ -30,6 +30,7 @@ const registeredDevice = require("../model/RegisterDevice.js")
 const moment = require("moment-timezone");
 const trackSoldDemoDeviceModel = require('../model/trackDemoSoldDeviceModel.js');
 const leadModel = require('../model/leadModel.js');
+const productionModel = require('../model/productionModel.js');
 
 
 const getDeviceCountDetails = async (req, res) => {
@@ -37,7 +38,7 @@ const getDeviceCountDetails = async (req, res) => {
     const { product_code } = req.params;
     /** -------PRODUCTION DATA COUNT------ **/
     // Get all deviceIds from the statusModelV2 collection
-    const deviceIds = await statusModelV2.distinct("deviceId", { type: product_code });
+    const deviceIds = await statusModelV2.distinct("deviceId", {});
     // console.log("data1", deviceIds);
 
     // Get all registered devices where Hospital_Name is not 'AgVa Healthcare'
@@ -87,7 +88,7 @@ const getDeviceCountDetails = async (req, res) => {
         }
       }
     ]);
-    
+
     // const demoDevices = dispatchDemoDevices[0].allDeviceIds
     const notIncludedIds = dispatchDemoAndSoldDevices[0].allDeviceIds
 
@@ -112,7 +113,7 @@ const getDeviceCountDetails = async (req, res) => {
     const dispatchDemoDevices = await leadModel.aggregate([
       {
         $match: {
-          "dispatchDemo.0": { $exists: true } 
+          "dispatchDemo.0": { $exists: true }
         }
       },
       {
@@ -140,15 +141,15 @@ const getDeviceCountDetails = async (req, res) => {
         }
       }
     ]);
-    
+
     const demoDevices = dispatchDemoDevices[0].allDeviceIds
-    
+
     const matchedDeviceIds = demoDevices;
 
     const activeAggregation = await statusModelV2History.aggregate([
       {
         $match: {
-          type: product_code,
+          // type: product_code,
           message: "ACTIVE",
           lastActive: { $exists: true, $ne: "" },
           deviceId: { $in: matchedDeviceIds },
@@ -178,7 +179,7 @@ const getDeviceCountDetails = async (req, res) => {
     const inactiveAggregation = await statusModelV2History.aggregate([
       {
         $match: {
-          type: product_code,
+          // type: product_code,
           message: "INACTIVE",
           lastActive: { $gte: last7DaysIST, $lte: nowIST },
           deviceId: { $in: matchedDeviceIds },
@@ -216,7 +217,7 @@ const getDeviceCountDetails = async (req, res) => {
       statusValue: "SUCCESS",
       message: "Device counts retrieved successfully.",
       data: response,
-      test:demoDevices
+      test: demoDevices
     });
   } catch (err) {
     res.status(500).json({
@@ -238,7 +239,7 @@ const getTotalDeviceCountDetails = async (req, res) => {
     const { product_code } = req.params;
     /** -------PRODUCTION DATA COUNT------ **/
     // Get all deviceIds from the statusModelV2 collection
-    const deviceIds = await statusModelV2.distinct("deviceId", { type: product_code });
+    const deviceIds = await statusModelV2.distinct("deviceId", {});
     // console.log("data1", deviceIds);
 
     // Get all registered devices where Hospital_Name is not 'AgVa Healthcare'
@@ -333,12 +334,12 @@ const getTotalDeviceCountDetails = async (req, res) => {
         }
       }
     ]);
-    
+
     const disDemoDevices = [... new Set(dispatchDemoDevices[0].dispatchDemoDevices)]
     // console.log(disDemoDevices)
 
     /**-----TOTAL DEVICE COUNT-------*/
-    const deviceStatus = await statusModelV2.distinct("deviceId", { type: product_code })
+    const deviceStatus = await statusModelV2.distinct("deviceId", {})
     const totalDeviceCount = deviceStatus.length;
 
     // Get IST timestamps in string format
@@ -347,15 +348,15 @@ const getTotalDeviceCountDetails = async (req, res) => {
     const last7DaysIST = moment().tz("Asia/Kolkata").subtract(7, "days").format("YYYY-MM-DD HH:mm:ss");
 
     /** ----------------- ACTIVE DEVICES (LAST 7 DAYS, LAST 24 HOURS) ----------------- **/
-    
+
     // const demoDevices = dispatchDemoDevices[0].allDeviceIds
-    
+
     // const matchedDeviceIds = demoDevices;
 
     const activeAggregation = await statusModelV2History.aggregate([
       {
         $match: {
-          type: product_code,
+          // type: product_code,
           message: "ACTIVE",
           lastActive: { $exists: true, $ne: "" },
           // deviceId: { $in: matchedDeviceIds },
@@ -385,7 +386,7 @@ const getTotalDeviceCountDetails = async (req, res) => {
     const inactiveAggregation = await statusModelV2History.aggregate([
       {
         $match: {
-          type: product_code,
+          // type: product_code,
           message: "INACTIVE",
           lastActive: { $gte: last7DaysIST, $lte: nowIST },
           // deviceId: { $in: matchedDeviceIds },
@@ -442,63 +443,104 @@ const getTotalDeviceCountDetails = async (req, res) => {
 
 const getDeviceSummaryList = async (req, res) => {
   try {
-    const { product_code } = req.params;
-    const deviceIds = await statusModelV2.find(
-      { type: product_code },
-      { deviceId: 1, purpose: 1, message: 1, lastActive:1, _id: 0 }
-    );
-    
+
+    // Get search query
+    let search = req.query.search ? req.query.search.trim().toLowerCase() : "";
+
+    // Pagination
+    let { page, limit } = req.query;
+    page = page && parseInt(page) > 0 ? parseInt(page) : 1;
+    limit = limit && parseInt(limit) > 0 ? parseInt(limit) : 20;
+    const skip = (page - 1) * limit;
+
+    // Fetch device status data
+    const deviceIds = await statusModelV2.find({}, { deviceId: 1, purpose: 1, message: 1, lastActive: 1, _id: 0 });
+
     // Fetch leads data
-    const leadsData = await leadModel.find(
-      {},
-      {
-        leadId: 1,
-        hospitalName: 1,
-        email: 1,
-        contact: 1,
-        leadSource: 1,
-        dealerName: 1,
-        state: 1,
-        city: 1,
-        dispatchSalesDevice: 1,
-        dispatchDemo: 1,
-      }
-    );
-    
-    const result = [];
-    
+    const leadsData = await leadModel.find({}, {
+      leadId: 1, hospitalName: 1, email: 1, contact: 1,
+      leadSource: 1, dealerName: 1, state: 1, city: 1,
+      dispatchSalesDevice: 1, dispatchDemo: 1, type: 1,
+    });
+
+    // Fetch production data
+    const prodData = await productionModel.find({}, { deviceId: 1, serialNumber: 1, _id: 0 });
+
+    // Create a lookup map for serial numbers
+    const serialNumberMap = prodData.reduce((acc, { deviceId, serialNumber }) => {
+      acc[deviceId] = serialNumber;
+      return acc;
+    }, {});
+
+    // Create a lookup map for leads
+    const leadDeviceMap = new Map();
+
     leadsData.forEach((lead) => {
-      const { leadId, hospitalName, email, contact, leadSource, dealerName, state, city, dispatchDemo, dispatchSalesDevice } = lead;
-    
-      deviceIds.forEach(({ deviceId, purpose, message, lastActive }) => {
-        // Check if deviceId exists in dispatchDemo or dispatchSalesDevice
-        const isInDemo = dispatchDemo?.some((demo) => demo.deviceIds.includes(deviceId));
-        const isInSales = dispatchSalesDevice?.some((sales) => sales.deviceIds.includes(deviceId));
-    
-        if (isInDemo || isInSales) {
-          result.push({
-            leadId,
-            hospitalName,
-            email,
-            contact,
-            leadSource,
-            dealerName,
-            state,
-            city,
-            deviceId,
-            purpose, // Now taken directly from statusModelV2
-            message,
-            lastActive
-          });
-        }
+      const { leadId, hospitalName, email, contact, leadSource, dealerName, state, city, type, dispatchDemo, dispatchSalesDevice } = lead;
+
+      [...(dispatchDemo || []), ...(dispatchSalesDevice || [])].forEach(({ deviceIds }) => {
+        deviceIds.forEach((id) => {
+          leadDeviceMap.set(id, { leadId, hospitalName, email, contact, leadSource, dealerName, state, city, type });
+        });
       });
     });
-    
+
+    // Process each deviceId and merge with lead data
+    const result = deviceIds.map(({ deviceId, purpose, message, lastActive }) => {
+      const leadData = leadDeviceMap.get(deviceId) || {
+        leadId: "",
+        hospitalName: "",
+        email: "",
+        contact: "",
+        leadSource: "",
+        dealerName: "",
+        state: "",
+        city: "",
+        type: "",
+      };
+
+      return {
+        ...leadData,
+        deviceId,
+        serialNumber: serialNumberMap[deviceId] || null,
+        purpose,
+        message,
+        lastActive,
+      };
+    });
+
+    // **Filter results based on search query (case-insensitive, partial match)**
+    let filteredResult = result;
+    if (search) {
+      filteredResult = result.filter((item) => {
+        const deviceIdLower = item.deviceId.toLowerCase();
+        const serialNumberLower = item.serialNumber ? item.serialNumber.toLowerCase() : "";
+        return deviceIdLower.includes(search) || serialNumberLower.includes(search);
+      });
+    }
+
+    // **Sort the results so that "ACTIVE" records come first**
+    filteredResult.sort((a, b) => {
+      if (a.message === "ACTIVE" && b.message === "INACTIVE") return -1;
+      if (a.message === "INACTIVE" && b.message === "ACTIVE") return 1;
+      return 0;
+    });
+
+    // **Calculate total pages**
+    const totalDataCount = filteredResult.length;
+    const totalPages = Math.ceil(totalDataCount / limit);
+
+    // **Apply pagination**
+    const paginatedResult = filteredResult.slice(skip, skip + limit);
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Device summary retrieved successfully.",
-      data: result,
+      data: paginatedResult,
+      totalDataCount,
+      totalPages,
+      currentPage: page,
+      limit
     });
   } catch (err) {
     res.status(500).json({
@@ -520,7 +562,7 @@ const getYearMonthWiseDataCount = async (req, res) => {
     const filter = req.query.filter;
     /** -------PRODUCTION DATA COUNT------ **/
     // Get all deviceIds from the statusModelV2 collection
-    const deviceIds = await statusModelV2.distinct("deviceId", { type: product_code });
+    const deviceIds = await statusModelV2.distinct("deviceId", {});
     // console.log("data1", deviceIds);
 
     // Get all registered devices where Hospital_Name is not 'AgVa Healthcare'
@@ -556,7 +598,7 @@ const getYearMonthWiseDataCount = async (req, res) => {
         }
       }
     ]);
-    
+
     const demoDevices = [...new Set(dispatchDemoDevices[0].allDeviceIds)]
     // console.log("demo-devices", demoDevices)
 
@@ -591,7 +633,7 @@ const getYearMonthWiseDataCount = async (req, res) => {
         }
       }
     ]);
-    
+
     const salesDevices = [...new Set(dispatchSalesDevices[0].allDeviceIds)]
     // console.log('sales-devices', salesDevices)
     const demoAndSalesIds = [...demoDevices, ...salesDevices]
@@ -604,9 +646,9 @@ const getYearMonthWiseDataCount = async (req, res) => {
     // console.log("prod-devices", productionDeviceIds)
 
     // /**-----TOTAL DEVICE COUNT-------*/
-    const deviceStatus = await statusModelV2.distinct("deviceId", { type: product_code })
+    const deviceStatus = await statusModelV2.distinct("deviceId", {})
     const totalDevices = deviceStatus
-    
+
     const currentYear = new Date().getFullYear();
     // Ensure all 12 months exist
     const allMonths = [
@@ -620,7 +662,7 @@ const getYearMonthWiseDataCount = async (req, res) => {
         {
           $match: {
             deviceId: { $in: demoDevices },
-            message: "ACTIVE" 
+            message: "ACTIVE"
           },
         },
         {
@@ -629,7 +671,7 @@ const getYearMonthWiseDataCount = async (req, res) => {
               $dateFromString: {
                 dateString: "$lastActive",
                 format: "%Y-%m-%d %H:%M:%S",
-                onError: null, 
+                onError: null,
               },
             },
           },
@@ -637,33 +679,33 @@ const getYearMonthWiseDataCount = async (req, res) => {
         {
           $match: {
             lastActiveDate: {
-              $gte: new Date(`${currentYear}-01-01T00:00:00Z`), 
+              $gte: new Date(`${currentYear}-01-01T00:00:00Z`),
               $lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
             },
           },
         },
         {
           $addFields: {
-            month: { $dateToString: { format: "%m", date: "$lastActiveDate" } }, 
-            monthName: { $dateToString: { format: "%B", date: "$lastActiveDate" } }, 
+            month: { $dateToString: { format: "%m", date: "$lastActiveDate" } },
+            monthName: { $dateToString: { format: "%B", date: "$lastActiveDate" } },
           },
         },
         {
           $group: {
             _id: "$month",
-            monthName: { $first: "$monthName" }, 
-            uniqueDevices: { $addToSet: "$deviceId" }, 
+            monthName: { $first: "$monthName" },
+            uniqueDevices: { $addToSet: "$deviceId" },
           },
         },
         {
           $project: {
-            month: { $toInt: "$_id" }, 
+            month: { $toInt: "$_id" },
             monthName: 1,
-            count: { $size: "$uniqueDevices" }, 
+            count: { $size: "$uniqueDevices" },
           },
         },
         {
-          $sort: { month: 1 }, 
+          $sort: { month: 1 },
         },
       ];
       const aggregateQuery2 = [
@@ -679,7 +721,7 @@ const getYearMonthWiseDataCount = async (req, res) => {
               $dateFromString: {
                 dateString: "$lastActive",
                 format: "%Y-%m-%d %H:%M:%S",
-                onError: null, 
+                onError: null,
               },
             },
           },
@@ -687,39 +729,39 @@ const getYearMonthWiseDataCount = async (req, res) => {
         {
           $match: {
             lastActiveDate: {
-              $gte: new Date(`${currentYear}-01-01T00:00:00Z`), 
+              $gte: new Date(`${currentYear}-01-01T00:00:00Z`),
               $lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
             },
           },
         },
         {
           $addFields: {
-            month: { $dateToString: { format: "%m", date: "$lastActiveDate" } }, 
-            monthName: { $dateToString: { format: "%B", date: "$lastActiveDate" } }, 
+            month: { $dateToString: { format: "%m", date: "$lastActiveDate" } },
+            monthName: { $dateToString: { format: "%B", date: "$lastActiveDate" } },
           },
         },
         {
           $group: {
             _id: "$month",
-            monthName: { $first: "$monthName" }, 
-            uniqueDevices: { $addToSet: "$deviceId" }, 
+            monthName: { $first: "$monthName" },
+            uniqueDevices: { $addToSet: "$deviceId" },
           },
         },
         {
           $project: {
-            month: { $toInt: "$_id" }, 
+            month: { $toInt: "$_id" },
             monthName: 1,
-            count: { $size: "$uniqueDevices" }, 
+            count: { $size: "$uniqueDevices" },
           },
         },
         {
-          $sort: { month: 1 }, 
+          $sort: { month: 1 },
         },
-      ]; 
+      ];
       // Execute aggregation
       const statusHistory = await statusModelV2History.aggregate(aggregateQuery);
       const statusHistory2 = await statusModelV2History.aggregate(aggregateQuery2);
-      
+
       const finalResult = allMonths.map((month, index) => {
         const found = statusHistory.find(entry => entry.month === index + 1);
         return {
@@ -740,7 +782,7 @@ const getYearMonthWiseDataCount = async (req, res) => {
         statusValue: "SUCCESS",
         message: "Device counts retrieved successfully.",
         demoDeviceCount: finalResult,
-        totalDeviceCount:finalResult2
+        totalDeviceCount: finalResult2
       });
     }
   } catch (err) {
@@ -761,9 +803,9 @@ const getYearMonthWiseDataCountForDevices = async (req, res) => {
   try {
     const { product_code } = req.params;
     // Get all deviceIds from the statusModelV2 collection
-    const deviceStatus = await statusModelV2.distinct("deviceId", { type: product_code })
+    const deviceStatus = await statusModelV2.distinct("deviceId", {})
     const totalDevices = deviceStatus
-    
+
     const currentYear = new Date().getFullYear();
     // Ensure all 12 months exist
     const allMonths = [
@@ -771,133 +813,133 @@ const getYearMonthWiseDataCountForDevices = async (req, res) => {
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ];
 
-      // console.log(demoDevices)
-      const aggregateQuery = [
-        {
-          $match: {
-            deviceId: { $in: totalDevices },
-            message: "ACTIVE" 
-          },
+    // console.log(demoDevices)
+    const aggregateQuery = [
+      {
+        $match: {
+          deviceId: { $in: totalDevices },
+          message: "ACTIVE"
         },
-        {
-          $addFields: {
-            lastActiveDate: {
-              $dateFromString: {
-                dateString: "$lastActive",
-                format: "%Y-%m-%d %H:%M:%S",
-                onError: null, 
-              },
+      },
+      {
+        $addFields: {
+          lastActiveDate: {
+            $dateFromString: {
+              dateString: "$lastActive",
+              format: "%Y-%m-%d %H:%M:%S",
+              onError: null,
             },
           },
         },
-        {
-          $match: {
-            lastActiveDate: {
-              $gte: new Date(`${currentYear}-01-01T00:00:00Z`), 
-              $lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
+      },
+      {
+        $match: {
+          lastActiveDate: {
+            $gte: new Date(`${currentYear}-01-01T00:00:00Z`),
+            $lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
+          },
+        },
+      },
+      {
+        $addFields: {
+          month: { $dateToString: { format: "%m", date: "$lastActiveDate" } },
+          monthName: { $dateToString: { format: "%B", date: "$lastActiveDate" } },
+        },
+      },
+      {
+        $group: {
+          _id: "$month",
+          monthName: { $first: "$monthName" },
+          uniqueDevices: { $addToSet: "$deviceId" },
+        },
+      },
+      {
+        $project: {
+          month: { $toInt: "$_id" },
+          monthName: 1,
+          count: { $size: "$uniqueDevices" },
+        },
+      },
+      {
+        $sort: { month: 1 },
+      },
+    ];
+    const aggregateQuery2 = [
+      {
+        $match: {
+          deviceId: { $in: totalDevices }
+          // message: "ACTIVE" 
+        },
+      },
+      {
+        $addFields: {
+          lastActiveDate: {
+            $dateFromString: {
+              dateString: "$lastActive",
+              format: "%Y-%m-%d %H:%M:%S",
+              onError: null,
             },
           },
         },
-        {
-          $addFields: {
-            month: { $dateToString: { format: "%m", date: "$lastActiveDate" } }, 
-            monthName: { $dateToString: { format: "%B", date: "$lastActiveDate" } }, 
+      },
+      {
+        $match: {
+          lastActiveDate: {
+            $gte: new Date(`${currentYear}-01-01T00:00:00Z`),
+            $lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
           },
         },
-        {
-          $group: {
-            _id: "$month",
-            monthName: { $first: "$monthName" }, 
-            uniqueDevices: { $addToSet: "$deviceId" }, 
-          },
+      },
+      {
+        $addFields: {
+          month: { $dateToString: { format: "%m", date: "$lastActiveDate" } },
+          monthName: { $dateToString: { format: "%B", date: "$lastActiveDate" } },
         },
-        {
-          $project: {
-            month: { $toInt: "$_id" }, 
-            monthName: 1,
-            count: { $size: "$uniqueDevices" }, 
-          },
+      },
+      {
+        $group: {
+          _id: "$month",
+          monthName: { $first: "$monthName" },
+          uniqueDevices: { $addToSet: "$deviceId" },
         },
-        {
-          $sort: { month: 1 }, 
+      },
+      {
+        $project: {
+          month: { $toInt: "$_id" },
+          monthName: 1,
+          count: { $size: "$uniqueDevices" },
         },
-      ];
-      const aggregateQuery2 = [
-        {
-          $match: {
-            deviceId: { $in: totalDevices }
-            // message: "ACTIVE" 
-          },
-        },
-        {
-          $addFields: {
-            lastActiveDate: {
-              $dateFromString: {
-                dateString: "$lastActive",
-                format: "%Y-%m-%d %H:%M:%S",
-                onError: null, 
-              },
-            },
-          },
-        },
-        {
-          $match: {
-            lastActiveDate: {
-              $gte: new Date(`${currentYear}-01-01T00:00:00Z`), 
-              $lt: new Date(`${currentYear + 1}-01-01T00:00:00Z`),
-            },
-          },
-        },
-        {
-          $addFields: {
-            month: { $dateToString: { format: "%m", date: "$lastActiveDate" } }, 
-            monthName: { $dateToString: { format: "%B", date: "$lastActiveDate" } }, 
-          },
-        },
-        {
-          $group: {
-            _id: "$month",
-            monthName: { $first: "$monthName" }, 
-            uniqueDevices: { $addToSet: "$deviceId" }, 
-          },
-        },
-        {
-          $project: {
-            month: { $toInt: "$_id" }, 
-            monthName: 1,
-            count: { $size: "$uniqueDevices" }, 
-          },
-        },
-        {
-          $sort: { month: 1 }, 
-        },
-      ]; 
-      // Execute aggregation
-      const statusHistory = await statusModelV2History.aggregate(aggregateQuery);
-      const statusHistory2 = await statusModelV2History.aggregate(aggregateQuery2);
-      
-      const finalResult = allMonths.map((month, index) => {
-        const found = statusHistory.find(entry => entry.month === index + 1);
-        return {
-          month: month,
-          count: found ? found.count : 0,
-        };
-      });
-      const finalResult2 = allMonths.map((month, index) => {
-        const found = statusHistory2.find(entry => entry.month === index + 1);
-        return {
-          month: month,
-          count: found ? found.count : 0,
-        };
-      });
+      },
+      {
+        $sort: { month: 1 },
+      },
+    ];
+    // Execute aggregation
+    const statusHistory = await statusModelV2History.aggregate(aggregateQuery);
+    const statusHistory2 = await statusModelV2History.aggregate(aggregateQuery2);
 
-      return res.status(200).json({
-        statusCode: 200,
-        statusValue: "SUCCESS",
-        message: "Device counts retrieved successfully.",
-        activeDeviceCount: finalResult,
-        totalDeviceCount:finalResult2
-      });
+    const finalResult = allMonths.map((month, index) => {
+      const found = statusHistory.find(entry => entry.month === index + 1);
+      return {
+        month: month,
+        count: found ? found.count : 0,
+      };
+    });
+    const finalResult2 = allMonths.map((month, index) => {
+      const found = statusHistory2.find(entry => entry.month === index + 1);
+      return {
+        month: month,
+        count: found ? found.count : 0,
+      };
+    });
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Device counts retrieved successfully.",
+      activeDeviceCount: finalResult,
+      totalDeviceCount: finalResult2
+    });
   } catch (err) {
     res.status(500).json({
       statusCode: 500,
@@ -911,7 +953,230 @@ const getYearMonthWiseDataCountForDevices = async (req, res) => {
   }
 }
 
-// console.log('check-data', getYearMonthWiseDataCount())
+
+const getWeeklyDispatchedDevicesCount = async (req, res) => {
+  try {
+    const { product_code } = req.params;
+    const leadsData = await leadModel.find({}, { dispatchDemo: 1, dispatchSalesDevice: 1 });
+
+    const dispatchDemoSet = new Map();
+    const dispatchSalesDeviceSet = new Map();
+
+    leadsData.forEach((lead) => {
+      lead.dispatchDemo.forEach((demo) => {
+        demo.deviceIds.forEach((deviceId) => {
+          if (!dispatchDemoSet.has(deviceId) || demo.addedDate < dispatchDemoSet.get(deviceId)) {
+            dispatchDemoSet.set(deviceId, demo.addedDate);
+          }
+        });
+      });
+
+      lead.dispatchSalesDevice.forEach((sales) => {
+        sales.deviceIds.forEach((deviceId) => {
+          if (!dispatchSalesDeviceSet.has(deviceId) || sales.addedDate < dispatchSalesDeviceSet.get(deviceId)) {
+            dispatchSalesDeviceSet.set(deviceId, sales.addedDate);
+          }
+        });
+      });
+    });
+
+    // Convert Map to array
+    const dispatchDemo = Array.from(dispatchDemoSet, ([deviceId, addedDate]) => ({ deviceId, addedDate }));
+    const dispatchSalesDevice = Array.from(dispatchSalesDeviceSet, ([deviceId, addedDate]) => ({ deviceId, addedDate }));
+
+    const moment = require("moment");
+
+    // Get today's date
+    const today = moment().startOf("day");
+
+    // Function to get week label (last 4 weeks)
+    const getWeekLabel = (addedDate) => {
+      const date = moment(addedDate, "YYYY-MM-DD");
+      const diffWeeks = today.diff(date, "weeks");
+
+      if (diffWeeks === 0) return "w1";
+      if (diffWeeks === 1) return "w2";
+      if (diffWeeks === 2) return "w3";
+      if (diffWeeks === 3) return "w4";
+      return null; // Ignore data older than 4 weeks
+    };
+
+    // Function to count items per week
+    const countByWeek = (data) => {
+      let counts = { w1: 0, w2: 0, w3: 0, w4: 0 };
+
+      data.forEach(({ addedDate }) => {
+        const weekLabel = getWeekLabel(addedDate);
+        if (weekLabel) counts[weekLabel]++;
+      });
+
+      return Object.keys(counts).map((key) => ({ data: key, count: counts[key] }));
+    };
+
+    // Calculate counts for both
+    const dispatchDemoCount = countByWeek(dispatchDemo);
+    const dispatchSalesCount = countByWeek(dispatchSalesDevice);
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Device counts retrieved successfully.",
+      dispatchDemoCount,
+      // data3: dispatchDemo,
+      dispatchSalesCount,
+      // data4: dispatchSalesDevice
+    });
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    })
+  }
+}
+
+
+const getMonthlyDispatchedDevicesCount = async (req, res) => {
+  try {
+    const { product_code } = req.params;
+    const leadsData = await leadModel.find({}, { dispatchDemo: 1, dispatchSalesDevice: 1 });
+
+    const dispatchDemoSet = new Map();
+    const dispatchSalesDeviceSet = new Map();
+    const moment = require("moment");
+
+    // Get current year
+    const currentYear = moment().year();
+
+    leadsData.forEach((lead) => {
+      lead.dispatchDemo.forEach((demo) => {
+        demo.deviceIds.forEach((deviceId) => {
+          if (!dispatchDemoSet.has(deviceId) || demo.addedDate < dispatchDemoSet.get(deviceId)) {
+            dispatchDemoSet.set(deviceId, demo.addedDate);
+          }
+        });
+      });
+
+      lead.dispatchSalesDevice.forEach((sales) => {
+        sales.deviceIds.forEach((deviceId) => {
+          if (!dispatchSalesDeviceSet.has(deviceId) || sales.addedDate < dispatchSalesDeviceSet.get(deviceId)) {
+            dispatchSalesDeviceSet.set(deviceId, sales.addedDate);
+          }
+        });
+      });
+    });
+
+    // Convert Map to array
+    const dispatchDemo = Array.from(dispatchDemoSet, ([deviceId, addedDate]) => ({ deviceId, addedDate }));
+    const dispatchSalesDevice = Array.from(dispatchSalesDeviceSet, ([deviceId, addedDate]) => ({ deviceId, addedDate }));
+
+    // Function to get month name from addedDate
+    const getMonthLabel = (addedDate) => moment(addedDate, "YYYY-MM-DD").format("MMM");
+
+    // Function to count items per month (Only for current year)
+    const countByMonth = (data) => {
+      let counts = {
+        Jan: 0, Feb: 0, Mar: 0, Apr: 0, May: 0, Jun: 0,
+        Jul: 0, Aug: 0, Sep: 0, Oct: 0, Nov: 0, Dec: 0
+      };
+
+      data.forEach(({ addedDate }) => {
+        const date = moment(addedDate, "YYYY-MM-DD");
+        if (date.year() === currentYear) {
+          const monthLabel = getMonthLabel(addedDate);
+          counts[monthLabel]++;
+        }
+      });
+
+      return Object.keys(counts).map((key) => ({ data: key, count: counts[key] }));
+    };
+
+    // Calculate counts for both
+    const dispatchDemoCount = countByMonth(dispatchDemo);
+    const dispatchSalesCount = countByMonth(dispatchSalesDevice);
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Device counts retrieved successfully.",
+      dispatchDemoCount,
+      dispatchSalesCount,
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
+
+
+const getDispatchDeviceChartData = async (req, res) => {
+  try {
+    const { product_code } = req.params;
+    const demoLeads = await leadModel.find({}, { dispatchDemo: 1, completedDemo: 1 });
+
+    const processDispatchData = (demoLeads) => {
+      let confirmedDispatchSet = new Set();
+      let pendingSet = new Set();
+
+      demoLeads.forEach((lead) => {
+        const dispatchDemo = lead.dispatchDemo || [];
+        const completedDemo = lead.completedDemo || [];
+
+        if (dispatchDemo.length > 0) {
+          // Collect all unique device IDs from dispatchDemo
+          const deviceIds = new Set(dispatchDemo.flatMap(demo => demo.deviceIds));
+
+          if (completedDemo.length > 0) {
+            // Move to confirmed if completedDemo length matches dispatchDemo length
+            deviceIds.forEach(deviceId => confirmedDispatchSet.add(deviceId));
+          } else {
+            // Move to pending if no completedDemo
+            deviceIds.forEach(deviceId => pendingSet.add(deviceId));
+          }
+        }
+      });
+
+      return {
+        confirmedDispatch: Array.from(confirmedDispatchSet),
+        pending: Array.from(pendingSet)
+      };
+    };
+    const result = processDispatchData(demoLeads);
+
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Device counts retrieved successfully.",
+      demoDispatchData: {
+        confirmedDispatch: result?.confirmedDispatch?.length,
+        pending: result?.pending?.length
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      }
+    });
+  }
+};
 
 
 const getDeviceCountDetailsForGraph = async (req, res) => {
@@ -919,7 +1184,7 @@ const getDeviceCountDetailsForGraph = async (req, res) => {
     const { product_code } = req.params;
     /** -------PRODUCTION DATA COUNT------ **/
     // Get all deviceIds from the statusModelV2 collection
-    const deviceIds = await statusModelV2.distinct("deviceId", { type: product_code });
+    const deviceIds = await statusModelV2.distinct("deviceId", {});
     // console.log("data1", deviceIds);
 
     // Get all registered devices where Hospital_Name is not 'AgVa Healthcare'
@@ -955,9 +1220,9 @@ const getDeviceCountDetailsForGraph = async (req, res) => {
         }
       }
     ]);
-    
+
     const demoDevices = [...new Set(dispatchDemoDevices[0].allDeviceIds)]
-    
+
     const dispatchSalesDevices = await leadModel.aggregate([
       {
         $match: {
@@ -989,7 +1254,7 @@ const getDeviceCountDetailsForGraph = async (req, res) => {
         }
       }
     ]);
-    
+
     const salesDevices = [...new Set(dispatchSalesDevices[0].allDeviceIds)]
     const demoAndSalesIds = [...demoDevices, ...salesDevices]
 
@@ -999,9 +1264,9 @@ const getDeviceCountDetailsForGraph = async (req, res) => {
     const productionDeviceIds = [...new Set(filteredDeviceIds)]
 
     // /**-----TOTAL DEVICE COUNT-------*/
-    const deviceStatus = await statusModelV2.distinct("deviceId", { type: product_code })
+    const deviceStatus = await statusModelV2.distinct("deviceId", {})
     const totalDevices = deviceStatus
-    
+
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -1044,12 +1309,13 @@ const addInitialLead = async (req, res) => {
       concernPersonContact: Joi.string().required(),
       pincode: Joi.string().required(),
       leadType: Joi.string().required(),
-      visitingCardImageUrl: Joi.string().allow("").optional()
+      visitingCardImageUrl: Joi.string().allow("").optional(),
+      type: Joi.string().required(),
     });
-    
+
     // Validate request body
     const result = schema.validate(req.body);
-    
+
     if (result.error) {
       return res.status(400).json({
         statusCode: 400,
@@ -1057,9 +1323,9 @@ const addInitialLead = async (req, res) => {
         message: result.error.details[0].message,
       });
     }
-    
-     const {hospitalName,email,contact,leadSource,dealerName,address,state,
-      city,concernPersonName,concernPersonContact,pincode,leadType,visitingCardImageUrl} = req.body;
+
+    const { hospitalName, email, contact, leadSource, dealerName, address, state,
+      city, concernPersonName, concernPersonContact, pincode, leadType, visitingCardImageUrl } = req.body;
 
     const leadId = Math.floor(1000 + Math.random() * 9000).toString();
     const leadAddedDate = new Date().toISOString().split('T')[0];
@@ -1078,9 +1344,10 @@ const addInitialLead = async (req, res) => {
       pincode,
       leadAddedDate,
       leadType,
-      visitingCardImageUrl: visitingCardImageUrl || ""
+      visitingCardImageUrl: visitingCardImageUrl || "",
+      type
     })
-    
+
     const saveDoc = await bodydoc.save();
     if (saveDoc) {
       return res.status(201).json({
@@ -1144,11 +1411,11 @@ const getAllLeads = async (req, res) => {
       if (lead.paymentUpdates && lead.paymentUpdates.length > 0) {
         lead.paymentUpdates = [lead.paymentUpdates[lead.paymentUpdates.length - 1]];
       }
-    });  
+    });
 
     // Count total leads matching the query
     const count = await leadModel.countDocuments(searchQuery);
-    
+
 
     if (leads.length > 0) {
       return res.status(200).json({
@@ -1201,7 +1468,7 @@ const getLeadsCount = async (req, res) => {
       // console.log(11, item)
       const words = item.toLowerCase().split(" ");
       // console.log(12, words)
-      const camelCaseKey = words[0] + (words[1] ? words[1][0].toUpperCase()+words[1].slice(1):"");
+      const camelCaseKey = words[0] + (words[1] ? words[1][0].toUpperCase() + words[1].slice(1) : "");
       acc[camelCaseKey] = leadsCount[item];
 
       return acc;
@@ -1253,7 +1520,8 @@ const updateLeadById = async (req, res) => {
       concernPersonContact,
       pincode,
       leadType,
-      visitingCardImageUrl
+      visitingCardImageUrl,
+      type
     } = req.body;
 
     // Check if lead exists
@@ -1282,7 +1550,8 @@ const updateLeadById = async (req, res) => {
         concernPersonContact,
         pincode,
         leadType,
-        visitingCardImageUrl:visitingCardImageUrl || existingLead.visitingCardImageUrl
+        visitingCardImageUrl: visitingCardImageUrl || existingLead.visitingCardImageUrl,
+        type
       },
       { new: true }
     );
@@ -1310,17 +1579,17 @@ const updateLeadById = async (req, res) => {
 
 const updateScheduledDemoByLeadId = async (req, res) => {
   try {
-    
+
     const { leadId } = req.params;
     const schema = Joi.object({
       deviceType: Joi.string().required(),
       contactPerson: Joi.string().required(),
       demoDate: Joi.string().required(),
     });
-    
+
     // Validate request body
     const result = schema.validate(req.body);
-    
+
     if (result.error) {
       return res.status(400).json({
         statusCode: 400,
@@ -1376,7 +1645,7 @@ const updateScheduledDemoByLeadId = async (req, res) => {
 
 const updateDispatchDemoByLeadId = async (req, res) => {
   try {
-    
+
     const { leadId } = req.params;
     const schema = Joi.object({
       dispatchedFrom: Joi.string().required(),
@@ -1392,10 +1661,10 @@ const updateDispatchDemoByLeadId = async (req, res) => {
       }
       return value;
     });
-    
+
     // Validate request body
     const result = schema.validate(req.body);
-    
+
     if (result.error) {
       return res.status(400).json({
         statusCode: 400,
@@ -1405,6 +1674,7 @@ const updateDispatchDemoByLeadId = async (req, res) => {
     }
 
     const { dispatchedFrom, serialNumbers, deviceIds, docketNo, expectedDeliveryDate, deliveringVia, deliveryNoteImageUrl } = req.body;
+    const addedDate = new Date().toISOString().split("T")[0];
     const updatedLead = await leadModel.findOneAndUpdate(
       { leadId },
       {
@@ -1416,15 +1686,16 @@ const updateDispatchDemoByLeadId = async (req, res) => {
             docketNo,
             expectedDeliveryDate,
             deliveringVia,
-            deliveryNoteImageUrl: deliveryNoteImageUrl || ""
+            deliveryNoteImageUrl: deliveryNoteImageUrl || "",
+            addedDate: addedDate
           }]
         }
       },
       { new: true }
     );
-    
 
-    if (!updatedLead) { 
+
+    if (!updatedLead) {
       return res.status(404).json({
         statusCode: 404,
         statusValue: "FAIL",
@@ -1433,7 +1704,7 @@ const updateDispatchDemoByLeadId = async (req, res) => {
     }
 
     await statusModelV2.updateMany(
-      { deviceId:{$in: deviceIds} },
+      { deviceId: { $in: deviceIds } },
       { $set: { purpose: "Demo" } }
     );
     return res.status(200).json({
@@ -1460,7 +1731,7 @@ const updateDispatchDemoByLeadId = async (req, res) => {
 
 const addDeviceForSalesByLeadId = async (req, res) => {
   try {
-    
+
     const { leadId } = req.params;
     const schema = Joi.object({
       totalAmount: Joi.string().required(),
@@ -1472,10 +1743,10 @@ const addDeviceForSalesByLeadId = async (req, res) => {
       paymentType: Joi.string().allow("").optional(),
       poImageUrl: Joi.string().allow("").optional(),
     });
-    
+
     // Validate request body
     const result = schema.validate(req.body);
-    
+
     if (result.error) {
       return res.status(400).json({
         statusCode: 400,
@@ -1484,7 +1755,7 @@ const addDeviceForSalesByLeadId = async (req, res) => {
       });
     }
 
-    const { totalAmount, expectedDeliveryDate, accessories, paymentTerms, remark, warrantyDuration, paymentType, poImageUrl} = req.body;
+    const { totalAmount, expectedDeliveryDate, accessories, paymentTerms, remark, warrantyDuration, paymentType, poImageUrl } = req.body;
     const leadAddedDate = new Date().toISOString().split('T')[0];
     const updatedLead = await leadModel.findOneAndUpdate(
       { leadId },
@@ -1606,9 +1877,9 @@ const addDispatchForSalesByLeadId = async (req, res) => {
         message: "Lead not found.",
       });
     }
-    
+
     await statusModelV2.updateMany(
-      { deviceId:{$in: deviceIds} },
+      { deviceId: { $in: deviceIds } },
       { $set: { purpose: "Sold" } }
     );
     return res.status(200).json({
@@ -1666,24 +1937,24 @@ const addPaymentUpdatesByLeadId = async (req, res) => {
       paymentImageUrl,
       paymentReceived
     } = req.body;
-    
+
     // Calculate remainingAmount
-    const leadData = await leadModel.findOne({ leadId }, { sales: 1, paymentUpdates: 1, dispatchSalesDevice:1});
-    
+    const leadData = await leadModel.findOne({ leadId }, { sales: 1, paymentUpdates: 1, dispatchSalesDevice: 1 });
+
     if (!leadData) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         statusCode: 404,
         statusValue: "FAIL",
-        message: "Lead not found" 
+        message: "Lead not found"
       });
     }
 
     // Check if leadData and dispatchSalesDevice exist
     if (!leadData.dispatchSalesDevice || leadData.dispatchSalesDevice.length === 0) {
       return res.status(404).json({
-          statusCode: 404,
-          statusValue: "FAIL",
-          message: "Dispatch sales device data not found. Please fill in the dispatch sales data before proceeding."
+        statusCode: 404,
+        statusValue: "FAIL",
+        message: "Dispatch sales device data not found. Please fill in the dispatch sales data before proceeding."
       });
     }
 
@@ -1721,7 +1992,7 @@ const addPaymentUpdatesByLeadId = async (req, res) => {
             paymentTerms,
             paymentMode,
             nextExpectedPaymentDate: nextPaymentDate || "",
-            addedDate:leadAddedDate,
+            addedDate: leadAddedDate,
             paymentImageUrl: paymentImageUrl || ""
           },
         },
@@ -1737,9 +2008,9 @@ const addPaymentUpdatesByLeadId = async (req, res) => {
         message: "Lead not found.",
       });
     }
-    
+
     await statusModelV2.updateMany(
-      { deviceId:{$in: deviceIds} },
+      { deviceId: { $in: deviceIds } },
       { $set: { purpose: "Sold" } }
     );
     return res.status(200).json({
@@ -1766,7 +2037,7 @@ const addPaymentUpdatesByLeadId = async (req, res) => {
 const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
   try {
     const { leadId } = req.params;
-    
+
     // Define Joi validation schema
     const schema = Joi.object({
       advanceAmount: Joi.string().required(),
@@ -1814,7 +2085,7 @@ const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
     }
 
     // Update the lead document with new sales data
-    
+
     if (lead.sales && lead.sales.length > 0) {
       lead.sales[0].advanceAmount = advanceAmount;
       lead.sales[0].paymentProof = paymentProof;
@@ -1824,7 +2095,7 @@ const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
       // Convert values to numbers for calculation
       const totalAmt = parseFloat(lead.sales[0].totalAmount);
       const advanceAmt = parseFloat(advanceAmount) || 0;
-      lead.sales[0].remainingAmount = (totalAmt-advanceAmt).toString();
+      lead.sales[0].remainingAmount = (totalAmt - advanceAmt).toString();
 
       lead.sales[0].salesStatus = "Confirmed";
       // lead.sales[0].poImageUrl = poImageUrl
@@ -1855,7 +2126,7 @@ const addDeviceForSalesConfirmedByLeadId = async (req, res) => {
 
 const addDemoCompletedByLeadId = async (req, res) => {
   try {
-    
+
     const { leadId } = req.params;
     const schema = Joi.object({
       feedBack: Joi.string().required(),
@@ -1864,9 +2135,9 @@ const addDemoCompletedByLeadId = async (req, res) => {
       expectedClosingAmount: Joi.string().required(),
       feedBackReportImageUrl: Joi.string().allow("").optional()
     });
-    
+
     const result = schema.validate(req.body);
-    
+
     if (result.error) {
       return res.status(400).json({
         statusCode: 400,
@@ -1980,5 +2251,8 @@ module.exports = {
   getYearMonthWiseDataCount,
   getTotalDeviceCountDetails,
   getDeviceSummaryList,
-  getYearMonthWiseDataCountForDevices
+  getYearMonthWiseDataCountForDevices,
+  getWeeklyDispatchedDevicesCount,
+  getMonthlyDispatchedDevicesCount,
+  getDispatchDeviceChartData
 }

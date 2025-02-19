@@ -83,6 +83,7 @@ const leadSchema = mongoose.Schema({
        deliveryNoteImageUrl: { type: String, default: "" },
        expectedDeliveryDate: { type: String, default: "" },
        deliveringVia: { type: String, default: "" },
+       addedDate: { type: String, default: "" }
     }],
     completedDemo:[{ 
         feedBack: { type: String, default: "" },
