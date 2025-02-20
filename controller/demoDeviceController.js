@@ -1123,9 +1123,11 @@ const getMonthlyDispatchedDevicesCount = async (req, res) => {
 
 const getDispatchDeviceChartData = async (req, res) => {
   try {
-    const { product_code } = req.params;
-    const demoLeads = await leadModel.find({}, { dispatchDemo: 1, completedDemo: 1 });
+    // Fetch data from MongoDB
+    const demoLeads = await leadModel.find({}, { dispatchDemo: 1, completedDemo: 1, _id:0 });
+    const salesLeads = await leadModel.find({}, { dispatchSalesDevice: 1, sales: 1, _id: 0 });
 
+    // Process demo dispatch data
     const processDispatchData = (demoLeads) => {
       let confirmedDispatchSet = new Set();
       let pendingSet = new Set();
@@ -1135,14 +1137,12 @@ const getDispatchDeviceChartData = async (req, res) => {
         const completedDemo = lead.completedDemo || [];
 
         if (dispatchDemo.length > 0) {
-          // Collect all unique device IDs from dispatchDemo
+          // Collect unique device IDs from dispatchDemo
           const deviceIds = new Set(dispatchDemo.flatMap(demo => demo.deviceIds));
 
           if (completedDemo.length > 0) {
-            // Move to confirmed if completedDemo length matches dispatchDemo length
             deviceIds.forEach(deviceId => confirmedDispatchSet.add(deviceId));
           } else {
-            // Move to pending if no completedDemo
             deviceIds.forEach(deviceId => pendingSet.add(deviceId));
           }
         }
@@ -1153,16 +1153,52 @@ const getDispatchDeviceChartData = async (req, res) => {
         pending: Array.from(pendingSet)
       };
     };
-    const result = processDispatchData(demoLeads);
+
+    // Process sales dispatch data
+    const processSalesData = (salesLeads) => {
+      let confirmedSalesSet = new Set();
+      let pendingSalesSet = new Set();
+
+      salesLeads.forEach((lead) => {
+        const sales = lead.sales || [];
+        const dispatchSalesDevice = lead.dispatchSalesDevice || [];
+
+        if (dispatchSalesDevice.length > 0) {
+          // Collect unique device IDs from dispatchSalesDevice
+          const deviceIds = new Set(dispatchSalesDevice.flatMap(device => device.deviceIds));
+
+          // Check if sales contains at least one "Confirmed" salesStatus
+          const hasConfirmedSales = sales.some(sale => sale.salesStatus === "Confirmed");
+
+          if (hasConfirmedSales) {
+            deviceIds.forEach(deviceId => confirmedSalesSet.add(deviceId));
+          } else {
+            deviceIds.forEach(deviceId => pendingSalesSet.add(deviceId));
+          }
+        }
+      });
+
+      return {
+        confirmedSales: Array.from(confirmedSalesSet),
+        pendingSales: Array.from(pendingSalesSet)
+      };
+    };
+
+    const demoResult = processDispatchData(demoLeads);
+    const salesResult = processSalesData(salesLeads);
 
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
       message: "Device counts retrieved successfully.",
       demoDispatchData: {
-        confirmedDispatch: result?.confirmedDispatch?.length,
-        pending: result?.pending?.length
-      }
+        confirmedDispatch: demoResult?.confirmedDispatch?.length,
+        pending: demoResult?.pending?.length
+      },
+      salesDispatchData: {
+        confirmedSales: salesResult?.confirmedSales?.length,
+        pendingSales: salesResult?.pendingSales?.length
+      },
     });
 
   } catch (err) {
@@ -1177,6 +1213,7 @@ const getDispatchDeviceChartData = async (req, res) => {
     });
   }
 };
+
 
 
 const getDeviceCountDetailsForGraph = async (req, res) => {
@@ -1293,6 +1330,7 @@ const getDeviceCountDetailsForGraph = async (req, res) => {
 }
 
 
+
 const addInitialLead = async (req, res) => {
   try {
     const { product_code } = req.params;
@@ -1325,7 +1363,7 @@ const addInitialLead = async (req, res) => {
     }
 
     const { hospitalName, email, contact, leadSource, dealerName, address, state,
-      city, concernPersonName, concernPersonContact, pincode, leadType, visitingCardImageUrl } = req.body;
+      city, concernPersonName, concernPersonContact, pincode, leadType, visitingCardImageUrl, type } = req.body;
 
     const leadId = Math.floor(1000 + Math.random() * 9000).toString();
     const leadAddedDate = new Date().toISOString().split('T')[0];
