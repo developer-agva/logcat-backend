@@ -972,7 +972,7 @@ const getTrendsByIdV2 = async (req, res) => {
       .sort({ _id: -1 })
       .limit(1000)
       .lean();
-    if (projectCode[0].type == "007") {
+    if (projectCode[0].type == "007" || projectCode[0].type == "008") {
       rawData = await trends_ventilator_collectionV2_model.find({ did, ...dateFilter}, { time :1, averageLeak:1, did:1, fio2:1, ie:1, mean_Airway:1, mode:1, mve:1, mvi:1, peep:1, pip:1, respiratory_Rate:1, texp:1, tinsp:1, type:1, vti:1, vte:1, sPo2:1, pr:1, createdAt:1, updatedAt:1 })
       .sort({ _id: -1 })
       .lean();
@@ -986,7 +986,7 @@ const getTrendsByIdV2 = async (req, res) => {
       return res.status(400).json({
         status: 0,
         statusCode: 400,
-        message: "Invalid startDate or endDate",
+        message: "Invalid project code.",
         data: [],
       });
     }
@@ -1011,7 +1011,6 @@ const getTrendsByIdV2 = async (req, res) => {
         },
       });
     }
-    
     
     // for pagination
     const paginateArray = (findDeviceById, page, limit) => {
@@ -3082,7 +3081,7 @@ const createAlertsNew = async (req, res) => {
       // Delete documents for each 'did' except the latest two
 
     }
-
+    
     // Save lastActive in status model
     // const statusData = await statusModel.find({})
 
@@ -4210,7 +4209,7 @@ const createTrendsV2 = async (req, res) => {
       });
       SaveTrends = await trends.save(trends);
 
-    } else if (req.params.project_code == "007") {
+    } else if (req.params.project_code == "007" || req.params.project_code == "008") {
       // console.log(req.body)
       const { time, averageLeak, did, fio2, ie, mean_Airway, mode, mve, mvi, peep, pip, respiratory_Rate, texp, tinsp, type, vti, vte, sPo2, pr } = req.body;
       const trends = await new trends_ventilator_collectionV2_model({

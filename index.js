@@ -145,7 +145,7 @@ const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
       // List of allowed origins
-      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000", "https://18.144.79.162:3000"];
+      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000", "https://18.144.79.162:3000", "http://172.23.100.127:3000"];
 
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -163,13 +163,97 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("A user connected");
   // start android logic
-  socket.on("AndroidStartUp", (deviceIdAndroid) => {
+  socket.on("AndroidStartUp", async (deviceIdAndroid) => {
     console.log("run android startup")
     if (deviceIdArr.includes(deviceIdAndroid)) {
-    } else {
+    } else{
       deviceIdArr.push(deviceIdAndroid)
     }
+    // try {
+    //   await feedbackModel.findOneAndUpdate(
+    //     {}, // use a filter here if needed
+    //     { $set: { name: deviceIdAndroid } },
+    //     { upsert: true, new: true }
+    //   );
+    //   console.log("Saved new deviceIdArr to DB:", deviceIdArr);
+    // } catch (err) {
+    //   console.error("Error saving deviceIdArr:", err);
+    // }
   })
+
+  // send payment status to android
+  socket.on("DeviceRequestForPaymentStatus", async (deviceId) => {
+    try {
+      const deviceDetails = await RegisterDevice.findOne(
+        { DeviceId: deviceId },
+        { createdAt: 0, updatedAt: 0, __v: 0 }
+      );
+      
+      if (!deviceDetails) {
+        console.error(`Device with ID ${deviceId} not found.`);
+        // socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^Device not found`);
+        return;
+      }
+      
+      console.log("android payment status", `${deviceId}^${deviceDetails.isPaymentDone}`);
+      socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}`);
+    } catch (error) {
+      // console.error("Error fetching device details:", error);
+      // socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^Error fetching payment status`);
+    }
+  });
+  
+
+  socket.on("ReactRequestForPaymentStatus", async (deviceId) => {
+    try {
+      const deviceDetails = await RegisterDevice.findOne(
+        { DeviceId: deviceId },
+        { createdAt: 0, updatedAt: 0, __v: 0 }
+      );
+  
+      if (!deviceDetails) {
+        console.error(`Device with ID ${deviceId} not found.`);
+        // socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^Device not found`);
+        return;
+      }
+  
+      console.log("react payment status", `${deviceId}^${deviceDetails.isPaymentDone}`);
+      socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}`);
+    } catch (error) {
+      console.error("Error fetching device details:", error);
+      // socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^Error fetching payment status`);
+    }
+  });
+  
+
+  // save locked status in db
+  socket.on("NodeReceivingLockedStatus", async (data) =>{
+    try {
+      console.log("locked status",data);
+      const dataArr = data?.split(",") || [];
+      // if (dataArr.length < 1) {
+      //   console.error("Invalid data format. Expected at least one element.");
+      //   return;
+      // }
+
+      const deviceId = dataArr[0];
+      const isPaymentDone = dataArr.length > 1 ? dataArr[1] : true;
+      const isLocked = dataArr.length > 2 ? dataArr[2] : false;
+      const lockedStatus = dataArr.length > 3 ? dataArr[3] : "";
+
+      // Update the database entry for the device
+      const updatedDevice = await RegisterDevice.findOneAndUpdate(
+        { DeviceId: deviceId },
+        { isPaymentDone, isLocked, lockedStatus },
+        { upsert: true, new: true }
+      );
+      // console.log("Device updated successfully:", "updatedDevice");
+
+    } catch (error) {
+      console.error("Error processing NodeReceivingLockedStatus event:", error);
+    }
+  })
+
   // start react logic`
   socket.on("ReactStartUp", (deviceIdReact) => {
     console.log("run react startup")
@@ -359,6 +443,8 @@ cron.schedule('0 0 * * *', () => {
 
 
 const mongoose = require("mongoose");
+const feedbackModel = require('./model/feedbackModel.js');
+const RegisterDevice = require('./model/RegisterDevice.js');
 async function moveOldTrendsData() {
     const db = mongoose.connection.db;
 

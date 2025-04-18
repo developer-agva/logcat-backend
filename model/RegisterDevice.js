@@ -69,7 +69,11 @@ const RegisterDeviceSchema = mongoose.Schema({
     isLocked:{
         type: Boolean,
         default:false,
-    }
+    },
+    lockedStatus: {
+        type: String,
+        default: ""
+    },
 },
     { timestamps: true })
 

@@ -107,9 +107,9 @@ const sendReqForDeviceLockOrUnlock = async (req, res) => {
 
     const {DeviceId, isPaymentDone, isLocked, email} = req.body;
     let checkDeviceId = await Device.findOne({ DeviceId: req.body.DeviceId })
-    console.log(11, checkDeviceId)
+    // console.log(11, checkDeviceId)
     let prodData = await productionModel.findOne({deviceId:req.body.DeviceId});
-    console.log(22, prodData)
+    // console.log(22, prodData)
     
     if (!checkDeviceId) {
       return res.status(404).json({
@@ -135,7 +135,7 @@ const sendReqForDeviceLockOrUnlock = async (req, res) => {
       }
     }
 
-    await sendOtpForDeviceLock(email, DeviceId, isPaymentDone, isLocked, Hospital_Name, serialNumber);
+    // await sendOtpForDeviceLock(email, DeviceId, isPaymentDone, isLocked, Hospital_Name, serialNumber);
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -346,20 +346,22 @@ const updatePaymentStatus = async (req, res) => {
         message: "DeviceId not registered."
       })
     }
-
+    
     const deviceData = await Device.findOneAndUpdate(
       { DeviceId: req.body.DeviceId },
       { 
         isPaymentDone: !!(req.body.isPaymentDone) ? req.body.isPaymentDone : "true",
         isLocked: !!(req.body.isLocked) ? req.body.isLocked : false
-     },
+      },
       { upsert: true, new: true }
     );
+
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
       data: deviceData
     });
+
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,
@@ -375,8 +377,7 @@ const updatePaymentStatus = async (req, res) => {
 
 const updatePaymentStatus2 = async (req, res) => {
   try {
-
-    const {DeviceId, isPaymentDone, isLocked} = req.query; 
+    const {DeviceId, isPaymentDone, isLocked, lockedStatus} = req.query; 
     //check deviceId
     const checkDeviceId = await Device.findOne({ DeviceId: DeviceId })
     if (!checkDeviceId) {
@@ -391,14 +392,16 @@ const updatePaymentStatus2 = async (req, res) => {
       { DeviceId: DeviceId },
       {
         isPaymentDone: !!(isPaymentDone) ? isPaymentDone : "true",
-        isLocked: !!(isLocked) ? isLocked : false
+        isLocked: !!(isLocked) ? isLocked : false,
+        lockedStatus: lockedStatus
       },
       { upsert: true, new: true }
     );
     return res.status(200).json({
-      // statusCode: 200,
+      statusCode: 200,
       statusValue: "SUCCESS",
-      message:!!(deviceData.isPaymentDone === "true" && deviceData.isLocked == false) ? "Device has been unlocked successfully.":"Device has been locked successfully.",
+      message:!!(deviceData.isPaymentDone === "true" && deviceData.isLocked == false) ? "Device unlock request has been sent successfully.":"Device lock request has been sent successfully.",
+      // message: "Device lock request has been sent successfully."
       // data: deviceData
     });
   } catch (err) {
@@ -1086,7 +1089,39 @@ const getDeviceByIdV2 = async (req, res) => {
       'total_hours': !!(data2.total_hours) ? data2.total_hours : "",
       'isPaymentDone': !!(data.isPaymentDone) ? data.isPaymentDone : "true",
       'isLocked': !!(data.isLocked) ? data.isLocked : false,
-    };
+      'lockedStatus': !!(data.lockedStatus) ? data.lockedStatus : "",
+    }
+ 
+    
+    const trends = await trends_ventilator_collectionV2_model.findOne({ did: DeviceId }, { did: 1, time: 1, createdAt: 1 })
+    .sort({ createdAt: -1 })
+    .exec();
+    
+    if (!trends) {
+      console.log("No trends data found. Ventilator is offline by default.");
+      data.lockedStatus = "Shutdown";
+    } else {
+      const currentUTC = new Date();
+      const twentyMinutesAgo = new Date(currentUTC.getTime() - 20 * 60 * 1000); // 20 minutes before now
+
+      // Convert '17-04-2025 17:01' => '2025-04-17T17:01:00' (local time interpretation)
+      const parsedTrendTimeStr = trends.time.replace(
+        /(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2})/,
+        "$3-$2-$1T$4:$5:00"
+      );
+      const parsedTrendTime = new Date(parsedTrendTimeStr);
+
+      console.log("Current UTC:", currentUTC.toISOString());
+      console.log("20 minutes ago:", twentyMinutesAgo.toISOString());
+      console.log("Parsed trend time (local):", parsedTrendTime.toString());
+
+      if (parsedTrendTime < twentyMinutesAgo) {
+        console.log("Ventilator is offline");
+        data.lockedStatus = "Shutdown";
+      } else {
+        console.log("Ventilator is active");
+      }
+    }
 
     if (!data) {
       return res.status(404).json({
@@ -4814,6 +4849,7 @@ const { get } = require('https');
 const assignTicketModel = require('../model/assignTicketModel');
 const sendEmailOnCreateTicket = require('../helper/sendEmailOnCreateTicket');
 const statusModelV2History = require('../model/statusModelV2History.js');
+const trends_ventilator_collectionV2_model = require('../model/trends_ventilator_collection_v2.js');
 // const { ConfigurationServicePlaceholders } = require('aws-sdk/lib/config_service_placeholders');
 
 // const jwtr = require("jwtr-redis").default;

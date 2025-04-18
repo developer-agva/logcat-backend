@@ -1,5 +1,4 @@
-
-    const { required } = require('joi');
+const { required } = require('joi');
 const mongoose = require('mongoose');
     
         const schemaOptions = {
