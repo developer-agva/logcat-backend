@@ -824,6 +824,7 @@ const getDeviceById = async (req, res) => {
       'total_hours': data2.total_hours,
       'isPaymentDone': !!(data.isPaymentDone) ? data.isPaymentDone : "true",
       'isLocked': !!(data.isLocked) ? data.isLocked : false,
+      'deviceStatus': data2.deviceStatus || "",
     };
     if (!data) {
       return res.status(404).json({
@@ -1090,38 +1091,39 @@ const getDeviceByIdV2 = async (req, res) => {
       'isPaymentDone': !!(data.isPaymentDone) ? data.isPaymentDone : "true",
       'isLocked': !!(data.isLocked) ? data.isLocked : false,
       'lockedStatus': !!(data.lockedStatus) ? data.lockedStatus : "",
+      'deviceStatus': !!(data2.deviceStatus) ? data2.deviceStatus : "",
     }
  
     
-    const trends = await trends_ventilator_collectionV2_model.findOne({ did: DeviceId }, { did: 1, time: 1, createdAt: 1 })
-    .sort({ createdAt: -1 })
-    .exec();
+    // const trends = await trends_ventilator_collectionV2_model.findOne({ did: DeviceId }, { did: 1, time: 1, createdAt: 1 })
+    // .sort({ createdAt: -1 })
+    // .exec();
     
-    if (!trends) {
-      console.log("No trends data found. Ventilator is offline by default.");
-      data.lockedStatus = "Shutdown";
-    } else {
-      const currentUTC = new Date();
-      const twentyMinutesAgo = new Date(currentUTC.getTime() - 20 * 60 * 1000); // 20 minutes before now
+    // if (!trends) {
+    //   console.log("No trends data found. Ventilator is offline by default.");
+    //   data.lockedStatus = "Shutdown";
+    // } else {
+    //   const currentUTC = new Date();
+    //   const twentyMinutesAgo = new Date(currentUTC.getTime() - 20 * 60 * 1000); // 20 minutes before now
 
-      // Convert '17-04-2025 17:01' => '2025-04-17T17:01:00' (local time interpretation)
-      const parsedTrendTimeStr = trends.time.replace(
-        /(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2})/,
-        "$3-$2-$1T$4:$5:00"
-      );
-      const parsedTrendTime = new Date(parsedTrendTimeStr);
+    //   // Convert '17-04-2025 17:01' => '2025-04-17T17:01:00' (local time interpretation)
+    //   const parsedTrendTimeStr = trends.time.replace(
+    //     /(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2})/,
+    //     "$3-$2-$1T$4:$5:00"
+    //   );
+    //   const parsedTrendTime = new Date(parsedTrendTimeStr);
 
-      console.log("Current UTC:", currentUTC.toISOString());
-      console.log("20 minutes ago:", twentyMinutesAgo.toISOString());
-      console.log("Parsed trend time (local):", parsedTrendTime.toString());
+    //   console.log("Current UTC:", currentUTC.toISOString());
+    //   console.log("20 minutes ago:", twentyMinutesAgo.toISOString());
+    //   console.log("Parsed trend time (local):", parsedTrendTime.toString());
 
-      if (parsedTrendTime < twentyMinutesAgo) {
-        console.log("Ventilator is offline");
-        data.lockedStatus = "Shutdown";
-      } else {
-        console.log("Ventilator is active");
-      }
-    }
+    //   if (parsedTrendTime < twentyMinutesAgo) {
+    //     console.log("Ventilator is offline");
+    //     data.lockedStatus = "Shutdown";
+    //   } else {
+    //     console.log("Ventilator is active");
+    //   }
+    // }
 
     if (!data) {
       return res.status(404).json({
@@ -1131,7 +1133,7 @@ const getDeviceByIdV2 = async (req, res) => {
         data: {},
       })
     }
-
+    
     return res.status(200).json({
       statusCode: 200,
       statusValue: "SUCCESS",
@@ -3728,7 +3730,8 @@ const saveStatus = async (req, res) => {
       health: Joi.string().required(),
       last_hours: Joi.string().required(),
       total_hours: Joi.string().required(),
-      address: Joi.string().required()
+      address: Joi.string().required(),
+      deviceStatus: Joi.string().allow("").optional()
     });
     const result = schema.validate(req.body);
     if (result.error) {
@@ -3751,7 +3754,8 @@ const saveStatus = async (req, res) => {
         health: req.body.health,
         last_hours: req.body.last_hours,
         total_hours: req.body.total_hours,
-        address: req.body.address
+        address: req.body.address,
+        deviceStatus: req.body.deviceStatus || ""
       },
       {
         upsert: true,
@@ -3785,7 +3789,8 @@ const saveStatusV2 = async (req, res) => {
       health: Joi.string().required(),
       last_hours: Joi.string().allow("").optional(),
       total_hours: Joi.string().allow("").optional(),
-      address: Joi.string().allow("").optional()
+      address: Joi.string().allow("").optional(),
+      deviceStatus: Joi.string().allow("").optional()
     });
     const result = schema.validate(req.body);
     if (result.error) {
@@ -3802,6 +3807,7 @@ const saveStatusV2 = async (req, res) => {
         message: "productCode must be 003 or 004 or 005 or 006 format.",
       });
     }
+    console.log(req.body)
     // const newStatus = new statusModel(req.body);
     const saveDoc = await statusModelV2.updateMany(
       {
@@ -3814,7 +3820,8 @@ const saveStatusV2 = async (req, res) => {
         last_hours: !!(req.body.last_hours) ? req.body.last_hours : "",
         total_hours: !!(req.body.total_hours) ? req.body.total_hours : "",
         address: !!(req.body.address) ? req.body.address : "",
-        type: req.params.productCode
+        type: req.params.productCode,
+        deviceStatus: req.body.deviceStatus || ""
       },
       {
         upsert: true,

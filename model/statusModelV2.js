@@ -52,6 +52,10 @@ const statusSchema = mongoose.Schema({
         type: String,
         default: ""
     },
+    deviceStatus: {
+        type: String,
+        default: ""
+    }
 },
     { timestamps: true })
 
