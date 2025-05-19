@@ -145,7 +145,7 @@ const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
       // List of allowed origins
-      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000", "https://18.144.79.162:3000", "http://172.23.100.127:3000"];
+      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000", "https://18.144.79.162:3000", "http://172.23.100.132:3000"];
 
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -184,6 +184,7 @@ io.on("connection", (socket) => {
   // send payment status to android
   socket.on("DeviceRequestForPaymentStatus", async (deviceId) => {
     try {
+      console.log(11, deviceId)
       const deviceDetails = await RegisterDevice.findOne(
         { DeviceId: deviceId },
         { createdAt: 0, updatedAt: 0, __v: 0 }
@@ -195,10 +196,10 @@ io.on("connection", (socket) => {
         return;
       }
       
-      console.log("android payment status", `${deviceId}^${deviceDetails.isPaymentDone}`);
-      socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}`);
+      console.log("android payment status", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
+      socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent} `);
     } catch (error) {
-      // console.error("Error fetching device details:", error);
+      console.error("Error fetching device details:", error);
       // socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^Error fetching payment status`);
     }
   });
@@ -217,8 +218,8 @@ io.on("connection", (socket) => {
         return;
       }
   
-      console.log("react payment status", `${deviceId}^${deviceDetails.isPaymentDone}`);
-      socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}`);
+      console.log("react payment status", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
+      socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
     } catch (error) {
       console.error("Error fetching device details:", error);
       // socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^Error fetching payment status`);
@@ -235,7 +236,7 @@ io.on("connection", (socket) => {
       //   console.error("Invalid data format. Expected at least one element.");
       //   return;
       // }
-
+      
       const deviceId = dataArr[0];
       const isPaymentDone = dataArr.length > 1 ? dataArr[1] : true;
       const isLocked = dataArr.length > 2 ? dataArr[2] : false;
@@ -253,7 +254,7 @@ io.on("connection", (socket) => {
       console.error("Error processing NodeReceivingLockedStatus event:", error);
     }
   })
-
+   
   // start react logic`
   socket.on("ReactStartUp", (deviceIdReact) => {
     console.log("run react startup")

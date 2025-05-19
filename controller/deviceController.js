@@ -570,6 +570,70 @@ const updateDevice = async (req, res) => {
 
 
 /**
+ * api      UPDATE @/devices/update/DeviceId
+ * desc     @update devices for logger access only
+*/
+
+const updateDevicePayment = async (req, res) => {
+  try {
+
+    const { DeviceId } = req.params;
+    if (!DeviceId || DeviceId === 'undefined' || DeviceId.trim() === '') {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "DeviceId parameter is required",
+      });
+    }
+
+    const schema = Joi.object({
+      paymentDoneInPercent: Joi.string().required(),
+    })
+    let result = schema.validate(req.body);
+    
+    if (result.error) {
+      return res.status(200).json({
+        status: 0,
+        statusCode: 400,
+        message: result.error.details[0].message,
+      })
+    }
+
+    const updatedDevice = await Device.findOneAndUpdate(
+      { DeviceId },
+      { paymentDoneInPercent: req.body.paymentDoneInPercent },
+      { new: true }
+    );
+    
+    if (!updatedDevice) {
+      return res.status(400).json({
+        statusCode: 400,
+        statusValue: "FAIL",
+        message: "Error! Device not registered",
+      });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      statusValue: "SUCCESS",
+      message: "Data updated successfully!",
+      data: updatedDevice,
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      statusCode: 500,
+      statusValue: "FAIL",
+      message: "Internal server error",
+      data: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+      },
+    });
+  }
+};
+
+
+/**
  * api      UPDATE @/update-autofocus/:deviceId
  * desc     @update devices for logger access only
  */
@@ -823,7 +887,9 @@ const getDeviceById = async (req, res) => {
       'last_hours': data2.last_hours,
       'total_hours': data2.total_hours,
       'isPaymentDone': !!(data.isPaymentDone) ? data.isPaymentDone : "true",
+      'paymentDoneInPercent': !!(data.paymentDoneInPercent) ? data.paymentDoneInPercent : "",
       'isLocked': !!(data.isLocked) ? data.isLocked : false,
+      'lockedStatus': !!(data.lockedStatus) ? data.lockedStatus : "",
       'deviceStatus': data2.deviceStatus || "",
     };
     if (!data) {
@@ -1089,6 +1155,7 @@ const getDeviceByIdV2 = async (req, res) => {
       'last_hours': !!(data2.last_hours) ? data2.last_hours : "",
       'total_hours': !!(data2.total_hours) ? data2.total_hours : "",
       'isPaymentDone': !!(data.isPaymentDone) ? data.isPaymentDone : "true",
+      'paymentDoneInPercent': !!(data.paymentDoneInPercent) ? data.paymentDoneInPercent : "",
       'isLocked': !!(data.isLocked) ? data.isLocked : false,
       'lockedStatus': !!(data.lockedStatus) ? data.lockedStatus : "",
       'deviceStatus': !!(data2.deviceStatus) ? data2.deviceStatus : "",
@@ -3017,7 +3084,7 @@ const getAllServices = async (req, res) => {
     let finalData = paginateArray(resData, page, limit);
     // Count the total data
     const count = resData.length;
-
+    
     const enrichedData = finalData.map((ticket) => {
       const matchingUser = userList.find(
         user => user.email.toLowerCase() === (ticket.ticketInfo?.service_engineer || "").toLowerCase()
@@ -3893,7 +3960,7 @@ const getDeviceOverviewById = async (req, res) => {
       const saveDoc = new deviceOverviewModel({
         deviceId: findData.deviceId,
         runningStatus: findData.message,
-        address: "A-1 Sector 81, Noida 201301 (UP)",
+        address: "A-1 Sector 83, Noida 201301 (UP)",
         hours: "01:54:14",
         totalHours: "06:52:14",
         health: "Good"
@@ -7991,5 +8058,6 @@ module.exports = {
   getTicketWeeklyCounts,
   sendReqForDeviceLockOrUnlock,
   getLockUnlockDevices,
-  updatePaymentStatus2
+  updatePaymentStatus2,
+  updateDevicePayment
 }

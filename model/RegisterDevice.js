@@ -66,6 +66,10 @@ const RegisterDeviceSchema = mongoose.Schema({
         type: String,
         default: "true",
     },
+    paymentDoneInPercent:{
+        type: String,
+        default: "",
+    },
     isLocked:{
         type: Boolean,
         default:false,

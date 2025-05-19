@@ -16,6 +16,7 @@ const statusModel = require('../model/statusModel.js')
 router.post('/register', deviceController.createDevice);
 router.get('/', deviceController.getAllDevices);
 router.put('/update/:DeviceId', deviceController.updateDevice);
+router.put('/update-payment-in-percent/:DeviceId', deviceController.updateDevicePayment);
 
 router.get('/getdevice/:DeviceId', deviceController.getDeviceById);     // get device with isPayment || isLocked field
 router.get('/getdevice/v2/:DeviceId', deviceController.getDeviceByIdV2);  // get device with isPayment || isLocked field
