@@ -604,7 +604,7 @@ const updateDevicePayment = async (req, res) => {
       { paymentDoneInPercent: req.body.paymentDoneInPercent },
       { new: true }
     );
-    
+    console.log('locked status:', updatedDevice)
     if (!updatedDevice) {
       return res.status(400).json({
         statusCode: 400,
@@ -618,7 +618,7 @@ const updateDevicePayment = async (req, res) => {
       message: "Data updated successfully!",
       data: updatedDevice,
     });
-
+    
   } catch (err) {
     return res.status(500).json({
       statusCode: 500,

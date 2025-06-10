@@ -145,7 +145,7 @@ const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
       // List of allowed origins
-      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000", "https://18.144.79.162:3000", "http://172.23.100.132:3000"];
+      const allowedOrigins = ["http://medtap.in", "https://medtap.in", "http://18.144.79.162:3000", "https://18.144.79.162:3000", "http://172.23.100.109:3000"];
 
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -197,7 +197,7 @@ io.on("connection", (socket) => {
       }
       
       console.log("android payment status", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
-      socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent} `);
+      socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
     } catch (error) {
       console.error("Error fetching device details:", error);
       // socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^Error fetching payment status`);
@@ -207,6 +207,7 @@ io.on("connection", (socket) => {
 
   socket.on("ReactRequestForPaymentStatus", async (deviceId) => {
     try {
+      console.log(11, deviceId)
       const deviceDetails = await RegisterDevice.findOne(
         { DeviceId: deviceId },
         { createdAt: 0, updatedAt: 0, __v: 0 }
@@ -217,7 +218,7 @@ io.on("connection", (socket) => {
         // socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^Device not found`);
         return;
       }
-  
+      
       console.log("react payment status", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
       socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
     } catch (error) {
@@ -226,7 +227,7 @@ io.on("connection", (socket) => {
     }
   });
   
-
+  
   // save locked status in db
   socket.on("NodeReceivingLockedStatus", async (data) =>{
     try {
