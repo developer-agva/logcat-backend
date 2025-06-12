@@ -729,7 +729,6 @@ const getSignleFocusDevice = async (req, res) => {
 }
 
 
-
 /**
  * api      GET @/devices/get-device-status-with-pincode
  * desc     @getDevicesStatusWithPincode devices for map API
@@ -1013,6 +1012,7 @@ const updateDeviceOverviewForSalesById = async (req, res) => {
         message: "Error!! DeviceId not registered.",
       })
     }
+
     const statusData = await statusModel.findOne({ deviceId: DeviceId }, { "createdAt": 0, "updatedAt": 0, "__v": 0 });
     // console.log('checkDeviceStatus', statusData)
     if (!statusData) {
@@ -1022,6 +1022,7 @@ const updateDeviceOverviewForSalesById = async (req, res) => {
         message: "Error!! DeviceId does not has any status",
       })
     }
+    
     const prodData = await productionModel.findOne({ deviceId: DeviceId },{ "createdAt": 0, "updatedAt": 0, "__v": 0 })
     // console.log('checkDeviceProd', prodData)
     if (!prodData) {
@@ -1031,6 +1032,7 @@ const updateDeviceOverviewForSalesById = async (req, res) => {
         message: "Error!! DeviceId does not has production details",
       })
     }
+
     const aboutData = await aboutDeviceModel.findOne({ deviceId: DeviceId },{ "createdAt": 0, "updatedAt": 0, "__v": 0 })
     // console.log('checkDeviceAbout', aboutData)
     if (!aboutData) {
@@ -1040,6 +1042,7 @@ const updateDeviceOverviewForSalesById = async (req, res) => {
         message: "Error!! DeviceId does not has dispatch details",
       })
     }
+    
     // console.log(req.body)
     const updateRegData = await Device.findOneAndUpdate(
       { DeviceId: DeviceId },
@@ -1053,6 +1056,7 @@ const updateDeviceOverviewForSalesById = async (req, res) => {
       },
       // { new:true }
     )
+    
     // console.log(updateRegData)
     const updateStatusData = await statusModel.findOneAndUpdate(
       { deviceId: DeviceId },
