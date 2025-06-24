@@ -62,7 +62,7 @@ const createLogsV2 = async (req, res) => {
     const { project_code } = req.params;
     // check project exist or not
     const findProjectWithCode = await Projects.findOne({ code: project_code });
-    // console.log(11,"124546")
+    // //(11,"124546")
     if (!findProjectWithCode) {
       return res.status(404).json({
         status: 0,
@@ -162,7 +162,7 @@ const createLogsV2 = async (req, res) => {
         if (log.type == 'error' && findProjectWithCode.reportEmail.length) {
           let emailPromise = findProjectWithCode.reportEmail.map((email) => {
             const url = `${log.msg}`;
-            // console.log(url)
+            // //(url)
             return new Email(email, url).sendCrash();
           });
 
@@ -207,7 +207,7 @@ const createLogsV2 = async (req, res) => {
       // Delete zip file after unzipping it
       fs.unlinkSync(`./${req.file.path}`);
 
-      console.log('files length: ', files.length);
+      //('files length: ', files.length);
       const Dvc = await new Device({
         did: req.body.did,
         name: req.body.deviceName,
@@ -247,14 +247,14 @@ const createLogsV2 = async (req, res) => {
             Key: `${req.body.did}/${file.path}`,
             Body: fileContent,
           };
-          console.log('params', params);
+          //('params', params);
           return s3.upload(params).promise();
         });
 
       let fileNamePromise =
         files.length &&
         files.map(async (file) => {
-          console.log(file.path);
+          // //(file.path);
           let putDataIntoLoggerDb = await new modelReference({
             version: req.body.version,
             type: req.body.type,
@@ -395,12 +395,12 @@ const getAlertsById = async (req, res) => {
   //     .sort({ "ack.date": -1 })
   //     .skip(skip)
   //     .limit(limit);
-  //   // console.log(findDeviceById)
+  //   // //(findDeviceById)
   //   // Count total documents for pagination info
   //   const totalCount = await alert_ventilator_collection.countDocuments({ did });
 
   //   if (findDeviceById.length<1) {
-  //     // console.log(true)
+  //     // //(true)
   //     return res.status(400).json({
   //       status: 0,
   //       statusCode: 400,
@@ -461,7 +461,7 @@ const getAlertsById = async (req, res) => {
     try {
       const { startDate, endDate, search, page, limit } = req.query;
       const { did } = req.params;
-      // console.log(startDate == "")
+      // //(startDate == "")
      
       const pageNumber = parseInt(page) || 1; 
       const limitNumber = parseInt(limit) || 1000; 
@@ -555,7 +555,7 @@ const getAlertsByIdV2 = async (req, res) => {
   try {
     const { startDate, endDate, search, page, limit } = req.query;
     const { did } = req.params;
-    console.log(startDate == "")
+    //(startDate == "")
    
     const pageNumber = parseInt(page) || 1; 
     const limitNumber = parseInt(limit) || 1000; 
@@ -982,7 +982,7 @@ const getTrendsByIdV2 = async (req, res) => {
         { did:1,time:1,sPo2:1,pr:1,hr:1,ecgRR:1,iBP_S:1,iBP_D:1,cgm:1,etCo2:1,rr:1,nibp_S:1,nibp_D:1,temp1:1,temp2:1,iBP2_S:1,iBP2_D:1,type:1, createdAt:1, updatedAt:1 })
       .sort({ _id: -1 }).lean();
     } else if(projectCode[0].type != "003" || projectCode[0].type == "007" || projectCode[0].type == undefined){
-      // console.log(projectCode[0].type !== ("003" || "007")
+      // //(projectCode[0].type !== ("003" || "007")
       return res.status(400).json({
         status: 0,
         statusCode: 400,
@@ -1022,7 +1022,7 @@ const getTrendsByIdV2 = async (req, res) => {
     // for count
     const count = findDeviceById.length
     // const collectionName=require(`../model/${findDeviceById.collection_name}.js`);
-    // console.log(collectionName,'collectionName');
+    // //(collectionName,'collectionName');
 
     // check Device code
     let data2;
@@ -1412,8 +1412,8 @@ const getEventsByDate = async (req, res) => {
       }
       splitedArr.push(objItem)
     })
-    // console.log(Arr)
-    // console.log(modifiedArr)
+    // //(Arr)
+    // //(modifiedArr)
     if (findDeviceById.length < 1) {
       return res.status(400).json({
         status: "FAIL",
@@ -1472,15 +1472,15 @@ const getEventsByIdV2 = async (req, res) => {
         }),
       ),
     );
-    //console.log(maxDate);  
+    ////(maxDate);  
     const dt1 = new Date(maxDate);
-    //console.log(dt1)
+    ////(dt1)
     const dt2 = new Date();
     // dt=new Date(maxDate);
     //dt=new Date();
     var diff = (dt2.getTime() - dt1.getTime()) / 1000;
     diff = Math.trunc(Math.abs(diff / (60 * 60)));
-    //console.log(diff)
+    ////(diff)
     if (diff >= 24 || diff < 0) {
       state = 'inactive';
     }
@@ -1488,7 +1488,7 @@ const getEventsByIdV2 = async (req, res) => {
       state = 'active';
     }
 
-    //console.log(findDeviceById, 'findDeviceById');
+    ////(findDeviceById, 'findDeviceById');
     if (!findDeviceById) {
       return res.status(404).json({
         status: 0,
@@ -1521,8 +1521,8 @@ const getEventsByIdV2 = async (req, res) => {
       }
       splitedArr.push(objItem)
     })
-    // console.log(Arr)
-    // console.log(modifiedArr)
+    // //(Arr)
+    // //(modifiedArr)
     if (findDeviceById.length < 1) {
       return res.status(400).json({
         status: "FAIL",
@@ -1755,9 +1755,9 @@ const getAllDeviceId2 = async (req, res) => {
         })
       }
       // const lData = await paginateArray.find({deviceId:{in:tempIds}})
-      // console.log(lData,lData)
+      // //(lData,lData)
     }
-    // console.log(333, resultArr)
+    // //(333, resultArr)
     // For pagination
     const paginateArray = (arrayUniqueByKey, page, limit) => {
       const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
@@ -1826,7 +1826,7 @@ const getAllDevicesForUsers = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user });
-    // console.log(loggedInUser.hospitalName)
+    // //(loggedInUser.hospitalName)
     // Declare blank obj
     let filterObj = {};
     // check user
@@ -2106,7 +2106,7 @@ const getAllFocusedDevicesForUsers = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user });
-    // console.log(loggedInUser.hospitalName)
+    // //(loggedInUser.hospitalName)
     // Declare blank obj
     let filterObj = {};
     // check user
@@ -2253,9 +2253,9 @@ const getAllFocusedDevicesForUsers = async (req, res) => {
     // let resArr2 = [];
     // filter data on the basis of userType
 
-    // console.log(loggedInUser)
+    // //(loggedInUser)
     // get data by user role
-    // console.log(333, resultArr)
+    // //(333, resultArr)
     // For pagination
     const paginateArray = (arrayUniqueByKey, page, limit) => {
       const skip = arrayUniqueByKey.slice((page - 1) * limit, page * limit);
@@ -2318,7 +2318,7 @@ const getAllDeviceId = async (req, res) => {
     const token = req.headers["authorization"].split(' ')[1];
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     const loggedInUser = await User.findById({ _id: verified.user });
-    // console.log(loggedInUser.hospitalName)
+    // //(loggedInUser.hospitalName)
     // Declare blank obj
     // Construct filter object based on user type
     const searchRegex = { $regex: ".*" + search + ".*", $options: "i" };
@@ -2419,7 +2419,7 @@ const getAllDeviceId = async (req, res) => {
       }
     }
     else if (!!loggedInUser && loggedInUser.userType === "Doctor") {
-      // console.log(loggedInUser.accessHospital)
+      // //(loggedInUser.accessHospital)
       filterObj = {
         $match: {
           $and: [
@@ -2537,9 +2537,9 @@ const getAllDeviceId = async (req, res) => {
     if (!!loggedInUser && (loggedInUser.userType === "Doctor" || loggedInUser.userType === "Assistant")) {
 
       const deviceReqData = await sendDeviceReqModel.find({ $and: [{ securityCode: loggedInUser.securityCode }, { isAssigned: "Pending" }] })
-      // console.log(12345, deviceReqData)
+      // //(12345, deviceReqData)
       const assignDeviceData = await assignDeviceTouserModel.find({ securityCode: loggedInUser.securityCode })
-      // console.log(12333, assignDeviceData)
+      // //(12333, assignDeviceData)
 
       arrayUniqueByKey.forEach(device => {
         const assigned = assignDeviceData.find(d => d.deviceId === device.deviceId);
@@ -2563,13 +2563,13 @@ const getAllDeviceId = async (req, res) => {
     }
     //  else if (!!loggedInUser && (loggedInUser.userType === "Assistant")) {
     //   const assignDeviceData = await assignDeviceTouserModel.find({ $and:[{securityCode: loggedInUser.securityCode},{isAssigned:"Accepted"}]},{deviceId:1})
-    //   // console.log(12, assignDeviceData)
+    //   // //(12, assignDeviceData)
     //   const assignDeviceIds = assignDeviceData.map(device => device.deviceId);
 
     //   const filteredArrayUniqueByKey = arrayUniqueByKey.filter(item => assignDeviceIds.includes(item.deviceId));
 
     //   // updatedArray = filteredArrayUniqueByKey; 
-    //   // console.log(123, filteredArrayUniqueByKey)
+    //   // //(123, filteredArrayUniqueByKey)
 
     //   // For pagination
     //   const paginateArray = (filteredArrayUniqueByKey, page, limit) => {
@@ -2975,7 +2975,7 @@ const createAlerts = async (req, res, next) => {
     });
 
     let alerts = await Promise.allSettled(dbSavePromise);
-    //console.log(alerts,'alerts');
+    ////(alerts,'alerts');
 
     var alertsErrArr = [];
     var alertsErrMsgArr = [];
@@ -3050,7 +3050,7 @@ const createAlertsNew = async (req, res) => {
         },
       });
     }
-    // console.log(11,req.body)
+    // //(11,req.body)
     if (!findProjectWithCode) {
       return res.status(404).json({
         status: 404,
@@ -3068,10 +3068,10 @@ const createAlertsNew = async (req, res) => {
 
     const modelReference = require(`../model/${collectionName}`);
     const { did, type, ack, date } = req.body;
-    // console.log(12,req.body)
+    // //(12,req.body)
    
     const checkAlert = await modelReference.find({ did: did })
-    // console.log(13, checkAlert)
+    // //(13, checkAlert)
     if (checkAlert.length > 999) {
       const length = checkAlert.length;
       const deletedArr = checkAlert.slice(0, 1001)
@@ -3102,7 +3102,7 @@ const createAlertsNew = async (req, res) => {
     });
 
     let alerts = await Promise.allSettled(dbSavePromise);
-    //console.log(alerts,'alerts');
+    ////(alerts,'alerts');
 
    
 
@@ -3124,7 +3124,7 @@ const createAlertsNew = async (req, res) => {
     if (!alertsErrArr.includes('rejected')) {
       // check alarm level
       if (req.body.priority == "ALARM_CRITICAL_LEVEL") {
-        // console.log(13, req.body)
+        // //(13, req.body)
          // sent email code
       
           
@@ -3144,16 +3144,16 @@ const createAlertsNew = async (req, res) => {
             },
             token: receivedToken,
           };
-          // console.log(11,message.notification) 
+          // //(11,message.notification) 
           admin.messaging().send(message)
             .then(async (response) => {
-              // console.log(13, message)
+              // //(13, message)
               await fcmNotificationModel.findOneAndUpdate(
                 { token: "4364364fsdfdfd" }, 
                 { notification: message.notification, data: message.data, token: message.token }, 
                 { upsert: true }
               )
-              console.log("Notification sent successfully:", response);
+              //("Notification sent successfully:", response);
             })
             .catch((error) => {
               console.error("Error sending notification:", error);
@@ -3285,7 +3285,7 @@ const createAlertsNew = async (req, res) => {
  */
 const createAlertsNewV2 = async (req, res) => {
   try {
-    console.log(11,req.body)
+    // //(11,req.body)
     // if (req.params.productCode == "002") {
     //   return res.status(404).json({
     //     status: 404,
@@ -3305,7 +3305,7 @@ const createAlertsNewV2 = async (req, res) => {
     // check alert data
     const checkAlert = await alert_ventilator_collectionV2.find({ did: did })
     // const checkAlert = await modelReference.find({did:did})
-    // console.log(13, checkAlert)
+    // //(13, checkAlert)
     if (checkAlert.length > 999) {
       const length = checkAlert.length;
       const deletedArr = checkAlert.slice(0, 1001)
@@ -3334,7 +3334,7 @@ const createAlertsNewV2 = async (req, res) => {
     });
 
     let alerts = await Promise.allSettled(dbSavePromise);
-    //console.log(alerts,'alerts');
+    ////(alerts,'alerts');
 
     var alertsErrArr = [];
     var alertsErrMsgArr = [];
@@ -3368,7 +3368,7 @@ const createAlertsNewV2 = async (req, res) => {
 
           admin.messaging().send(message)
             .then((response) => {
-              console.log("Notification sent successfully:", response);
+              //("Notification sent successfully:", response);
             })
             .catch((error) => {
               console.error("Error sending notification:", error);
@@ -3416,7 +3416,7 @@ const createEvents = async (req, res, next) => {
   try {
     const { project_code } = req.params;
     const findProjectWithCode = await Projects.findOne({ code: project_code });
-    //console.log(findProjectWithCode,'findProjectWithProjectCode----')
+    ////(findProjectWithCode,'findProjectWithProjectCode----')
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -3450,11 +3450,11 @@ const createEvents = async (req, res, next) => {
       });
     }
     const collectionName = findProjectWithCode.event_collection_name;
-    //console.log(collectionName,'collectionName-----')
+    ////(collectionName,'collectionName-----')
     const modelReference = require(`../model/${collectionName}`);
-    //console.log(modelReference,'modelReference');
+    ////(modelReference,'modelReference');
     const { did, type, message, date } = req.body;
-    // console.log(`did : ${did}`)
+    // //(`did : ${did}`)
     if (!did || !type || !message || !date) {
       return res.status(400).json({
         status: 0,
@@ -3475,7 +3475,7 @@ const createEvents = async (req, res, next) => {
       date: date,
     });
 
-    console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
+    //(`did : ${did} message : ${message} type : ${type} date : ${date}`);
     const SaveEvents = await events.save(events);
 
     // For current date and time
@@ -3541,7 +3541,7 @@ const createEventsForDebug = async (req, res, next) => {
     const { project_code } = req.params;
     
     const { did, message, date } = req.body;
-    // console.log(`did : ${did}`)
+    // //(`did : ${did}`)
     if (!did || !message || !date || !project_code) {
       return res.status(400).json({
         status: 0,
@@ -3571,7 +3571,7 @@ const createEventsForDebug = async (req, res, next) => {
       date: date,
     });
 
-    console.log(`did : ${did} message : ${message} type : ${project_code} date : ${date}`);
+    //(`did : ${did} message : ${message} type : ${project_code} date : ${date}`);
     const SaveEvents = await events.save();
 
     // For current date and time
@@ -3734,10 +3734,10 @@ const createEventsV2 = async (req, res, next) => {
         },
       });
     }
-    //console.log(modelReference,'modelReference');
+    ////(modelReference,'modelReference');
     const { did, type, message, date } = req.body;
-    // console.log(check, req.body)
-    // console.log(`did : ${did}`)
+    // //(check, req.body)
+    // //(`did : ${did}`)
     if (!did || !type || !message || !date) {
       return res.status(400).json({
         status: 0,
@@ -3767,7 +3767,7 @@ const createEventsV2 = async (req, res, next) => {
         date: !!(req.body.date) ? req.body.date : "",
       }, { upsert: true });
 
-    console.log(`did : ${did} message : ${message} type : ${type} date : ${date}`);
+    //(`did : ${did} message : ${message} type : ${type} date : ${date}`);
 
     // For current date and time
     const currentDateTime = new Date();
@@ -3784,12 +3784,12 @@ const createEventsV2 = async (req, res, next) => {
     
     const checkIsUpdated = await event_ventilator_collection_v2.findOne({did:did},{did:1, message:1, date:1, type:1},{sort:{updatedAt:-1}})
 
-    // console.log('check data', checkIsUpdated)
+    // //('check data', checkIsUpdated)
     
     // if (checkIsUpdated.message =="Initiating Shutdown Process" || "Standby process success" || "Ventilator Started")) {
     if (checkIsUpdated.message === "Initiating Shutdown Process" || checkIsUpdated.message === "Standby process success" || checkIsUpdated.message === "Ventilator Started") {
-      // console.log('check-body data 1', req.body)
-      // console.log(true)
+      // //('check-body data 1', req.body)
+      // //(true)
       await statusModelV2.updateMany({ deviceId: did }, { $set: { message: "INACTIVE", lastActive: formattedDateTime } })
       return res.status(201).json({
         status: 201,
@@ -4000,7 +4000,7 @@ const createTrends = async (req, res, next) => {
 
     const { project_code } = req.params;
     const findProjectWithCode = await Projects.findOne({ code: project_code });
-    //console.log(findProjectWithCode,'findProjectWithProjectCode----')
+    ////(findProjectWithCode,'findProjectWithProjectCode----')
 
     const errors = validationResult(req);
     // if (!errors.isEmpty()) {
@@ -4036,9 +4036,9 @@ const createTrends = async (req, res, next) => {
     }
 
     const collectionName = findProjectWithCode.trends_collection_name;
-    console.log(collectionName, 'collectionName-----')
+    // //(collectionName, 'collectionName-----')
     const modelReference = require(`../model/${collectionName}`);
-    console.log(modelReference, 'modelReference');
+    // //(modelReference, 'modelReference');
     const { did, time, type, mode, pip, peep, mean_Airway, vti, vte, mve, mvi, fio2, respiratory_Rate, ie, tinsp, texp, averageLeak, sPo2, pr } = req.body;
     if (!did) {
       return res.status(400).json({
@@ -4053,7 +4053,7 @@ const createTrends = async (req, res, next) => {
         },
       });
     }
-    // console.log(55, req.body)
+    // //(55, req.body)
     const trends = await new modelReference({
       did: did,
       time: !!time ? time : "",
@@ -4091,11 +4091,11 @@ const createTrends = async (req, res, next) => {
     const formattedDateTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
     await statusModel.updateMany({ deviceId: did }, { $set: { message: "ACTIVE", lastActive: formattedDateTime } })
-    // console.log(11,SaveTrends)
-    // console.log('Agva Pro', req.body)
+    // //(11,SaveTrends)
+    // //('Agva Pro', req.body)
 
     if (deviceIdArr.includes(SaveTrends.did)) {
-      console.log(true)
+      // //(true)
 
     } else {
       deviceIdArr.push(SaveTrends.did)
@@ -4158,7 +4158,7 @@ const createTrendsV2 = async (req, res) => {
         },
       });
     }
-    // console.log(req.body)
+    // //(req.body)
     var SaveTrends;
     if (req.params.project_code == "003") {
       const { did, time, spo2, pr, hr, ecgRR, iBP_S, iBP_D, cgm, etCo2, rr, nibp_S, nibp_D, temp1, temp2, iBP2_S, iBP2_D } = req.body;
@@ -4210,7 +4210,7 @@ const createTrendsV2 = async (req, res) => {
       SaveTrends = await trends.save(trends);
 
     } else if (req.params.project_code == "007" || req.params.project_code == "008") {
-      // console.log(req.body)
+      // //(req.body)
       const { time, averageLeak, did, fio2, ie, mean_Airway, mode, mve, mvi, peep, pip, respiratory_Rate, texp, tinsp, type, vti, vte, sPo2, pr } = req.body;
       const trends = await new trends_ventilator_collectionV2_model({
         time: !!time ? time: "",
@@ -4237,11 +4237,11 @@ const createTrendsV2 = async (req, res) => {
       SaveTrends = await trends.save(trends);
     }
 
-    // console.log(11,SaveTrends)
-    // console.log('Instead of Agva Pro',req.body)
+    // //(11,SaveTrends)
+    // //('Instead of Agva Pro',req.body)
 
     if (deviceIdArr.includes(SaveTrends.did)) {
-      console.log(true)
+      // //(true)
 
     } else {
       deviceIdArr.push(SaveTrends.did)
@@ -4345,7 +4345,7 @@ const getTrendsWithFilter = async (req, res) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 500;
     let skip = (page - 1) * limit;
-    //console.log(sortOperator);
+    ////(sortOperator);
 
     const data = await collectionName.aggregate([
       {
@@ -4365,7 +4365,7 @@ const getTrendsWithFilter = async (req, res) => {
         },
       },
     ]);
-    //console.log(data,'data');
+    ////(data,'data');
 
     return res.status(200).json({
       status: 1,
@@ -4430,7 +4430,7 @@ const getFilteredLogs = async (req, res) => {
     }
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
-    //console.log(collectionName,'collectionName');
+    ////(collectionName,'collectionName');
 
     let dt = new Date(req.query.endDate);
     dt.setDate(dt.getDate() + 1);
@@ -4581,7 +4581,7 @@ const getAlertsWithFilter = async (req, res) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 500;
     let skip = (page - 1) * limit;
-    //console.log(sortOperator);
+    ////(sortOperator);
 
     const data = await collectionName.aggregate([
       {
@@ -4601,7 +4601,7 @@ const getAlertsWithFilter = async (req, res) => {
         },
       },
     ]);
-    //console.log(data,'data');
+    ////(data,'data');
 
     return res.status(200).json({
       status: 1,
@@ -4689,7 +4689,7 @@ const getEventsWithFilter = async (req, res) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 500;
     let skip = (page - 1) * limit;
-    console.log(sortOperator);
+    // //(sortOperator);
     const data = await collectionName.aggregate([
       {
         $facet: {
@@ -4771,7 +4771,7 @@ const crashFreeUsersDatewise = async (req, res) => {
       });
     }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    console.log('collectionName', collectionName)
+    // //('collectionName', collectionName)
 
     let dt = new Date(req.query.endDate);
     dt.setDate(dt.getDate() + 1);
@@ -4950,7 +4950,7 @@ const crashlyticsData = async (req, res) => {
       trimmedLogMsg = req.query.logMsg.substring(0, 26);
     } else trimmedLogMsg = req.query.logMsg;
     trimmedLogMsg = trimmedLogMsg.replace('[', '');
-    console.log(trimmedLogMsg, 'trimmedLogMsg');
+    // //(trimmedLogMsg, 'trimmedLogMsg');
 
     if (!projectCode) {
       return res.status(400).json({
@@ -4979,9 +4979,9 @@ const crashlyticsData = async (req, res) => {
         },
       });
     }
-    // console.log(projectCollection);
+    // //(projectCollection);
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    console.log(collectionName, 'collectionName');
+    //(collectionName, 'collectionName');
     const versionResponse = await collectionName.aggregate([
       {
         $match: {
@@ -5005,7 +5005,7 @@ const crashlyticsData = async (req, res) => {
         },
       },
     ]);
-    console.log(versionResponse, 'versionResponse');
+    //(versionResponse, 'versionResponse');
     const osArchitectureResponse = await collectionName.aggregate([
       {
         $match: {
@@ -5037,7 +5037,7 @@ const crashlyticsData = async (req, res) => {
         },
       },
     ]);
-    console.log(osArchitectureResponse, 'osArchitectureResponse')
+    //(osArchitectureResponse, 'osArchitectureResponse')
     const modelNameResponse = await collectionName.aggregate([
       {
         $match: {
@@ -5069,7 +5069,7 @@ const crashlyticsData = async (req, res) => {
         },
       },
     ]);
-    console.log(modelNameResponse, 'modelNameResponse')
+    //(modelNameResponse, 'modelNameResponse')
     res.status(200).json({
       status: 1,
       data: { versionResponse, osArchitectureResponse, modelNameResponse },
@@ -5128,7 +5128,7 @@ const crashlyticsData2 = async (req, res) => {
       trimmedLogMsg = req.query.logMsg.substring(0, 26);
     } else trimmedLogMsg = req.query.logMsg;
     trimmedLogMsg = trimmedLogMsg.replace('[', '');
-    console.log(trimmedLogMsg, 'trimmedLogMsg');
+    //(trimmedLogMsg, 'trimmedLogMsg');
 
     if (!did) {
       return res.status(400).json({
@@ -5157,9 +5157,9 @@ const crashlyticsData2 = async (req, res) => {
         },
       });
     }
-    // console.log(projectCollection);
+    // //(projectCollection);
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    console.log(collectionName, 'collectionName');
+    //(collectionName, 'collectionName');
     const versionResponse = await collectionName.aggregate([
       {
         $match: {
@@ -5183,7 +5183,7 @@ const crashlyticsData2 = async (req, res) => {
         },
       },
     ]);
-    console.log(versionResponse, 'versionResponse');
+    //(versionResponse, 'versionResponse');
     const osArchitectureResponse = await collectionName.aggregate([
       {
         $match: {
@@ -5215,7 +5215,7 @@ const crashlyticsData2 = async (req, res) => {
         },
       },
     ]);
-    console.log(osArchitectureResponse, 'osArchitectureResponse')
+    //(osArchitectureResponse, 'osArchitectureResponse')
     const modelNameResponse = await collectionName.aggregate([
       {
         $match: {
@@ -5247,7 +5247,7 @@ const crashlyticsData2 = async (req, res) => {
         },
       },
     ]);
-    console.log(modelNameResponse, 'modelNameResponse')
+    //(modelNameResponse, 'modelNameResponse')
     res.status(200).json({
       status: 1,
       data: { versionResponse, osArchitectureResponse, modelNameResponse },
@@ -5402,7 +5402,7 @@ const getLogsByLogType = async (req, res) => {
     }
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
-    console.log(collectionName, 'collectionName')
+    //(collectionName, 'collectionName')
 
     let dt = new Date(req.query.endDate);
     dt.setDate(dt.getDate() + 1);
@@ -6016,7 +6016,7 @@ const getLogsCountWithOs = async (req, res) => {
       { $project: { osArchitecture: '$_id', count: 1, _id: 0 } },
     ]);
 
-    // console.log(osParticularCount);
+    // //(osParticularCount);
     return res.status(200).json({
       status: 1,
       data: {
@@ -6144,7 +6144,7 @@ const getCrashOccurrenceByLogMsgWithDeviceId = async (req, res) => {
         },
       });
     }
-    // console.log(req.query.logMsg, 'ftrtdefffffffff');
+    // //(req.query.logMsg, 'ftrtdefffffffff');
     var trimmedLogMsg;
     if (req.query.logMsg.length > 26) {
       trimmedLogMsg = req.query.logMsg.substring(0, 26);
@@ -6152,7 +6152,7 @@ const getCrashOccurrenceByLogMsgWithDeviceId = async (req, res) => {
     trimmedLogMsg = trimmedLogMsg.replace('[', '');
 
     const projectCollection = await Projects.findOne({ did: did });
-    console.log(projectCollection, "projectCollection");
+    //(projectCollection, "projectCollection");
     if (!projectCollection) {
       return res.status(400).json({
         status: 0,
@@ -6168,7 +6168,7 @@ const getCrashOccurrenceByLogMsgWithDeviceId = async (req, res) => {
     }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    console.log(collectionName);
+    //(collectionName);
 
     const response = await collectionName.aggregate([
       {
@@ -6196,7 +6196,7 @@ const getCrashOccurrenceByLogMsgWithDeviceId = async (req, res) => {
         }
       },
     ]);
-    console.log(response, 'response');
+    //(response, 'response');
 
 
     return res.status(200).json({
@@ -6278,7 +6278,7 @@ const getCrashOccurrenceByLogMsg = async (req, res) => {
     trimmedLogMsg = trimmedLogMsg.replace('[', '');
 
     const projectCollection = await Projects.findOne({ code: projectCode });
-    console.log(projectCollection, "projectCollection");
+    //(projectCollection, "projectCollection");
 
     if (!projectCollection) {
       return res.status(400).json({
@@ -6293,10 +6293,10 @@ const getCrashOccurrenceByLogMsg = async (req, res) => {
         },
       });
     }
-    //console.log(collectionName);
+    ////(collectionName);
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    console.log(collectionName);
+    //(collectionName);
 
     const response = await collectionName.aggregate([
       {
@@ -6324,7 +6324,7 @@ const getCrashOccurrenceByLogMsg = async (req, res) => {
         }
       },
     ]);
-    console.log(response, 'response');
+    //(response, 'response');
 
 
     return res.status(200).json({
