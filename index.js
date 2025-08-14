@@ -50,6 +50,7 @@ const accountsRouter = require("./route/accountsRoute.js");
 const salesRouter = require('./route/salesRoute.js');
 const insulRouter = require('./route/insulRoute.js')
 const dynamicRouter = require('./route/dynamicUIRoute.js');
+const machineDeliveryRouter = require('./route/machineDeliveryRoute.js');
 
 // creating connection with DB
 connectDB();
@@ -111,6 +112,7 @@ app.use("/api/logger", accountsRouter);
 app.use("/api/marketing", salesRouter);
 app.use('/insul', insulRouter);
 app.use("/api/dynamic-ui", dynamicRouter);
+app.use("/api/delivery", machineDeliveryRouter);
 
 
 // Logs Routing
@@ -184,7 +186,7 @@ io.on("connection", (socket) => {
   // send payment status to android
   socket.on("DeviceRequestForPaymentStatus", async (deviceId) => {
     try {
-      console.log(11, deviceId)
+      // console.log(11, deviceId)
       const deviceDetails = await RegisterDevice.findOne(
         { DeviceId: deviceId },
         { createdAt: 0, updatedAt: 0, __v: 0 }
@@ -196,7 +198,7 @@ io.on("connection", (socket) => {
         return;
       }
       
-      console.log("android payment status", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
+      // console.log("android payment status", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
       socket.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
     } catch (error) {
       console.error("Error fetching device details:", error);
@@ -207,7 +209,7 @@ io.on("connection", (socket) => {
 
   socket.on("ReactRequestForPaymentStatus", async (deviceId) => {
     try {
-      console.log(11, deviceId)
+      // console.log(11, deviceId)
       const deviceDetails = await RegisterDevice.findOne(
         { DeviceId: deviceId },
         { createdAt: 0, updatedAt: 0, __v: 0 }
@@ -219,7 +221,7 @@ io.on("connection", (socket) => {
         return;
       }
       
-      console.log("react payment status", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
+      // console.log("react payment status", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
       socket.broadcast.emit("AndroidReceivingPaymentStatus", `${deviceId}^${deviceDetails.isPaymentDone}^${deviceDetails.paymentDoneInPercent}`);
     } catch (error) {
       console.error("Error fetching device details:", error);
@@ -231,7 +233,7 @@ io.on("connection", (socket) => {
   // save locked status in db
   socket.on("NodeReceivingLockedStatus", async (data) =>{
     try {
-      console.log("locked status",data);
+      // console.log("locked status",data);
       const dataArr = data?.split(",") || [];
       // if (dataArr.length < 1) {
       //   console.error("Invalid data format. Expected at least one element.");
@@ -277,52 +279,52 @@ io.on("connection", (socket) => {
   })
   // get data of basic tiles
   socket.on("AndroidToNodeBasic", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("NodeToReactBasic", data);
   })
   // get data of backup tiles
   socket.on("AndroidToNodeBackup", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("NodeToReactBackup", data);
   })
   // get data of advanced tiles
   socket.on("AndroidToNodeAdvanced", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("NodeToReactAdvanced", data);
   })
   // get data of alarms tiles
   socket.on("AndroidToNodeAlarm", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("NodeToReactAlarm", data);
   })
   // get data of backup tiles command
   socket.on("ReactToNodeBackup", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("NodeToAndroidBackup", data);
   })
   // get data of basic tiles command
   socket.on("ReactToNodeBasic", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("NodeToAndroidBasic", data);
   })
   // get data of advanced tiles command
   socket.on("ReactToNodeAdvanced", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("NodeToAndroidAdvanced", data);
   })
   // get data of alarms tiles command
   socket.on("ReactToNodeAlarm", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("NodeToAndroidAlarm", data);
   })
   // logic of data sending and receiving
   socket.on("DataSendingAndroid", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("DataReceivingReact", data);
   })
   // logic of graph data sending and receiving
   socket.on("DataGraphSendingAndroid", (data) => {
-    console.log(data)
+    // console.log(data)
     socket.broadcast.emit("DataGraphReceivingReact", data);
   })
   // stop logic
@@ -379,12 +381,12 @@ io.on("connection", (socket) => {
 
   // debug case
   socket.on("AndroidSendingDebugCommand", (data) => {
-    console.log("AndroidDebug", data)
+    // console.log("AndroidDebug", data)
     socket.broadcast.emit("ReactReceivingDebugCommand", data);
   })
 
   socket.on("ReactSendingDebugCommand", (data) => {
-    console.log("ReactDebug", data)
+    // console.log("ReactDebug", data)
     socket.broadcast.emit("AndroidReceivingDebugCommand", data);
   })
 
@@ -426,10 +428,10 @@ async function shiftAlarmData() {
         // Remove the excess data from the source collection
         const excessIds = excessData.map(doc => doc._id);
         await alert_ventilator_collection.deleteMany({ _id: { $in: excessIds } });
-        console.log(`Shifted ${excessDocuments} documents to backup collection.`);
+        // console.log(`Shifted ${excessDocuments} documents to backup collection.`);
       }
     } else {
-      console.log('No excess data to shift.');
+      // console.log('No excess data to shift.');
     }
 
   } catch (error) {
