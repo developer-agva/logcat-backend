@@ -266,7 +266,6 @@ exports.uploadQltyFile = async (req, res) => {
     // await s3BucketModel.deleteMany({location: ""});
 }
 
-
 // upload quality report for production modules
 exports.uploadQualityReport = async (req, res) => {
   // req.file contains a file object
@@ -779,6 +778,50 @@ exports.getFileByDeviceId = async (req, res) => {
     }
 }
 
+
+exports.uploadDeliveryFile = async (req, res) => {
+  try {
+    // 1. Check if file exists
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded",
+        statusCode: 400,
+        statusValue: "error"
+      });
+    }
+    
+    const file = req.file;
+    const maxSize = 10 * 1024 * 1024; // 10 MB
+    if (file.size > maxSize) {
+      return res.status(400).json({
+        message: "File too large. Maximum size is 10MB",
+        statusCode: 400,
+        statusValue: "error"
+      });
+    }
+
+    // 4. Success response
+    return res.status(200).json({
+      message: "File uploaded successfully",
+      statusCode: 200,
+      statusValue: "success",
+      file: {
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        path: file.location
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Something went wrong while uploading file",
+      statusCode: 500,
+      statusValue: "error",
+      error: error.message
+    });
+  }
+};
 
 
 

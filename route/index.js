@@ -44,6 +44,10 @@ router.post('/upload-visiting-card', upload.single('file'), uploadController.upl
 router.post('/upload-delivery-note/:leadId', upload.single('file'), uploadController.uploadVisitingCard);
 
 
+// for machine delivery
+router.post('/upload-delivery-file', upload.single('file'), uploadController.uploadDeliveryFile);
+
+
 
 module.exports = router;
 
