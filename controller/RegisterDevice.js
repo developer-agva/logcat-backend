@@ -3,7 +3,7 @@ const { validationResult } = require('express-validator');
 //Express module to be imported for the functioning of the routeer
 const registerDevice = async (req, res) => {
     try {
-      const { DeviceId,AliasName, IMEI_NO, Hospital_Name,Ward_No,Ventilator_Operator,Doctor_Name } = req.body;
+      const { DeviceId,AliasName, IMEI_NO, Hospital_Name,Ward_No,Ventilator_Operator,Doctor_Name, Bio_Med, Department_Name } = req.body;
       const DeviceIdTaken = await RegisterDevice.findOne({ DeviceId:DeviceId }).sort({'DeviceId':-1});
      const AliasNameTaken=await RegisterDevice.findOne({AliasName:AliasName});
   
@@ -85,6 +85,8 @@ const registerDevice = async (req, res) => {
          Ward_No,
          Ventilator_Operator,
          Doctor_Name,
+         Bio_Med,
+         Department_Name,
       });
   
       const savedDevice = await device.save(device)

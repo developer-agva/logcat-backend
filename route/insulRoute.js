@@ -33,8 +33,10 @@ var options = {
 };
 
 request(options, function (error, response, body) {
-   if (error) throw new Error(error);
-
+   if (error) {
+      console.error('FatSecret token fetch failed:', error.message);
+      return;
+   }
    accessToken = body.access_token;
 });
 
